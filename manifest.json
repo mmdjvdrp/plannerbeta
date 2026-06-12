@@ -1,0 +1,21 @@
+{
+  "name": "تقویم روزانه",
+  "short_name": "تقویم",
+  "description": "برنامه‌ریز و تقویم روزانه شخصی",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#7c5cfc",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
