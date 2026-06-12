@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ورود</title>
+
+<style>
+body{
+  font-family: Vazirmatn,sans-serif;
+  background:#111827;
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+}
+
+.box {
+  width: 90%;         
+  max-width: 350px;   
+  background: #1f2937;
+  padding: 25px;
+  border-radius: 15px;
+}
+
+input{
+  width:100%;
+  padding:10px;
+  margin:5px 0 15px;
+  box-sizing:border-box;
+}
+
+button{
+  width:100%;
+  padding:10px;
+  cursor:pointer;
+}
+
+.hidden{
+  display:none;
+}
+.tab-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.tab-btn {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #374151;
+  background: #111827;
+  color: #9ca3af;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: Vazirmatn, sans-serif;
+}
+.tab-btn.active {
+  background: #7c5cfc;
+  color: white;
+  border-color: #7c5cfc;
+}
+@media (max-width: 400px) {
+  body {
+    padding: 12px;
+  }
+  .box {
+    padding: 16px;
+    border-radius: 12px;
+  }
+}
+
+.err { color: #f87171; font-size: 13px; margin-top: -10px; margin-bottom: 10px; display: none; }
+</style>
+
+</head>
+<body>
+
+<div class="box">
+
+  <h2 style="margin-bottom:20px">تقویم روزانه</h2>
+
+  <div class="tab-row">
+    <button class="tab-btn active" id="tab-login">ورود</button>
+    <button class="tab-btn" id="tab-register">ثبت نام</button>
+  </div>
+
+  <!-- فرم ورود -->
+  <div id="login-section">
+    <label>ایمیل</label>
+    <input id="login-email" type="email" placeholder="example@email.com">
+    <label>رمز</label>
+    <input id="login-password" type="password" placeholder="رمز عبور">
+    <div class="err" id="login-err"></div>
+    <button id="login-btn">ورود</button>
+  </div>
+
+  <!-- فرم ثبت نام -->
+  <div id="register-section" style="display:none">
+    <label>نام نمایشی</label>
+    <input id="register-name" placeholder="مثلاً: علی">
+    <label>ایمیل</label>
+    <input id="register-email" type="email" placeholder="example@email.com">
+    <label>رمز</label>
+    <input id="register-password" type="password" placeholder="حداقل ۶ کاراکتر">
+    <div class="err" id="register-err"></div>
+    <button id="register-btn">ثبت نام</button>
+  </div>
+
+</div>
+
+<script type="module">
+
+import {
+  auth,
+  db,
+  ref,
+  set,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  onAuthStateChanged
+} from "./js/firebase.js";
+
+// اگه قبلاً لاگین بود برو index
+let registering = false;
+
+onAuthStateChanged(auth, (user) => {
+  if(user && !registering) window.location.href = "./index.html";
+});
+
+// تب‌ها
+document.getElementById("tab-login").onclick = () => {
+  document.getElementById("login-section").style.display = "block";
+  document.getElementById("register-section").style.display = "none";
+  document.getElementById("tab-login").classList.add("active");
+  document.getElementById("tab-register").classList.remove("active");
+};
+
+document.getElementById("tab-register").onclick = () => {
+  document.getElementById("register-section").style.display = "block";
+  document.getElementById("login-section").style.display = "none";
+  document.getElementById("tab-register").classList.add("active");
+  document.getElementById("tab-login").classList.remove("active");
+};
+
+// ورود
+document.getElementById("login-btn").onclick = async () => {
+  const email    = document.getElementById("login-email").value.trim();
+  const password = document.getElementById("login-password").value;
+  const err      = document.getElementById("login-err");
+  err.style.display = "none";
+  if(!email || !password){ err.textContent = "ایمیل و رمز را وارد کنید"; err.style.display = "block"; return; }
+  try{
+    await signInWithEmailAndPassword(auth, email, password);
+  }catch(e){
+    err.textContent = "ایمیل یا رمز اشتباه است";
+    err.style.display = "block";
+  }
+};
+
+// ثبت نام
+document.getElementById("register-btn").onclick = async () => {
+  const name     = document.getElementById("register-name").value.trim();
+  const email    = document.getElementById("register-email").value.trim();
+  const password = document.getElementById("register-password").value;
+  const err      = document.getElementById("register-err");
+  err.style.display = "none";
+  if(!name){ err.textContent = "نام را وارد کنید"; err.style.display = "block"; return; }
+  if(!email){ err.textContent = "ایمیل را وارد کنید"; err.style.display = "block"; return; }
+  if(password.length < 6){ err.textContent = "رمز باید حداقل ۶ کاراکتر باشد"; err.style.display = "block"; return; }
+try{
+    registering = true;
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    await set(ref(db, "users/" + result.user.uid + "/profile"), { name });
+    registering = false;
+    window.location.href = "./index.html";
+  }catch(e){
+    registering = false;
+    err.textContent = e.message;
+    err.style.display = "block";
+  }
+  
+};
+
+</script>
+
+
+
+</body>
+</html>
