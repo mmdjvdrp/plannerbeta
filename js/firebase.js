@@ -1,5 +1,5 @@
 import { initializeApp }
-from "/firebase-proxy/12.4.0/firebase-app.js";
+from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
 
 import {
   getAuth,
@@ -8,7 +8,7 @@ import {
   signOut,
   onAuthStateChanged
 }
-from "/firebase-proxy/12.4.0/firebase-auth.js";
+from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 
 import {
   getDatabase,
@@ -17,7 +17,7 @@ import {
   set,
   update
 }
-from "/firebase-proxy/12.4.0/firebase-database.js";
+from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAUtA25o7-msDMiWOxtW21FTVJM_fQoRc0",
