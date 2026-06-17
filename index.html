@@ -568,11 +568,45 @@ document.getElementById('save-cat').onclick = ()=>{
 
 function createEvent({title, catId, stRaw, enRaw, date=curDate}){
   const err=document.getElementById('time-err');
-  if(!title){ document.getElementById('act-title').focus(); return false; }
+  
+  // ابتدا مطمئن می‌شویم موضوع انتخاب شده است
   if(!catId || !cats.some(c=>c.id===catId)){
     alert('اول یک موضوع بسازید یا انتخاب کنید');
     return false;
   }
+
+  // اگر عنوان خالی بود، نام دسته‌بندی را به عنوان عنوان فعالیت قرار می‌دهیم
+  let finalTitle = (title || '').trim();
+  if(!finalTitle){
+    finalTitle = getCat(catId).name;
+  }
+
+  const sMins=parseTime(stRaw);
+  const eMinsRaw=parseTime(enRaw);
+  if(sMins===null||eMinsRaw===null){
+    err.style.display='block';
+    setTimeout(()=>err.style.display='none', 3000);
+    return false;
+  }
+
+  let durMins=eMinsRaw-sMins;
+  if(durMins<0) durMins+=24*60;  // شیفت شبانه
+  if(durMins===0){ alert('زمان شروع و پایان نمی‌تواند یکسان باشد'); return false; }
+
+  const eMins = sMins+durMins > 1440 ? sMins+durMins-1440 : sMins+durMins;
+
+  const ev={
+    id: Date.now().toString(),
+    date, 
+    title: finalTitle, // استفاده از عنوان نهایی
+    catId,
+    sMins, eMins, durMins
+  };
+  events.push(ev);
+  save('planner_ev', events);
+  saveCloud();
+  return true;
+}
 
   const sMins=parseTime(stRaw);
   const eMinsRaw=parseTime(enRaw);
