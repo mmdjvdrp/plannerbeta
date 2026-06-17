@@ -167,12 +167,42 @@ async function saveCloud(){
 }
 
 // لود اطلاعات از طریق تونل ورسل (بدون نیاز به وی‌پی‌ان)
+// تابع ذخیره ابری مجهز به لاگ خطایابی
+async function saveCloud(){
+  if(!auth.currentUser) return;
+  const data = { events, cats, liveSession, theme };
+  try {
+    const response = await fetch(`/api/database?uid=${auth.currentUser.uid}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    
+    // چاپ وضعیت پاسخ سرور در تب Console
+    console.log("وضعیت ذخیره در سرور ورسل (Status):", response.status);
+    
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("متن خطای سرور ورسل در ذخیره:", errText);
+    }
+  } catch (e) {
+    console.error("خطای شبکه برای ارتباط با ورسل در ذخیره:", e);
+  }
+}
+
+// تابع لود ابری مجهز به لاگ خطایابی
 async function loadCloud(){
   if(!auth.currentUser) return;
   try {
     const res = await fetch(`/api/database?uid=${auth.currentUser.uid}`);
+    
+    // چاپ وضعیت پاسخ سرور در تب Console
+    console.log("وضعیت لود از سرور ورسل (Status):", res.status);
+    
     if (res.ok) {
       const data = await res.json();
+      console.log("دیتای دریافت شده از سرور ورسل:", data);
+      
       if (data) {
         events      = data.events      || [];
         cats        = data.cats        || [];
@@ -184,22 +214,14 @@ async function loadCloud(){
         save('planner_live',  liveSession);
         save('planner_theme', theme);
       }
+    } else {
+      const errText = await res.text();
+      console.error("متن خطای سرور ورسل در لود:", errText);
     }
   } catch (e) {
-    console.error("خطا در لود ابری اطلاعات:", e);
+    console.error("خطای شبکه برای ارتباط با ورسل در لود:", e);
   }
 }
-
-const defaultCats = [];
-function load(k, def){
-  try{
-    const v = localStorage.getItem(k);
-    return v ? JSON.parse(v) : def;
-  }catch{
-    return def;
-  }
-}
-
 function save(k, v){
   try{
     localStorage.setItem(k, JSON.stringify(v));
