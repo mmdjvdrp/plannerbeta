@@ -138,12 +138,11 @@ import { supabase } from "./js/supabase.js";
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js")
-      .then((reg) => console.log("Service Worker ثبت شد!", reg))
+      .then((reg) => console.log("Service Worker با موفقیت ثبت شد!", reg))
       .catch((err) => console.log("خطا در ثبت Service Worker:", err));
   });
 }
-
-// ذخیره ابری داده‌ها در سوپابیس
+  
 async function saveCloud(){
   const { data: { user } } = await supabase.auth.getUser();
   if(!user) return;
@@ -155,7 +154,7 @@ async function saveCloud(){
         user_id: user.id,
         data: { events, cats, liveSession, theme }
       },
-      { onConflict: 'user_id' } // جلوگیری از ایجاد سطر تکراری و آپدیت روی همان کاربر
+      { onConflict: 'user_id' }
     );
 
   if (error) {
@@ -163,7 +162,6 @@ async function saveCloud(){
   }
 }
 
-// لود ابری داده‌ها از سوپابیس
 async function loadCloud(){
   const { data: { user } } = await supabase.auth.getUser();
   if(!user) return;
@@ -538,10 +536,13 @@ document.getElementById('btn-today').onclick = ()=>{
 document.getElementById('map-prev').onclick = ()=>shiftMapMonth(-1);
 document.getElementById('map-next').onclick = ()=>shiftMapMonth(1);
 document.getElementById('map-cat-select').onchange = renderActivityMap;
-document.getElementById('theme-select').onchange = e=>{
+
+// اعمال دقیق تغییر تم و ذخیره همزمان روی سوپابیس
+document.getElementById('theme-select').onchange = async e=>{
   theme=e.target.value;
   save('planner_theme', theme);
   applyTheme();
+  await saveCloud(); // ارسال اتوماتیک تم جدید به سوپابیس
 };
 
 document.getElementById('btn-now-s').onclick = ()=>{ document.getElementById('start-time').value=getNow(); };
@@ -689,7 +690,7 @@ document.getElementById('end-time').addEventListener('keydown', e=>{
 setupTimeInput(document.getElementById('start-time'));
 setupTimeInput(document.getElementById('end-time'));
 
-// مدیریت تغییر وضعیت نشست کاربری توسط سوپابیس
+// مدیریت ورود کاربر و واکشی دقیق نام نمایشی
 supabase.auth.onAuthStateChange(async (event, session) => {
   const user = session?.user;
   if(!user){
@@ -697,17 +698,25 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     return;
   }
 
-  // لود نام کاربر از دیتابیس سوپابیس
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("name")
-    .eq("id", user.id)
-    .maybeSingle();
+  // ۱. بررسی نام نمایشی از متادیتای کاربر (فوری و بدون تأخیر دیتابیس)
+  let displayName = user.user_metadata?.display_name || "";
 
-  if(profile){
-    const name = profile.name || "";
-    const msg = document.getElementById("welcome-msg");
-    if(msg) msg.textContent = "خوش آمدی، " + name + " 👋";
+  // ۲. بررسی در جدول جانبی profiles دیتابیس در صورت نبودن متادیتا
+  if (!displayName) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("name")
+      .eq("id", user.id)
+      .maybeSingle();
+    if(profile) {
+      displayName = profile.name || "";
+    }
+  }
+
+  // نمایش پیام خوش‌آمدگویی همراه با اسم
+  const msg = document.getElementById("welcome-msg");
+  if(msg && displayName) {
+    msg.textContent = "خوش آمدی، " + displayName + " 👋";
   }
 
   document.getElementById("logout-btn").onclick = async () => {
