@@ -58,7 +58,8 @@
         <div class="card-title">ثبت فعالیت جدید</div>
         <div class="form-group">
           <label>عنوان فعالیت</label>
-          <input type="text" id="act-title" placeholder="مثلاً: مطالعه، ورزش، گیم...">
+          <!-- متن راهنما تغییر کرد تا مشخص شود اختیاری است -->
+          <input type="text" id="act-title" placeholder="عنوان فعالیت (اختیاری - پیش‌فرض: نام موضوع)">
         </div>
         <div class="form-group">
           <label>دسته‌بندی</label>
@@ -132,21 +133,18 @@
 
 </div>
 
-
-  
 <script type="module">
-  
 import {
   auth,
   db,
   ref,
-  get,      // ← این باید باشه
+  get,      
   set,
   onAuthStateChanged,
   signOut
 } from "./js/firebase.js";
 
-  // Register Service Worker for PWA
+// Register Service Worker for PWA
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js")
@@ -175,13 +173,13 @@ async function loadCloud(){
     theme       = data.theme       || "dark";
     liveSession = data.liveSession || null;
 
-    // sync به localStorage هم بکن
     save('planner_ev',    events);
     save('planner_cats',  cats);
     save('planner_live',  liveSession);
     save('planner_theme', theme);
   }
 }
+
 const defaultCats = [];
 function load(k, def){
   try{
@@ -220,7 +218,6 @@ function pad(n){ return String(n).padStart(2,'0'); }
 
 function parseTime(s){
   s=(s||'').trim();
-  // auto-colon: "1430" → "14:30"
   if(/^\d{4}$/.test(s)) s=s.slice(0,2)+':'+s.slice(2);
   const m=s.match(/^(\d{1,2}):(\d{2})$/);
   if(!m) return null;
@@ -256,7 +253,6 @@ function shiftDay(n){
   render();
 }
 
-// --- Render Categories ---
 function renderCats(){
   const sel=document.getElementById('cat-select');
   const mapSel=document.getElementById('map-cat-select');
@@ -308,7 +304,6 @@ function renderCats(){
   else mapSel.value=cats[0].id;
 }
 
-// --- Render Timeline ---
 function renderTimeline(){
   const tl=document.getElementById('timeline');
   const em=document.getElementById('empty-msg');
@@ -344,7 +339,6 @@ function renderTimeline(){
   });
 }
 
-// --- Render Report ---
 function renderReport(){
   const [y,mo,d]=curDate.split('-').map(Number);
   const ref=new Date(y,mo-1,d);
@@ -427,7 +421,7 @@ function renderActivityMap(){
   const cat=getCat(sel.value);
   const daysInMonth=new Date(y, mo, 0).getDate();
   const firstDay=new Date(y, mo-1, 1).getDay();
-  const startOffset=(firstDay+1)%7; // Saturday-first grid
+  const startOffset=(firstDay+1)%7; 
   const sums={};
   let total=0;
 
@@ -455,265 +449,4 @@ function renderActivityMap(){
     const dateStr=mapMonth+'-'+pad(day);
     const el=document.createElement('div');
     el.className='map-day';
-    el.style.setProperty('--dot-color', cat.color);
-    el.style.setProperty('--dot-size', size+'px');
-    el.style.setProperty('--dot-strength', strength+'%');
-    el.style.setProperty('--dot-glow', glow+'%');
-    el.title=mins ? `${dateStr} - ${cat.name}: ${fmtDur(mins)} (${fill}٪ از بیشترین روز ماه)` : `${dateStr} - ${cat.name}: بدون ثبت`;
-    el.innerHTML=`
-      <span class="map-day-num">${day}</span>
-      <span class="map-dot"></span>
-    `;
-    map.appendChild(el);
-  }
-
-  summary.innerHTML=total
-    ? `مجموع این ماه برای <span>${escHtml(cat.name)}</span>: <span>${fmtDur(total)}</span>`
-    : `برای <span>${escHtml(cat.name)}</span> در این ماه چیزی ثبت نشده.`;
-}
-
-function render(){
-  document.getElementById('date-label').textContent=fmtDateLabel(curDate);
-  renderTimeline();
-  renderReport();
-  renderActivityMap();
-}
-
-function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
-// --- Events ---
-window.delEv=function(id){
-  if(!confirm('این فعالیت حذف شود؟')) return;
-  events=events.filter(e=>e.id!==id);
-  saveCloud();
-  render();
-};
-
-window.delCat=function(id){
-  const cat=getCat(id);
-  if(!confirm(`موضوع «${cat.name}» حذف شود؟ فعالیت‌های قبلی پاک نمی‌شوند.`)) return;
-  cats=cats.filter(c=>c.id!==id);
-  saveCloud();
-  if(liveSession && liveSession.catId===id){
-    liveSession=null;
-    saveCloud();
-  }
-  renderCats();
-  render();
-  updateLiveButton();
-};
-
-function setupTimeInput(inp){
-  inp.addEventListener('input', function(){
-    let v=this.value.replace(/[^\d:]/g,'');
-    const digits=v.replace(/:/g,'');
-    if(digits.length>=3 && !v.includes(':'))
-      v=digits.slice(0,2)+':'+digits.slice(2,4);
-    this.value=v;
-  });
-  inp.addEventListener('blur', function(){
-    const v=this.value.trim();
-    if(v && parseTime(v)===null){
-      this.style.borderColor='#ef4444';
-      this.style.boxShadow='0 0 0 3px rgba(239,68,68,.2)';
-    } else {
-      this.style.borderColor='';
-      this.style.boxShadow='';
-    }
-  });
-  inp.addEventListener('focus', function(){
-    this.style.borderColor='';
-    this.style.boxShadow='';
-  });
-}
-
-document.getElementById('prev-day').onclick = ()=>shiftDay(-1);
-document.getElementById('next-day').onclick = ()=>shiftDay(1);
-document.getElementById('btn-today').onclick = ()=>{
-  curDate=new Date().toISOString().split('T')[0];
-  render();
-};
-document.getElementById('map-prev').onclick = ()=>shiftMapMonth(-1);
-document.getElementById('map-next').onclick = ()=>shiftMapMonth(1);
-document.getElementById('map-cat-select').onchange = renderActivityMap;
-document.getElementById('theme-select').onchange = e=>{
-  theme=e.target.value;
-   save('planner_theme', theme);
-  applyTheme();
-};
-
-document.getElementById('btn-now-s').onclick = ()=>{ document.getElementById('start-time').value=getNow(); };
-document.getElementById('btn-now-e').onclick = ()=>{ document.getElementById('end-time').value=getNow(); };
-
-document.getElementById('toggle-cat').onclick = ()=>{
-  const b=document.getElementById('new-cat-box');
-  b.style.display = b.style.display==='block'?'none':'block';
-};
-
-document.getElementById('save-cat').onclick = ()=>{
-  const name=document.getElementById('new-cat-name').value.trim();
-  const color=document.getElementById('new-cat-color').value;
-  if(!name){ alert('نام دسته‌بندی را وارد کنید'); return; }
-  const nc={id:'c'+Date.now(), name, color};
-   cats.push(nc);
-  save('planner_cats', cats);
-  saveCloud();
-  renderCats();
-  document.getElementById('cat-select').value=nc.id;
-  document.getElementById('map-cat-select').value=nc.id;
-  document.getElementById('new-cat-name').value='';
-  document.getElementById('new-cat-box').style.display='none';
-  render();
-};
-
-function createEvent({title, catId, stRaw, enRaw, date=curDate}){
-  const err=document.getElementById('time-err');
-  if(!title){ document.getElementById('act-title').focus(); return false; }
-  if(!catId || !cats.some(c=>c.id===catId)){
-    alert('اول یک موضوع بسازید یا انتخاب کنید');
-    return false;
-  }
-
-  const sMins=parseTime(stRaw);
-  const eMinsRaw=parseTime(enRaw);
-  if(sMins===null||eMinsRaw===null){
-    err.style.display='block';
-    setTimeout(()=>err.style.display='none', 3000);
-    return false;
-  }
-
-  let durMins=eMinsRaw-sMins;
-  if(durMins<0) durMins+=24*60;  // شیفت شبانه
-  if(durMins===0){ alert('زمان شروع و پایان نمی‌تواند یکسان باشد'); return false; }
-
-  const eMins=sMins+durMins > 1440 ? sMins+durMins-1440 : sMins+durMins;
-
-  const ev={
-    id: Date.now().toString(),
-    date, title, catId,
-    sMins, eMins, durMins
-  };
-  events.push(ev);
-  save('planner_ev', events);
-  saveCloud();
-  return true;
-}
-
-function clearEventForm(){
-  document.getElementById('act-title').value='';
-  document.getElementById('start-time').value='';
-  document.getElementById('end-time').value='';
-}
-
-document.getElementById('add-btn').onclick = ()=>{
-  const ok=createEvent({
-    title: document.getElementById('act-title').value.trim(),
-    catId: document.getElementById('cat-select').value,
-    stRaw: document.getElementById('start-time').value,
-    enRaw: document.getElementById('end-time').value
-  });
-  if(!ok) return;
-
-  clearEventForm();
-  render();
-};
-
-function updateLiveButton(){
-  const btn=document.getElementById('live-btn');
-  const status=document.getElementById('live-status');
-  if(!btn || !status) return;
-  if(liveSession){
-    btn.classList.add('is-running');
-    btn.textContent='پایان و ثبت فعالیت';
-    const cat=getCat(liveSession.catId);
-    status.textContent=`در حال ثبت: ${liveSession.title}، از ${fmtTime(liveSession.sMins)}، ${cat.name}`;
-    return;
-  }
-  btn.classList.remove('is-running');
-  btn.textContent='شروع / پایان با ساعت سیستم';
-  status.textContent='';
-}
-
-document.getElementById('live-btn').onclick=()=>{
-  if(!liveSession){
-    const title=document.getElementById('act-title').value.trim();
-    const catId=document.getElementById('cat-select').value;
-    if(!title){ document.getElementById('act-title').focus(); return; }
-    if(!catId || !cats.some(c=>c.id===catId)){
-      alert('اول یک موضوع بسازید یا انتخاب کنید');
-      return;
-    }
-    const now=getNow();
-    const sMins=parseTime(now);
-    liveSession={title, catId, date:curDate, sMins};
-    saveCloud();
-    document.getElementById('start-time').value=now;
-    document.getElementById('end-time').value='';
-    updateLiveButton();
-    return;
-  }
-
-  const endNow=getNow();
-  const ok=createEvent({
-    title: liveSession.title,
-    catId: liveSession.catId,
-    stRaw: fmtTime(liveSession.sMins),
-    enRaw: endNow,
-    date: liveSession.date
-  });
-  if(!ok) return;
-  liveSession=null;
-  saveCloud();
-  clearEventForm();
-  render();
-  updateLiveButton();
-};
-
-// Keyboard shortcut: Enter to add
-document.getElementById('end-time').addEventListener('keydown', e=>{
-  if(e.key==='Enter') document.getElementById('add-btn').click();
-});
-
-setupTimeInput(document.getElementById('start-time'));
-setupTimeInput(document.getElementById('end-time'));
-
-
-onAuthStateChanged(auth, async (user) => {
-  if(!user){
-    window.location.href = "./login.html";
-    return;
-  }
-
-  // نمایش نام کاربر
-  const snap = await get(ref(db, "users/" + user.uid + "/profile"));
-console.log("snap exists:", snap.exists());
-console.log("snap val:", snap.val());
-  if(snap.exists()){
-    const name = snap.val().name || "";
-    const msg = document.getElementById("welcome-msg");
-    if(msg) msg.textContent = "خوش آمدی، " + name + " 👋";
-  }
-
-  // دکمه خروج
-  document.getElementById("logout-btn").onclick = async () => {
-    await signOut(auth);
-    window.location.href = "./login.html";
-  };
-
-localStorage.removeItem('planner_ev');
-  localStorage.removeItem('planner_cats');
-  localStorage.removeItem('planner_live');
-  events = [];
-  cats = [];
-  liveSession = null;
-
-  await loadCloud();
-  applyTheme();
-  renderCats();
-  render();
-  updateLiveButton();
-});
-</script>
-
-</body>
-</html>
+    el.style.setProperty('--dot-color', cat.col
