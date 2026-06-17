@@ -131,46 +131,48 @@
   </div>
 
 </div>
-
 <script type="module">
-import {
-  auth,
-  db,
-  ref,
-  get,      
-  set,
-  onAuthStateChanged,
-  signOut
-} from "./js/firebase.js";
+import { supabase } from "./js/supabase.js";
 
-// Register Service Worker for PWA
+// ثبت Service Worker برای PWA
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js")
-      .then((reg) => console.log("Service Worker با موفقیت ثبت شد!", reg))
+      .then((reg) => console.log("Service Worker ثبت شد!", reg))
       .catch((err) => console.log("خطا در ثبت Service Worker:", err));
   });
 }
-  
+
+// ذخیره ابری داده‌ها در سوپابیس
 async function saveCloud(){
-  if(!auth.currentUser) return;
-  await set(
-    ref(db, "users/" + auth.currentUser.uid + "/plannerData"),
-    { events, cats, liveSession, theme }
-  );
+  const { data: { user } } = await supabase.auth.getUser();
+  if(!user) return;
+  
+  await supabase
+    .from("planner_data")
+    .upsert({
+      user_id: user.id,
+      data: { events, cats, liveSession, theme }
+    });
 }
 
+// لود ابری داده‌ها از سوپابیس
 async function loadCloud(){
-  if(!auth.currentUser) return;
-  const snap = await get(
-    ref(db, "users/" + auth.currentUser.uid + "/plannerData")
-  );
-  if(snap.exists()){
-    const data = snap.val();
-    events      = data.events      || [];
-    cats        = data.cats        || [];
-    theme       = data.theme       || "dark";
-    liveSession = data.liveSession || null;
+  const { data: { user } } = await supabase.auth.getUser();
+  if(!user) return;
+
+  const { data, error } = await supabase
+    .from("planner_data")
+    .select("data")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if(data && data.data){
+    const cloudData = data.data;
+    events      = cloudData.events      || [];
+    cats        = cloudData.cats        || [];
+    theme       = cloudData.theme       || "dark";
+    liveSession = cloudData.liveSession || null;
 
     save('planner_ev',    events);
     save('planner_cats',  cats);
@@ -680,21 +682,29 @@ document.getElementById('end-time').addEventListener('keydown', e=>{
 setupTimeInput(document.getElementById('start-time'));
 setupTimeInput(document.getElementById('end-time'));
 
-onAuthStateChanged(auth, async (user) => {
+// مدیریت تغییر وضعیت نشست کاربری توسط سوپابیس
+supabase.auth.onAuthStateChange(async (event, session) => {
+  const user = session?.user;
   if(!user){
     window.location.href = "./login.html";
     return;
   }
 
-  const snap = await get(ref(db, "users/" + user.uid + "/profile"));
-  if(snap.exists()){
-    const name = snap.val().name || "";
+  // لود نام کاربر از دیتابیس سوپابیس
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("name")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if(profile){
+    const name = profile.name || "";
     const msg = document.getElementById("welcome-msg");
     if(msg) msg.textContent = "خوش آمدی، " + name + " 👋";
   }
 
   document.getElementById("logout-btn").onclick = async () => {
-    await signOut(auth);
+    await supabase.auth.signOut();
     window.location.href = "./login.html";
   };
 
