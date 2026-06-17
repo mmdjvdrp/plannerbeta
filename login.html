@@ -160,7 +160,8 @@ document.getElementById("login-btn").onclick = async () => {
   }
 };
 
-// ثبت نام حساب کاربری جدید
+// کد اصلاح‌شده ثبت‌نام در دکمه register-btn فایل login.html
+
 document.getElementById("register-btn").onclick = async () => {
   const name     = document.getElementById("register-name").value.trim();
   const email    = document.getElementById("register-email").value.trim();
@@ -172,27 +173,31 @@ document.getElementById("register-btn").onclick = async () => {
   if(!email){ err.textContent = "ایمیل را وارد کنید"; err.style.display = "block"; return; }
   if(password.length < 6){ err.textContent = "رمز باید حداقل ۶ کاراکتر باشد"; err.style.display = "block"; return; }
 
-  try {
+  try{
     registering = true;
     
-    // ۱. ایجاد کاربر در سیستم احراز هویت سوپابیس
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    // ۱. ثبت‌نام کاربر به همراه ذخیره نام در متادیتای اکانت (display_name)
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          display_name: name // ذخیره مستقیم نام کاربری در ساختار هویت
+        }
+      }
+    });
     if (error) throw error;
 
+    // ۲. ذخیره همزمان در جدول پروفایل دیتابیس به عنوان پشتیبان
     if (data?.user) {
-      // ۲. ثبت نام نمایشی کاربر در جدول پروفایل‌ها
-      const { error: profileError } = await supabase
+      await supabase
         .from("profiles")
         .upsert({ id: data.user.id, name });
-        
-      if (profileError) throw profileError;
     }
 
     registering = false;
-    // توجه: سوپابیس به طور پیش‌فرض ایمیل تاییدیه می‌فرستد.
-    // در صورتی که تایید ایمیل در تنظیمات فعال باشد، کاربر ابتدا باید ایمیل خود را تایید کند.
     window.location.href = "./index.html";
-  } catch(e) {
+  }catch(e){
     registering = false;
     err.textContent = e.message;
     err.style.display = "block";
