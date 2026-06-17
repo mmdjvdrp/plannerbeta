@@ -697,8 +697,8 @@ document.getElementById('end-time').addEventListener('keydown', e=>{
 setupTimeInput(document.getElementById('start-time'));
 setupTimeInput(document.getElementById('end-time'));
 
-// مدیریت و لود دقیق احراز هویت با ساختار ایمن و بدون بن‌بست
-supabase.auth.onAuthStateChange((event, session) => {
+// تابع کمکی برای پردازش کلیه تعاملات مربوط به نشست فعال کاربر
+async function handleUserSession(session) {
   const user = session?.user;
   if(!user){
     window.location.href = "./login.html";
@@ -718,7 +718,7 @@ supabase.auth.onAuthStateChange((event, session) => {
     };
   }
 
-  // ۲. دریافت سریع نام از متادیتا / ایمیل برای جلوگیری از بن‌بست دیتابیس
+  // ۲. تعیین سریع نام از متادیتای اکانت / پیش‌فرض بخش اول ایمیل
   let displayName = user.user_metadata?.display_name || "";
   if (!displayName && user.email) {
     displayName = user.email.split('@')[0];
@@ -729,7 +729,7 @@ supabase.auth.onAuthStateChange((event, session) => {
     msg.textContent = displayName ? "خوش آمدی، " + displayName + " 👋" : "خوش آمدی 👋";
   }
 
-  // ۳. اجرای غیرهمزمان کوئری‌های ابری (با تاخیر کوتاه) برای آزاد کردن قفل داخلی سوپابیس
+  // ۳. لود داده‌های ابری به صورت ناهمگام در نخ پس‌زمینه با یک تاخیر کوتاه برای رفع باگ بن‌بست
   setTimeout(async () => {
     try {
       localStorage.removeItem('planner_ev');
@@ -739,10 +739,10 @@ supabase.auth.onAuthStateChange((event, session) => {
       cats = [];
       liveSession = null;
 
-      // دریافت داده‌های برنامه از فضای ابری
+      // دریافت داده‌ها از دیتابیس ابری
       await loadCloud();
 
-      // تلاش مجدد برای بررسی دیتابیس پروفایل در صورت خالی بودن نام
+      // تلاش برای خواندن جدول پروفایل در صورتی که همچنان نام نمایشی یافت نشد
       if (!user.user_metadata?.display_name) {
         const { data: profile, error: profileErr } = await supabase
           .from("profiles")
@@ -763,6 +763,33 @@ supabase.auth.onAuthStateChange((event, session) => {
       console.error("خطا در پردازش داده‌های ابری پس‌زمینه:", err);
     }
   }, 10);
+}
+
+// بررسی دستی و همزمان نشست کاربر در هنگام لود ابتدایی صفحه (حیاتی برای تضمین اجرا)
+async function initAuth() {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      await handleUserSession(session);
+    } else {
+      window.location.href = "./login.html";
+    }
+  } catch (err) {
+    console.error("خطا در واکشی وضعیت لود کاربر:", err);
+    window.location.href = "./login.html";
+  }
+}
+
+// اجرای متد لودر اولیه
+initAuth();
+
+// گوش دادن به تغییرات نشست کاربر پس از لود اولیه
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === "SIGNED_OUT") {
+    window.location.href = "./login.html";
+  } else if (event === "SIGNED_IN" && session) {
+    handleUserSession(session);
+  }
 });
 </script>
 </body>
