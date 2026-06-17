@@ -1,8 +1,0 @@
-{
-  "rewrites": [
-    {
-      "source": "/firebase-proxy/:path*",
-      "destination": "https://www.gstatic.com/firebasejs/:path*"
-    }
-  ]
-}
