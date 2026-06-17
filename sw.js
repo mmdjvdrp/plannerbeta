@@ -1,4 +1,4 @@
-const CACHE_NAME = "planner-cache-v5"; 
+const CACHE_NAME = "planner-cache-v6"; 
 const assetsToCache = [
   "/",
   "/index.html",
@@ -41,23 +41,14 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// کش کردن فایل‌های جدید پروکسی شده
+// کش کردن فایل‌های سایت
 self.addEventListener("fetch", (event) => {
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
         return cachedResponse;
       }
-      return fetch(event.request).then((response) => {
-        // اگر فایل از تونل ورسل رد شده بود، ذخیره‌اش کن
-        if (event.request.url.includes("/firebase-proxy/")) {
-          const resClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, resClone);
-          });
-        }
-        return response;
-      });
+      return fetch(event.request);
     }).catch(() => {
       // حالت آفلاین
     })
