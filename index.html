@@ -672,20 +672,27 @@ document.getElementById('live-btn').onclick=()=>{
   if(!liveSession){
     const title=document.getElementById('act-title').value.trim();
     const catId=document.getElementById('cat-select').value;
-    if(!title){ document.getElementById('act-title').focus(); return; }
+    
+    // ابتدا بررسی موضوع
     if(!catId || !cats.some(c=>c.id===catId)){
       alert('اول یک موضوع بسازید یا انتخاب کنید');
       return;
     }
+    
+    // تعیین عنوان نهایی (اگر خالی بود، نام موضوع استفاده می‌شود)
+    const finalTitle = title || getCat(catId).name;
+    
     const now=getNow();
     const sMins=parseTime(now);
-    liveSession={title, catId, date:curDate, sMins};
+    
+    liveSession={title: finalTitle, catId, date:curDate, sMins};
     saveCloud();
     document.getElementById('start-time').value=now;
     document.getElementById('end-time').value='';
     updateLiveButton();
     return;
   }
+  // باقی کدهای دکمه لایو بدون تغییر بماند...
 
   const endNow=getNow();
   const ok=createEvent({
