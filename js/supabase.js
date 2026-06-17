@@ -1,7 +1,7 @@
 // js/supabase.js
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+import { createClient } from "https://ipureiqnhgatigewbggj.supabase.co/rest/v1/";
 
-const supabaseUrl = "YOUR_SUPABASE_URL"; // آدرس پروژه شما
-const supabaseKey = "YOUR_SUPABASE_ANON_KEY"; // کلید عمومی شما
+const supabaseUrl = "https://ipureiqnhgatigewbggj.supabase.co"; // آدرس پروژه شما
+const supabaseKey = "sb_publishable_ieckfcaUPxIeHPloSuR-rA_r7BC3aso"; // کلید عمومی شما
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
