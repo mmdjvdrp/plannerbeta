@@ -133,65 +133,52 @@
 </div>
 
 <script type="module">
-  
 import {
   auth,
   db,
   ref,
-  get,
+  get,      
   set,
   onAuthStateChanged,
   signOut
 } from "./js/firebase.js";
 
-// ثبت سرویس ورکر برای PWA
+// Register Service Worker for PWA
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js")
       .then((reg) => console.log("Service Worker با موفقیت ثبت شد!", reg))
       .catch((err) => console.log("خطا در ثبت Service Worker:", err));
   });
+}
+  
 async function saveCloud(){
   if(!auth.currentUser) return;
-  
-  const data = { events, cats, liveSession, theme };
-
-  try {
-    // ارسال اطلاعات به تونل ورسل بدون نیاز به وی‌پی‌ان
-    await fetch(`/api/database?uid=${auth.currentUser.uid}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-  } catch (e) {
-    console.error("خطا در ذخیره ابری اطلاعات:", e);
-  }
+  await set(
+    ref(db, "users/" + auth.currentUser.uid + "/plannerData"),
+    { events, cats, liveSession, theme }
+  );
 }
 
 async function loadCloud(){
   if(!auth.currentUser) return;
+  const snap = await get(
+    ref(db, "users/" + auth.currentUser.uid + "/plannerData")
+  );
+  if(snap.exists()){
+    const data = snap.val();
+    events      = data.events      || [];
+    cats        = data.cats        || [];
+    theme       = data.theme       || "dark";
+    liveSession = data.liveSession || null;
 
-  try {
-    // دریافت اطلاعات از تونل ورسل بدون نیاز به وی‌پی‌ان
-    const res = await fetch(`/api/database?uid=${auth.currentUser.uid}`);
-    if (res.ok) {
-      const data = await res.json();
-      if (data) {
-        events      = data.events      || [];
-        cats        = data.cats        || [];
-        theme       = data.theme       || "dark";
-        liveSession = data.liveSession || null;
-
-        save('planner_ev',    events);
-        save('planner_cats',  cats);
-        save('planner_live',  liveSession);
-        save('planner_theme', theme);
-      }
-    }
-  } catch (e) {
-    console.error("خطا در لود ابری اطلاعات:", e);
+    save('planner_ev',    events);
+    save('planner_cats',  cats);
+    save('planner_live',  liveSession);
+    save('planner_theme', theme);
   }
 }
+
 const defaultCats = [];
 function load(k, def){
   try{
@@ -266,7 +253,6 @@ function shiftDay(n){
   render();
 }
 
-// --- نمایش دسته‌بندی‌ها ---
 function renderCats(){
   const sel=document.getElementById('cat-select');
   const mapSel=document.getElementById('map-cat-select');
@@ -318,7 +304,6 @@ function renderCats(){
   else mapSel.value=cats[0].id;
 }
 
-// --- نمایش تایم‌لاین ---
 function renderTimeline(){
   const tl=document.getElementById('timeline');
   const em=document.getElementById('empty-msg');
@@ -354,7 +339,6 @@ function renderTimeline(){
   });
 }
 
-// --- نمایش گزارش‌ها ---
 function renderReport(){
   const [y,mo,d]=curDate.split('-').map(Number);
   const ref=new Date(y,mo-1,d);
@@ -437,7 +421,7 @@ function renderActivityMap(){
   const cat=getCat(sel.value);
   const daysInMonth=new Date(y, mo, 0).getDate();
   const firstDay=new Date(y, mo-1, 1).getDay();
-  const startOffset=(firstDay+1)%7;
+  const startOffset=(firstDay+1)%7; 
   const sums={};
   let total=0;
 
@@ -491,7 +475,6 @@ function render(){
 
 function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-// --- رویدادهای عمومی حذف رویداد و دسته‌بندی ---
 window.delEv=function(id){
   if(!confirm('این فعالیت حذف شود؟')) return;
   events=events.filter(e=>e.id!==id);
@@ -560,7 +543,6 @@ document.getElementById('toggle-cat').onclick = ()=>{
   b.style.display = b.style.display==='block'?'none':'block';
 };
 
-// ثبت موضوع جدید
 document.getElementById('save-cat').onclick = ()=>{
   const name=document.getElementById('new-cat-name').value.trim();
   const color=document.getElementById('new-cat-color').value;
@@ -577,7 +559,6 @@ document.getElementById('save-cat').onclick = ()=>{
   render();
 };
 
-// ایجاد رویداد (تغییر یافته - عنوان فعالیت اختیاری است)
 function createEvent({title, catId, stRaw, enRaw, date=curDate}){
   const err=document.getElementById('time-err');
   
@@ -586,7 +567,6 @@ function createEvent({title, catId, stRaw, enRaw, date=curDate}){
     return false;
   }
 
-  // اگر عنوان خالی بود، از نام دسته‌بندی استفاده کن
   let finalTitle = (title || '').trim();
   if(!finalTitle){
     finalTitle = getCat(catId).name;
@@ -601,14 +581,16 @@ function createEvent({title, catId, stRaw, enRaw, date=curDate}){
   }
 
   let durMins=eMinsRaw-sMins;
-  if(durMins<0) durMins+=24*60;
+  if(durMins<0) durMins+=24*60; 
   if(durMins===0){ alert('زمان شروع و پایان نمی‌تواند یکسان باشد'); return false; }
 
-  const eMins = sMins+durMins > 1440 ? sMins+durMins-1440 : sMins+durMins;
+  const eMins=sMins+durMins > 1440 ? sMins+durMins-1440 : sMins+durMins;
 
   const ev={
     id: Date.now().toString(),
-    date, title: finalTitle, catId,
+    date, 
+    title: finalTitle,
+    catId,
     sMins, eMins, durMins
   };
   events.push(ev);
@@ -652,18 +634,21 @@ function updateLiveButton(){
   status.textContent='';
 }
 
-// دکمه لایو (اصلاح شده - با رفع خطای بستن پرانتز)
 document.getElementById('live-btn').onclick=()=>{
   if(!liveSession){
     const title=document.getElementById('act-title').value.trim();
     const catId=document.getElementById('cat-select').value;
+    
     if(!catId || !cats.some(c=>c.id===catId)){
       alert('اول یک موضوع بسازید یا انتخاب کنید');
       return;
     }
+
     const finalTitle = title || getCat(catId).name;
+
     const now=getNow();
     const sMins=parseTime(now);
+    
     liveSession={title: finalTitle, catId, date:curDate, sMins};
     saveCloud();
     document.getElementById('start-time').value=now;
@@ -695,7 +680,6 @@ document.getElementById('end-time').addEventListener('keydown', e=>{
 setupTimeInput(document.getElementById('start-time'));
 setupTimeInput(document.getElementById('end-time'));
 
-// بررسی لاگین فایربیس و مدیریت خروج
 onAuthStateChanged(auth, async (user) => {
   if(!user){
     window.location.href = "./login.html";
