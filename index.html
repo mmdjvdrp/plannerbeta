@@ -151,35 +151,47 @@ if ("serviceWorker" in navigator) {
       .then((reg) => console.log("Service Worker با موفقیت ثبت شد!", reg))
       .catch((err) => console.log("خطا در ثبت Service Worker:", err));
   });
-}
-  
 async function saveCloud(){
   if(!auth.currentUser) return;
-  await set(
-    ref(db, "users/" + auth.currentUser.uid + "/plannerData"),
-    { events, cats, liveSession, theme }
-  );
+  
+  const data = { events, cats, liveSession, theme };
+
+  try {
+    // ارسال اطلاعات به تونل ورسل بدون نیاز به وی‌پی‌ان
+    await fetch(`/api/database?uid=${auth.currentUser.uid}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  } catch (e) {
+    console.error("خطا در ذخیره ابری اطلاعات:", e);
+  }
 }
 
 async function loadCloud(){
   if(!auth.currentUser) return;
-  const snap = await get(
-    ref(db, "users/" + auth.currentUser.uid + "/plannerData")
-  );
-  if(snap.exists()){
-    const data = snap.val();
-    events      = data.events      || [];
-    cats        = data.cats        || [];
-    theme       = data.theme       || "dark";
-    liveSession = data.liveSession || null;
 
-    save('planner_ev',    events);
-    save('planner_cats',  cats);
-    save('planner_live',  liveSession);
-    save('planner_theme', theme);
+  try {
+    // دریافت اطلاعات از تونل ورسل بدون نیاز به وی‌پی‌ان
+    const res = await fetch(`/api/database?uid=${auth.currentUser.uid}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data) {
+        events      = data.events      || [];
+        cats        = data.cats        || [];
+        theme       = data.theme       || "dark";
+        liveSession = data.liveSession || null;
+
+        save('planner_ev',    events);
+        save('planner_cats',  cats);
+        save('planner_live',  liveSession);
+        save('planner_theme', theme);
+      }
+    }
+  } catch (e) {
+    console.error("خطا در لود ابری اطلاعات:", e);
   }
 }
-
 const defaultCats = [];
 function load(k, def){
   try{
