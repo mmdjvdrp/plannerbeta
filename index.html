@@ -148,12 +148,19 @@ async function saveCloud(){
   const { data: { user } } = await supabase.auth.getUser();
   if(!user) return;
   
-  await supabase
+  const { error } = await supabase
     .from("planner_data")
-    .upsert({
-      user_id: user.id,
-      data: { events, cats, liveSession, theme }
-    });
+    .upsert(
+      {
+        user_id: user.id,
+        data: { events, cats, liveSession, theme }
+      },
+      { onConflict: 'user_id' } // جلوگیری از ایجاد سطر تکراری و آپدیت روی همان کاربر
+    );
+
+  if (error) {
+    console.error("خطا در ذخیره‌سازی ابری:", error.message);
+  }
 }
 
 // لود ابری داده‌ها از سوپابیس
