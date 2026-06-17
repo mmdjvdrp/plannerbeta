@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-  <link rel="manifest" href="./manifest.json">
+  <link rel="manifest" href="./js/manifest.json">
 <meta name="theme-color" content="#111827">
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
 <meta charset="UTF-8">
@@ -58,7 +58,7 @@
         <div class="card-title">ثبت فعالیت جدید</div>
         <div class="form-group">
           <label>عنوان فعالیت</label>
-         <input type="text" id="act-title" placeholder="عنوان فعالیت (اختیاری - پیش‌فرض: نام موضوع)">
+          <input type="text" id="act-title" placeholder="مثلاً: مطالعه، ورزش، گیم...">
         </div>
         <div class="form-group">
           <label>دسته‌بندی</label>
@@ -131,18 +131,22 @@
   </div>
 
 </div>
+
+
+  
 <script type="module">
   
 import {
   auth,
   db,
   ref,
-  get,
+  get,      // ← این باید باشه
+  set,
   onAuthStateChanged,
   signOut
 } from "./js/firebase.js";
 
-// ثبت سرویس ورکر برای PWA
+  // Register Service Worker for PWA
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js")
@@ -151,83 +155,48 @@ if ("serviceWorker" in navigator) {
   });
 }
   
-// ذخیره اطلاعات از طریق تونل ورسل (بدون نیاز به وی‌پی‌ان)
 async function saveCloud(){
   if(!auth.currentUser) return;
-  const data = { events, cats, liveSession, theme };
-  try {
-    await fetch(`/api/database?uid=${auth.currentUser.uid}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-  } catch (e) {
-    console.error("خطا در ذخیره ابری اطلاعات:", e);
-  }
+  await set(
+    ref(db, "users/" + auth.currentUser.uid + "/plannerData"),
+    { events, cats, liveSession, theme }
+  );
 }
 
-// لود اطلاعات از طریق تونل ورسل (بدون نیاز به وی‌پی‌ان)
-// تابع ذخیره ابری مجهز به لاگ خطایابی
-async function saveCloud(){
-  if(!auth.currentUser) return;
-  const data = { events, cats, liveSession, theme };
-  try {
-    const response = await fetch(`/api/database?uid=${auth.currentUser.uid}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    
-    // چاپ وضعیت پاسخ سرور در تب Console
-    console.log("وضعیت ذخیره در سرور ورسل (Status):", response.status);
-    
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("متن خطای سرور ورسل در ذخیره:", errText);
-    }
-  } catch (e) {
-    console.error("خطای شبکه برای ارتباط با ورسل در ذخیره:", e);
-  }
-}
-
-// تابع لود ابری مجهز به لاگ خطایابی
 async function loadCloud(){
   if(!auth.currentUser) return;
-  try {
-    const res = await fetch(`/api/database?uid=${auth.currentUser.uid}`);
-    
-    // چاپ وضعیت پاسخ سرور در تب Console
-    console.log("وضعیت لود از سرور ورسل (Status):", res.status);
-    
-    if (res.ok) {
-      const data = await res.json();
-      console.log("دیتای دریافت شده از سرور ورسل:", data);
-      
-      if (data) {
-        events      = data.events      || [];
-        cats        = data.cats        || [];
-        theme       = data.theme       || "dark";
-        liveSession = data.liveSession || null;
+  const snap = await get(
+    ref(db, "users/" + auth.currentUser.uid + "/plannerData")
+  );
+  if(snap.exists()){
+    const data = snap.val();
+    events      = data.events      || [];
+    cats        = data.cats        || [];
+    theme       = data.theme       || "dark";
+    liveSession = data.liveSession || null;
 
-        save('planner_ev',    events);
-        save('planner_cats',  cats);
-        save('planner_live',  liveSession);
-        save('planner_theme', theme);
-      }
-    } else {
-      const errText = await res.text();
-      console.error("متن خطای سرور ورسل در لود:", errText);
-    }
-  } catch (e) {
-    console.error("خطای شبکه برای ارتباط با ورسل در لود:", e);
+    // sync به localStorage هم بکن
+    save('planner_ev',    events);
+    save('planner_cats',  cats);
+    save('planner_live',  liveSession);
+    save('planner_theme', theme);
   }
 }
+const defaultCats = [];
+function load(k, def){
+  try{
+    const v = localStorage.getItem(k);
+    return v ? JSON.parse(v) : def;
+  }catch{
+    return def;
+  }
+}
+
 function save(k, v){
   try{
     localStorage.setItem(k, JSON.stringify(v));
   }catch{}
 }
-
 let events = load('planner_ev', []);
 let cats   = load('planner_cats', defaultCats);
 let curDate= new Date().toISOString().split('T')[0];
@@ -251,6 +220,7 @@ function pad(n){ return String(n).padStart(2,'0'); }
 
 function parseTime(s){
   s=(s||'').trim();
+  // auto-colon: "1430" → "14:30"
   if(/^\d{4}$/.test(s)) s=s.slice(0,2)+':'+s.slice(2);
   const m=s.match(/^(\d{1,2}):(\d{2})$/);
   if(!m) return null;
@@ -286,6 +256,7 @@ function shiftDay(n){
   render();
 }
 
+// --- Render Categories ---
 function renderCats(){
   const sel=document.getElementById('cat-select');
   const mapSel=document.getElementById('map-cat-select');
@@ -337,6 +308,7 @@ function renderCats(){
   else mapSel.value=cats[0].id;
 }
 
+// --- Render Timeline ---
 function renderTimeline(){
   const tl=document.getElementById('timeline');
   const em=document.getElementById('empty-msg');
@@ -372,6 +344,7 @@ function renderTimeline(){
   });
 }
 
+// --- Render Report ---
 function renderReport(){
   const [y,mo,d]=curDate.split('-').map(Number);
   const ref=new Date(y,mo-1,d);
@@ -454,7 +427,7 @@ function renderActivityMap(){
   const cat=getCat(sel.value);
   const daysInMonth=new Date(y, mo, 0).getDate();
   const firstDay=new Date(y, mo-1, 1).getDay();
-  const startOffset=(firstDay+1)%7;
+  const startOffset=(firstDay+1)%7; // Saturday-first grid
   const sums={};
   let total=0;
 
@@ -508,6 +481,7 @@ function render(){
 
 function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+// --- Events ---
 window.delEv=function(id){
   if(!confirm('این فعالیت حذف شود؟')) return;
   events=events.filter(e=>e.id!==id);
@@ -564,7 +538,7 @@ document.getElementById('map-next').onclick = ()=>shiftMapMonth(1);
 document.getElementById('map-cat-select').onchange = renderActivityMap;
 document.getElementById('theme-select').onchange = e=>{
   theme=e.target.value;
-  save('planner_theme', theme);
+   save('planner_theme', theme);
   applyTheme();
 };
 
@@ -581,7 +555,7 @@ document.getElementById('save-cat').onclick = ()=>{
   const color=document.getElementById('new-cat-color').value;
   if(!name){ alert('نام دسته‌بندی را وارد کنید'); return; }
   const nc={id:'c'+Date.now(), name, color};
-  cats.push(nc);
+   cats.push(nc);
   save('planner_cats', cats);
   saveCloud();
   renderCats();
@@ -594,15 +568,10 @@ document.getElementById('save-cat').onclick = ()=>{
 
 function createEvent({title, catId, stRaw, enRaw, date=curDate}){
   const err=document.getElementById('time-err');
-  
+  if(!title){ document.getElementById('act-title').focus(); return false; }
   if(!catId || !cats.some(c=>c.id===catId)){
     alert('اول یک موضوع بسازید یا انتخاب کنید');
     return false;
-  }
-
-  let finalTitle = (title || '').trim();
-  if(!finalTitle){
-    finalTitle = getCat(catId).name;
   }
 
   const sMins=parseTime(stRaw);
@@ -614,14 +583,14 @@ function createEvent({title, catId, stRaw, enRaw, date=curDate}){
   }
 
   let durMins=eMinsRaw-sMins;
-  if(durMins<0) durMins+=24*60;
+  if(durMins<0) durMins+=24*60;  // شیفت شبانه
   if(durMins===0){ alert('زمان شروع و پایان نمی‌تواند یکسان باشد'); return false; }
 
-  const eMins = sMins+durMins > 1440 ? sMins+durMins-1440 : sMins+durMins;
+  const eMins=sMins+durMins > 1440 ? sMins+durMins-1440 : sMins+durMins;
 
   const ev={
     id: Date.now().toString(),
-    date, title: finalTitle, catId,
+    date, title, catId,
     sMins, eMins, durMins
   };
   events.push(ev);
@@ -669,14 +638,14 @@ document.getElementById('live-btn').onclick=()=>{
   if(!liveSession){
     const title=document.getElementById('act-title').value.trim();
     const catId=document.getElementById('cat-select').value;
+    if(!title){ document.getElementById('act-title').focus(); return; }
     if(!catId || !cats.some(c=>c.id===catId)){
       alert('اول یک موضوع بسازید یا انتخاب کنید');
       return;
     }
-    const finalTitle = title || getCat(catId).name;
     const now=getNow();
     const sMins=parseTime(now);
-    liveSession={title: finalTitle, catId, date:curDate, sMins};
+    liveSession={title, catId, date:curDate, sMins};
     saveCloud();
     document.getElementById('start-time').value=now;
     document.getElementById('end-time').value='';
@@ -700,6 +669,7 @@ document.getElementById('live-btn').onclick=()=>{
   updateLiveButton();
 };
 
+// Keyboard shortcut: Enter to add
 document.getElementById('end-time').addEventListener('keydown', e=>{
   if(e.key==='Enter') document.getElementById('add-btn').click();
 });
@@ -707,25 +677,30 @@ document.getElementById('end-time').addEventListener('keydown', e=>{
 setupTimeInput(document.getElementById('start-time'));
 setupTimeInput(document.getElementById('end-time'));
 
+
 onAuthStateChanged(auth, async (user) => {
   if(!user){
     window.location.href = "./login.html";
     return;
   }
 
+  // نمایش نام کاربر
   const snap = await get(ref(db, "users/" + user.uid + "/profile"));
+console.log("snap exists:", snap.exists());
+console.log("snap val:", snap.val());
   if(snap.exists()){
     const name = snap.val().name || "";
     const msg = document.getElementById("welcome-msg");
     if(msg) msg.textContent = "خوش آمدی، " + name + " 👋";
   }
 
+  // دکمه خروج
   document.getElementById("logout-btn").onclick = async () => {
     await signOut(auth);
     window.location.href = "./login.html";
   };
 
-  localStorage.removeItem('planner_ev');
+localStorage.removeItem('planner_ev');
   localStorage.removeItem('planner_cats');
   localStorage.removeItem('planner_live');
   events = [];
@@ -739,5 +714,6 @@ onAuthStateChanged(auth, async (user) => {
   updateLiveButton();
 });
 </script>
+
 </body>
 </html>
