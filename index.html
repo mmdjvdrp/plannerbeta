@@ -3,7 +3,6 @@
 <head>
   <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#111827">
-<link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon.png">
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -59,8 +58,7 @@
         <div class="card-title">ثبت فعالیت جدید</div>
         <div class="form-group">
           <label>عنوان فعالیت</label>
-          <!-- متن راهنما تغییر کرد تا مشخص شود اختیاری است -->
-          <input type="text" id="act-title" placeholder="عنوان فعالیت (اختیاری - پیش‌فرض: نام موضوع)">
+         <input type="text" id="act-title" placeholder="عنوان فعالیت (اختیاری - پیش‌فرض: نام موضوع)">
         </div>
         <div class="form-group">
           <label>دسته‌بندی</label>
@@ -135,52 +133,65 @@
 </div>
 
 <script type="module">
+  
 import {
   auth,
   db,
   ref,
-  get,      
+  get,
   set,
   onAuthStateChanged,
   signOut
 } from "./js/firebase.js";
 
-// Register Service Worker for PWA
+// ثبت سرویس ورکر برای PWA
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js")
       .then((reg) => console.log("Service Worker با موفقیت ثبت شد!", reg))
       .catch((err) => console.log("خطا در ثبت Service Worker:", err));
   });
-}
-  
 async function saveCloud(){
   if(!auth.currentUser) return;
-  await set(
-    ref(db, "users/" + auth.currentUser.uid + "/plannerData"),
-    { events, cats, liveSession, theme }
-  );
+  
+  const data = { events, cats, liveSession, theme };
+
+  try {
+    // ارسال اطلاعات به تونل ورسل بدون نیاز به وی‌پی‌ان
+    await fetch(`/api/database?uid=${auth.currentUser.uid}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  } catch (e) {
+    console.error("خطا در ذخیره ابری اطلاعات:", e);
+  }
 }
 
 async function loadCloud(){
   if(!auth.currentUser) return;
-  const snap = await get(
-    ref(db, "users/" + auth.currentUser.uid + "/plannerData")
-  );
-  if(snap.exists()){
-    const data = snap.val();
-    events      = data.events      || [];
-    cats        = data.cats        || [];
-    theme       = data.theme       || "dark";
-    liveSession = data.liveSession || null;
 
-    save('planner_ev',    events);
-    save('planner_cats',  cats);
-    save('planner_live',  liveSession);
-    save('planner_theme', theme);
+  try {
+    // دریافت اطلاعات از تونل ورسل بدون نیاز به وی‌پی‌ان
+    const res = await fetch(`/api/database?uid=${auth.currentUser.uid}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data) {
+        events      = data.events      || [];
+        cats        = data.cats        || [];
+        theme       = data.theme       || "dark";
+        liveSession = data.liveSession || null;
+
+        save('planner_ev',    events);
+        save('planner_cats',  cats);
+        save('planner_live',  liveSession);
+        save('planner_theme', theme);
+      }
+    }
+  } catch (e) {
+    console.error("خطا در لود ابری اطلاعات:", e);
   }
 }
-
 const defaultCats = [];
 function load(k, def){
   try{
@@ -196,6 +207,7 @@ function save(k, v){
     localStorage.setItem(k, JSON.stringify(v));
   }catch{}
 }
+
 let events = load('planner_ev', []);
 let cats   = load('planner_cats', defaultCats);
 let curDate= new Date().toISOString().split('T')[0];
@@ -254,6 +266,7 @@ function shiftDay(n){
   render();
 }
 
+// --- نمایش دسته‌بندی‌ها ---
 function renderCats(){
   const sel=document.getElementById('cat-select');
   const mapSel=document.getElementById('map-cat-select');
@@ -305,6 +318,7 @@ function renderCats(){
   else mapSel.value=cats[0].id;
 }
 
+// --- نمایش تایم‌لاین ---
 function renderTimeline(){
   const tl=document.getElementById('timeline');
   const em=document.getElementById('empty-msg');
@@ -340,6 +354,7 @@ function renderTimeline(){
   });
 }
 
+// --- نمایش گزارش‌ها ---
 function renderReport(){
   const [y,mo,d]=curDate.split('-').map(Number);
   const ref=new Date(y,mo-1,d);
@@ -422,7 +437,7 @@ function renderActivityMap(){
   const cat=getCat(sel.value);
   const daysInMonth=new Date(y, mo, 0).getDate();
   const firstDay=new Date(y, mo-1, 1).getDay();
-  const startOffset=(firstDay+1)%7; 
+  const startOffset=(firstDay+1)%7;
   const sums={};
   let total=0;
 
@@ -450,4 +465,268 @@ function renderActivityMap(){
     const dateStr=mapMonth+'-'+pad(day);
     const el=document.createElement('div');
     el.className='map-day';
-    el.style.setProperty('--dot-color', cat.col
+    el.style.setProperty('--dot-color', cat.color);
+    el.style.setProperty('--dot-size', size+'px');
+    el.style.setProperty('--dot-strength', strength+'%');
+    el.style.setProperty('--dot-glow', glow+'%');
+    el.title=mins ? `${dateStr} - ${cat.name}: ${fmtDur(mins)} (${fill}٪ از بیشترین روز ماه)` : `${dateStr} - ${cat.name}: بدون ثبت`;
+    el.innerHTML=`
+      <span class="map-day-num">${day}</span>
+      <span class="map-dot"></span>
+    `;
+    map.appendChild(el);
+  }
+
+  summary.innerHTML=total
+    ? `مجموع این ماه برای <span>${escHtml(cat.name)}</span>: <span>${fmtDur(total)}</span>`
+    : `برای <span>${escHtml(cat.name)}</span> در این ماه چیزی ثبت نشده.`;
+}
+
+function render(){
+  document.getElementById('date-label').textContent=fmtDateLabel(curDate);
+  renderTimeline();
+  renderReport();
+  renderActivityMap();
+}
+
+function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// --- رویدادهای عمومی حذف رویداد و دسته‌بندی ---
+window.delEv=function(id){
+  if(!confirm('این فعالیت حذف شود؟')) return;
+  events=events.filter(e=>e.id!==id);
+  saveCloud();
+  render();
+};
+
+window.delCat=function(id){
+  const cat=getCat(id);
+  if(!confirm(`موضوع «${cat.name}» حذف شود؟ فعالیت‌های قبلی پاک نمی‌شوند.`)) return;
+  cats=cats.filter(c=>c.id!==id);
+  saveCloud();
+  if(liveSession && liveSession.catId===id){
+    liveSession=null;
+    saveCloud();
+  }
+  renderCats();
+  render();
+  updateLiveButton();
+};
+
+function setupTimeInput(inp){
+  inp.addEventListener('input', function(){
+    let v=this.value.replace(/[^\d:]/g,'');
+    const digits=v.replace(/:/g,'');
+    if(digits.length>=3 && !v.includes(':'))
+      v=digits.slice(0,2)+':'+digits.slice(2,4);
+    this.value=v;
+  });
+  inp.addEventListener('blur', function(){
+    const v=this.value.trim();
+    if(v && parseTime(v)===null){
+      this.style.borderColor='#ef4444';
+      this.style.boxShadow='0 0 0 3px rgba(239,68,68,.2)';
+    } else {
+      this.style.borderColor='';
+      this.style.boxShadow='';
+    }
+  });
+  inp.addEventListener('focus', function(){
+    this.style.borderColor='';
+    this.style.boxShadow='';
+  });
+}
+
+document.getElementById('prev-day').onclick = ()=>shiftDay(-1);
+document.getElementById('next-day').onclick = ()=>shiftDay(1);
+document.getElementById('btn-today').onclick = ()=>{
+  curDate=new Date().toISOString().split('T')[0];
+  render();
+};
+document.getElementById('map-prev').onclick = ()=>shiftMapMonth(-1);
+document.getElementById('map-next').onclick = ()=>shiftMapMonth(1);
+document.getElementById('map-cat-select').onchange = renderActivityMap;
+document.getElementById('theme-select').onchange = e=>{
+  theme=e.target.value;
+  save('planner_theme', theme);
+  applyTheme();
+};
+
+document.getElementById('btn-now-s').onclick = ()=>{ document.getElementById('start-time').value=getNow(); };
+document.getElementById('btn-now-e').onclick = ()=>{ document.getElementById('end-time').value=getNow(); };
+
+document.getElementById('toggle-cat').onclick = ()=>{
+  const b=document.getElementById('new-cat-box');
+  b.style.display = b.style.display==='block'?'none':'block';
+};
+
+// ثبت موضوع جدید
+document.getElementById('save-cat').onclick = ()=>{
+  const name=document.getElementById('new-cat-name').value.trim();
+  const color=document.getElementById('new-cat-color').value;
+  if(!name){ alert('نام دسته‌بندی را وارد کنید'); return; }
+  const nc={id:'c'+Date.now(), name, color};
+  cats.push(nc);
+  save('planner_cats', cats);
+  saveCloud();
+  renderCats();
+  document.getElementById('cat-select').value=nc.id;
+  document.getElementById('map-cat-select').value=nc.id;
+  document.getElementById('new-cat-name').value='';
+  document.getElementById('new-cat-box').style.display='none';
+  render();
+};
+
+// ایجاد رویداد (تغییر یافته - عنوان فعالیت اختیاری است)
+function createEvent({title, catId, stRaw, enRaw, date=curDate}){
+  const err=document.getElementById('time-err');
+  
+  if(!catId || !cats.some(c=>c.id===catId)){
+    alert('اول یک موضوع بسازید یا انتخاب کنید');
+    return false;
+  }
+
+  // اگر عنوان خالی بود، از نام دسته‌بندی استفاده کن
+  let finalTitle = (title || '').trim();
+  if(!finalTitle){
+    finalTitle = getCat(catId).name;
+  }
+
+  const sMins=parseTime(stRaw);
+  const eMinsRaw=parseTime(enRaw);
+  if(sMins===null||eMinsRaw===null){
+    err.style.display='block';
+    setTimeout(()=>err.style.display='none', 3000);
+    return false;
+  }
+
+  let durMins=eMinsRaw-sMins;
+  if(durMins<0) durMins+=24*60;
+  if(durMins===0){ alert('زمان شروع و پایان نمی‌تواند یکسان باشد'); return false; }
+
+  const eMins = sMins+durMins > 1440 ? sMins+durMins-1440 : sMins+durMins;
+
+  const ev={
+    id: Date.now().toString(),
+    date, title: finalTitle, catId,
+    sMins, eMins, durMins
+  };
+  events.push(ev);
+  save('planner_ev', events);
+  saveCloud();
+  return true;
+}
+
+function clearEventForm(){
+  document.getElementById('act-title').value='';
+  document.getElementById('start-time').value='';
+  document.getElementById('end-time').value='';
+}
+
+document.getElementById('add-btn').onclick = ()=>{
+  const ok=createEvent({
+    title: document.getElementById('act-title').value.trim(),
+    catId: document.getElementById('cat-select').value,
+    stRaw: document.getElementById('start-time').value,
+    enRaw: document.getElementById('end-time').value
+  });
+  if(!ok) return;
+
+  clearEventForm();
+  render();
+};
+
+function updateLiveButton(){
+  const btn=document.getElementById('live-btn');
+  const status=document.getElementById('live-status');
+  if(!btn || !status) return;
+  if(liveSession){
+    btn.classList.add('is-running');
+    btn.textContent='پایان و ثبت فعالیت';
+    const cat=getCat(liveSession.catId);
+    status.textContent=`در حال ثبت: ${liveSession.title}، از ${fmtTime(liveSession.sMins)}، ${cat.name}`;
+    return;
+  }
+  btn.classList.remove('is-running');
+  btn.textContent='شروع / پایان با ساعت سیستم';
+  status.textContent='';
+}
+
+// دکمه لایو (اصلاح شده - با رفع خطای بستن پرانتز)
+document.getElementById('live-btn').onclick=()=>{
+  if(!liveSession){
+    const title=document.getElementById('act-title').value.trim();
+    const catId=document.getElementById('cat-select').value;
+    if(!catId || !cats.some(c=>c.id===catId)){
+      alert('اول یک موضوع بسازید یا انتخاب کنید');
+      return;
+    }
+    const finalTitle = title || getCat(catId).name;
+    const now=getNow();
+    const sMins=parseTime(now);
+    liveSession={title: finalTitle, catId, date:curDate, sMins};
+    saveCloud();
+    document.getElementById('start-time').value=now;
+    document.getElementById('end-time').value='';
+    updateLiveButton();
+    return;
+  }
+
+  const endNow=getNow();
+  const ok=createEvent({
+    title: liveSession.title,
+    catId: liveSession.catId,
+    stRaw: fmtTime(liveSession.sMins),
+    enRaw: endNow,
+    date: liveSession.date
+  });
+  if(!ok) return;
+  liveSession=null;
+  saveCloud();
+  clearEventForm();
+  render();
+  updateLiveButton();
+};
+
+document.getElementById('end-time').addEventListener('keydown', e=>{
+  if(e.key==='Enter') document.getElementById('add-btn').click();
+});
+
+setupTimeInput(document.getElementById('start-time'));
+setupTimeInput(document.getElementById('end-time'));
+
+// بررسی لاگین فایربیس و مدیریت خروج
+onAuthStateChanged(auth, async (user) => {
+  if(!user){
+    window.location.href = "./login.html";
+    return;
+  }
+
+  const snap = await get(ref(db, "users/" + user.uid + "/profile"));
+  if(snap.exists()){
+    const name = snap.val().name || "";
+    const msg = document.getElementById("welcome-msg");
+    if(msg) msg.textContent = "خوش آمدی، " + name + " 👋";
+  }
+
+  document.getElementById("logout-btn").onclick = async () => {
+    await signOut(auth);
+    window.location.href = "./login.html";
+  };
+
+  localStorage.removeItem('planner_ev');
+  localStorage.removeItem('planner_cats');
+  localStorage.removeItem('planner_live');
+  events = [];
+  cats = [];
+  liveSession = null;
+
+  await loadCloud();
+  applyTheme();
+  renderCats();
+  render();
+  updateLiveButton();
+});
+</script>
+</body>
+</html>
