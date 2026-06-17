@@ -131,15 +131,10 @@
   </div>
 
 </div>
-
 <script type="module">
   
 import {
   auth,
-  db,
-  ref,
-  get,
-  set,
   onAuthStateChanged,
   signOut
 } from "./js/firebase.js";
@@ -151,13 +146,13 @@ if ("serviceWorker" in navigator) {
       .then((reg) => console.log("Service Worker با موفقیت ثبت شد!", reg))
       .catch((err) => console.log("خطا در ثبت Service Worker:", err));
   });
+}
+  
+// ذخیره اطلاعات از طریق تونل ورسل (بدون نیاز به وی‌پی‌ان)
 async function saveCloud(){
   if(!auth.currentUser) return;
-  
   const data = { events, cats, liveSession, theme };
-
   try {
-    // ارسال اطلاعات به تونل ورسل بدون نیاز به وی‌پی‌ان
     await fetch(`/api/database?uid=${auth.currentUser.uid}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -168,11 +163,10 @@ async function saveCloud(){
   }
 }
 
+// لود اطلاعات از طریق تونل ورسل (بدون نیاز به وی‌پی‌ان)
 async function loadCloud(){
   if(!auth.currentUser) return;
-
   try {
-    // دریافت اطلاعات از تونل ورسل بدون نیاز به وی‌پی‌ان
     const res = await fetch(`/api/database?uid=${auth.currentUser.uid}`);
     if (res.ok) {
       const data = await res.json();
@@ -192,6 +186,7 @@ async function loadCloud(){
     console.error("خطا در لود ابری اطلاعات:", e);
   }
 }
+
 const defaultCats = [];
 function load(k, def){
   try{
@@ -266,7 +261,6 @@ function shiftDay(n){
   render();
 }
 
-// --- نمایش دسته‌بندی‌ها ---
 function renderCats(){
   const sel=document.getElementById('cat-select');
   const mapSel=document.getElementById('map-cat-select');
@@ -318,7 +312,6 @@ function renderCats(){
   else mapSel.value=cats[0].id;
 }
 
-// --- نمایش تایم‌لاین ---
 function renderTimeline(){
   const tl=document.getElementById('timeline');
   const em=document.getElementById('empty-msg');
@@ -354,7 +347,6 @@ function renderTimeline(){
   });
 }
 
-// --- نمایش گزارش‌ها ---
 function renderReport(){
   const [y,mo,d]=curDate.split('-').map(Number);
   const ref=new Date(y,mo-1,d);
@@ -491,7 +483,6 @@ function render(){
 
 function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-// --- رویدادهای عمومی حذف رویداد و دسته‌بندی ---
 window.delEv=function(id){
   if(!confirm('این فعالیت حذف شود؟')) return;
   events=events.filter(e=>e.id!==id);
@@ -560,7 +551,6 @@ document.getElementById('toggle-cat').onclick = ()=>{
   b.style.display = b.style.display==='block'?'none':'block';
 };
 
-// ثبت موضوع جدید
 document.getElementById('save-cat').onclick = ()=>{
   const name=document.getElementById('new-cat-name').value.trim();
   const color=document.getElementById('new-cat-color').value;
@@ -577,7 +567,6 @@ document.getElementById('save-cat').onclick = ()=>{
   render();
 };
 
-// ایجاد رویداد (تغییر یافته - عنوان فعالیت اختیاری است)
 function createEvent({title, catId, stRaw, enRaw, date=curDate}){
   const err=document.getElementById('time-err');
   
@@ -586,7 +575,6 @@ function createEvent({title, catId, stRaw, enRaw, date=curDate}){
     return false;
   }
 
-  // اگر عنوان خالی بود، از نام دسته‌بندی استفاده کن
   let finalTitle = (title || '').trim();
   if(!finalTitle){
     finalTitle = getCat(catId).name;
@@ -652,7 +640,6 @@ function updateLiveButton(){
   status.textContent='';
 }
 
-// دکمه لایو (اصلاح شده - با رفع خطای بستن پرانتز)
 document.getElementById('live-btn').onclick=()=>{
   if(!liveSession){
     const title=document.getElementById('act-title').value.trim();
@@ -695,7 +682,6 @@ document.getElementById('end-time').addEventListener('keydown', e=>{
 setupTimeInput(document.getElementById('start-time'));
 setupTimeInput(document.getElementById('end-time'));
 
-// بررسی لاگین فایربیس و مدیریت خروج
 onAuthStateChanged(auth, async (user) => {
   if(!user){
     window.location.href = "./login.html";
@@ -728,8 +714,5 @@ onAuthStateChanged(auth, async (user) => {
   updateLiveButton();
 });
 </script>
-  
-
-
 </body>
 </html>
