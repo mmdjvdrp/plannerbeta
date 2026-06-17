@@ -132,21 +132,19 @@
 
 </div>
 
-
-  
 <script type="module">
   
 import {
   auth,
   db,
   ref,
-  get,      // ← این باید باشه
+  get,
   set,
   onAuthStateChanged,
   signOut
 } from "./js/firebase.js";
 
-  // Register Service Worker for PWA
+// ثبت سرویس ورکر برای PWA
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js")
@@ -175,13 +173,13 @@ async function loadCloud(){
     theme       = data.theme       || "dark";
     liveSession = data.liveSession || null;
 
-    // sync به localStorage هم بکن
     save('planner_ev',    events);
     save('planner_cats',  cats);
     save('planner_live',  liveSession);
     save('planner_theme', theme);
   }
 }
+
 const defaultCats = [];
 function load(k, def){
   try{
@@ -197,6 +195,7 @@ function save(k, v){
     localStorage.setItem(k, JSON.stringify(v));
   }catch{}
 }
+
 let events = load('planner_ev', []);
 let cats   = load('planner_cats', defaultCats);
 let curDate= new Date().toISOString().split('T')[0];
@@ -220,7 +219,6 @@ function pad(n){ return String(n).padStart(2,'0'); }
 
 function parseTime(s){
   s=(s||'').trim();
-  // auto-colon: "1430" → "14:30"
   if(/^\d{4}$/.test(s)) s=s.slice(0,2)+':'+s.slice(2);
   const m=s.match(/^(\d{1,2}):(\d{2})$/);
   if(!m) return null;
@@ -256,7 +254,7 @@ function shiftDay(n){
   render();
 }
 
-// --- Render Categories ---
+// --- نمایش دسته‌بندی‌ها ---
 function renderCats(){
   const sel=document.getElementById('cat-select');
   const mapSel=document.getElementById('map-cat-select');
@@ -308,7 +306,7 @@ function renderCats(){
   else mapSel.value=cats[0].id;
 }
 
-// --- Render Timeline ---
+// --- نمایش تایم‌لاین ---
 function renderTimeline(){
   const tl=document.getElementById('timeline');
   const em=document.getElementById('empty-msg');
@@ -344,7 +342,7 @@ function renderTimeline(){
   });
 }
 
-// --- Render Report ---
+// --- نمایش گزارش‌ها ---
 function renderReport(){
   const [y,mo,d]=curDate.split('-').map(Number);
   const ref=new Date(y,mo-1,d);
@@ -427,7 +425,7 @@ function renderActivityMap(){
   const cat=getCat(sel.value);
   const daysInMonth=new Date(y, mo, 0).getDate();
   const firstDay=new Date(y, mo-1, 1).getDay();
-  const startOffset=(firstDay+1)%7; // Saturday-first grid
+  const startOffset=(firstDay+1)%7;
   const sums={};
   let total=0;
 
@@ -481,7 +479,7 @@ function render(){
 
 function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-// --- Events ---
+// --- رویدادهای عمومی حذف رویداد و دسته‌بندی ---
 window.delEv=function(id){
   if(!confirm('این فعالیت حذف شود؟')) return;
   events=events.filter(e=>e.id!==id);
@@ -538,7 +536,7 @@ document.getElementById('map-next').onclick = ()=>shiftMapMonth(1);
 document.getElementById('map-cat-select').onchange = renderActivityMap;
 document.getElementById('theme-select').onchange = e=>{
   theme=e.target.value;
-   save('planner_theme', theme);
+  save('planner_theme', theme);
   applyTheme();
 };
 
@@ -550,12 +548,13 @@ document.getElementById('toggle-cat').onclick = ()=>{
   b.style.display = b.style.display==='block'?'none':'block';
 };
 
+// ثبت موضوع جدید
 document.getElementById('save-cat').onclick = ()=>{
   const name=document.getElementById('new-cat-name').value.trim();
   const color=document.getElementById('new-cat-color').value;
   if(!name){ alert('نام دسته‌بندی را وارد کنید'); return; }
   const nc={id:'c'+Date.now(), name, color};
-   cats.push(nc);
+  cats.push(nc);
   save('planner_cats', cats);
   saveCloud();
   renderCats();
@@ -566,16 +565,16 @@ document.getElementById('save-cat').onclick = ()=>{
   render();
 };
 
+// ایجاد رویداد (تغییر یافته - عنوان فعالیت اختیاری است)
 function createEvent({title, catId, stRaw, enRaw, date=curDate}){
   const err=document.getElementById('time-err');
   
-  // ابتدا مطمئن می‌شویم موضوع انتخاب شده است
   if(!catId || !cats.some(c=>c.id===catId)){
     alert('اول یک موضوع بسازید یا انتخاب کنید');
     return false;
   }
 
-  // اگر عنوان خالی بود، نام دسته‌بندی را به عنوان عنوان فعالیت قرار می‌دهیم
+  // اگر عنوان خالی بود، از نام دسته‌بندی استفاده کن
   let finalTitle = (title || '').trim();
   if(!finalTitle){
     finalTitle = getCat(catId).name;
@@ -590,41 +589,14 @@ function createEvent({title, catId, stRaw, enRaw, date=curDate}){
   }
 
   let durMins=eMinsRaw-sMins;
-  if(durMins<0) durMins+=24*60;  // شیفت شبانه
+  if(durMins<0) durMins+=24*60;
   if(durMins===0){ alert('زمان شروع و پایان نمی‌تواند یکسان باشد'); return false; }
 
   const eMins = sMins+durMins > 1440 ? sMins+durMins-1440 : sMins+durMins;
 
   const ev={
     id: Date.now().toString(),
-    date, 
-    title: finalTitle, // استفاده از عنوان نهایی
-    catId,
-    sMins, eMins, durMins
-  };
-  events.push(ev);
-  save('planner_ev', events);
-  saveCloud();
-  return true;
-}
-
-  const sMins=parseTime(stRaw);
-  const eMinsRaw=parseTime(enRaw);
-  if(sMins===null||eMinsRaw===null){
-    err.style.display='block';
-    setTimeout(()=>err.style.display='none', 3000);
-    return false;
-  }
-
-  let durMins=eMinsRaw-sMins;
-  if(durMins<0) durMins+=24*60;  // شیفت شبانه
-  if(durMins===0){ alert('زمان شروع و پایان نمی‌تواند یکسان باشد'); return false; }
-
-  const eMins=sMins+durMins > 1440 ? sMins+durMins-1440 : sMins+durMins;
-
-  const ev={
-    id: Date.now().toString(),
-    date, title, catId,
+    date, title: finalTitle, catId,
     sMins, eMins, durMins
   };
   events.push(ev);
@@ -668,23 +640,18 @@ function updateLiveButton(){
   status.textContent='';
 }
 
+// دکمه لایو (اصلاح شده - با رفع خطای بستن پرانتز)
 document.getElementById('live-btn').onclick=()=>{
   if(!liveSession){
     const title=document.getElementById('act-title').value.trim();
     const catId=document.getElementById('cat-select').value;
-    
-    // ابتدا بررسی موضوع
     if(!catId || !cats.some(c=>c.id===catId)){
       alert('اول یک موضوع بسازید یا انتخاب کنید');
       return;
     }
-    
-    // تعیین عنوان نهایی (اگر خالی بود، نام موضوع استفاده می‌شود)
     const finalTitle = title || getCat(catId).name;
-    
     const now=getNow();
     const sMins=parseTime(now);
-    
     liveSession={title: finalTitle, catId, date:curDate, sMins};
     saveCloud();
     document.getElementById('start-time').value=now;
@@ -692,7 +659,6 @@ document.getElementById('live-btn').onclick=()=>{
     updateLiveButton();
     return;
   }
-  // باقی کدهای دکمه لایو بدون تغییر بماند...
 
   const endNow=getNow();
   const ok=createEvent({
@@ -710,7 +676,6 @@ document.getElementById('live-btn').onclick=()=>{
   updateLiveButton();
 };
 
-// Keyboard shortcut: Enter to add
 document.getElementById('end-time').addEventListener('keydown', e=>{
   if(e.key==='Enter') document.getElementById('add-btn').click();
 });
@@ -718,30 +683,26 @@ document.getElementById('end-time').addEventListener('keydown', e=>{
 setupTimeInput(document.getElementById('start-time'));
 setupTimeInput(document.getElementById('end-time'));
 
-
+// بررسی لاگین فایربیس و مدیریت خروج
 onAuthStateChanged(auth, async (user) => {
   if(!user){
     window.location.href = "./login.html";
     return;
   }
 
-  // نمایش نام کاربر
   const snap = await get(ref(db, "users/" + user.uid + "/profile"));
-console.log("snap exists:", snap.exists());
-console.log("snap val:", snap.val());
   if(snap.exists()){
     const name = snap.val().name || "";
     const msg = document.getElementById("welcome-msg");
     if(msg) msg.textContent = "خوش آمدی، " + name + " 👋";
   }
 
-  // دکمه خروج
   document.getElementById("logout-btn").onclick = async () => {
     await signOut(auth);
     window.location.href = "./login.html";
   };
 
-localStorage.removeItem('planner_ev');
+  localStorage.removeItem('planner_ev');
   localStorage.removeItem('planner_cats');
   localStorage.removeItem('planner_live');
   events = [];
@@ -755,6 +716,8 @@ localStorage.removeItem('planner_ev');
   updateLiveButton();
 });
 </script>
+  
+
 
 </body>
 </html>
