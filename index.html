@@ -697,15 +697,15 @@ document.getElementById('end-time').addEventListener('keydown', e=>{
 setupTimeInput(document.getElementById('start-time'));
 setupTimeInput(document.getElementById('end-time'));
 
-// مدیریت ورود کاربر و واکشی ایمن اطلاعات
-supabase.auth.onAuthStateChange(async (event, session) => {
+// مدیریت و لود دقیق احراز هویت با ساختار ایمن و بدون بن‌بست
+supabase.auth.onAuthStateChange((event, session) => {
   const user = session?.user;
   if(!user){
     window.location.href = "./login.html";
     return;
   }
 
-  // ۱. متصل کردن آنی دکمه خروج (بصورت کاملاً مستقل برای تضمین کارکرد)
+  // ۱. اتصال کاملاً همزمان و مستقل دکمه خروج
   const logoutBtn = document.getElementById("logout-btn");
   if (logoutBtn) {
     logoutBtn.onclick = async () => {
@@ -718,54 +718,51 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     };
   }
 
-  let displayName = "";
-  try {
-    // ۲. واکشی اسم از متادیتای کاربر
-    displayName = user.user_metadata?.display_name || "";
-
-    // ۳. اگر اسم ثبت نشده بود، تلاش برای خواندن از جدول پروفایل
-    if (!displayName) {
-      const { data: profile, error: profileErr } = await supabase
-        .from("profiles")
-        .select("name")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (profile && !profileErr) {
-        displayName = profile.name || "";
-      }
-    }
-
-    // ۴. اگر کماکان خالی بود (مثلاً اکانت قدیمی)، بخش اول ایمیل را به عنوان اسم نمایشی قرار بده
-    if (!displayName && user.email) {
-      displayName = user.email.split('@')[0];
-    }
-  } catch (err) {
-    console.error("خطا در پردازش نام کاربری:", err);
+  // ۲. دریافت سریع نام از متادیتا / ایمیل برای جلوگیری از بن‌بست دیتابیس
+  let displayName = user.user_metadata?.display_name || "";
+  if (!displayName && user.email) {
+    displayName = user.email.split('@')[0];
   }
 
-  // نمایش پیام خوش‌آمدگویی
   const msg = document.getElementById("welcome-msg");
   if(msg) {
     msg.textContent = displayName ? "خوش آمدی، " + displayName + " 👋" : "خوش آمدی 👋";
   }
 
-  localStorage.removeItem('planner_ev');
-  localStorage.removeItem('planner_cats');
-  localStorage.removeItem('planner_live');
-  events = [];
-  cats = [];
-  liveSession = null;
+  // ۳. اجرای غیرهمزمان کوئری‌های ابری (با تاخیر کوتاه) برای آزاد کردن قفل داخلی سوپابیس
+  setTimeout(async () => {
+    try {
+      localStorage.removeItem('planner_ev');
+      localStorage.removeItem('planner_cats');
+      localStorage.removeItem('planner_live');
+      events = [];
+      cats = [];
+      liveSession = null;
 
-  try {
-    await loadCloud();
-  } catch (err) {
-    console.error("خطا در لود دیتابیس ابری:", err);
-  }
+      // دریافت داده‌های برنامه از فضای ابری
+      await loadCloud();
 
-  applyTheme();
-  renderCats();
-  render();
-  updateLiveButton();
+      // تلاش مجدد برای بررسی دیتابیس پروفایل در صورت خالی بودن نام
+      if (!user.user_metadata?.display_name) {
+        const { data: profile, error: profileErr } = await supabase
+          .from("profiles")
+          .select("name")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (profile && !profileErr && profile.name) {
+          displayName = profile.name;
+          if (msg) msg.textContent = "خوش آمدی، " + displayName + " 👋";
+        }
+      }
+
+      applyTheme();
+      renderCats();
+      render();
+      updateLiveButton();
+    } catch (err) {
+      console.error("خطا در پردازش داده‌های ابری پس‌زمینه:", err);
+    }
+  }, 10);
 });
 </script>
 </body>
