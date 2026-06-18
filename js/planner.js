@@ -9,7 +9,7 @@ let mapMonth = curDate.slice(0,7);
 let liveSession = load('planner_live', null);
 let theme = load('planner_theme', 'dark');
 let editingEventId = null;
-let activeView = 'daily'; // مقدار پیش‌فرض: 'daily' یا 'weekly'
+let activeView = 'daily'; // مقدار پیش‌فرض روزانه یا هفتگی
 
 async function saveCloud(){
   try {
@@ -206,7 +206,7 @@ function getWeekDates(dateStr) {
   return weekDates;
 }
 
-// رندر تایم‌لاین به صورت برنامه هفتگی مدرسه‌ای (جدول شنبه تا جمعه)
+// رندر تایم‌لاین به صورت برنامه هفتگی مدارس (جدول شنبه تا جمعه)
 function renderWeeklyTimetable() {
   const tl = document.getElementById('timeline');
   const weekDates = getWeekDates(curDate);
@@ -349,4 +349,571 @@ function renderReport(){
   });
 
   reportCats.forEach(cat=>{
-    const mins=sums[cat.id]||0
+    const mins=sums[cat.id]||0;
+    if(!mins) return;
+    const pct=total>0?Math.round((mins/total)*100):0;
+    const h=Math.floor(mins/60), m=mins%60;
+    const durStr=h?h+'h'+(m?' '+m+'m':''):m+'m';
+    const el=document.createElement('div');
+    el.className='report-item';
+    el.innerHTML=`
+      <div class="report-header">
+        <span style="color:${cat.color}">${escHtml(cat.name)}</span>
+        <span>${durStr} (${pct}٪)</span>
+      </div>
+      <div class="prog-bg">
+        <div class="prog-fill" style="background:${cat.color};width:${pct}%"></div>
+      </div>
+    `;
+    grid.appendChild(el);
+  });
+
+  const th=Math.floor(total/60), tm=total%60;
+  const tStr=th?th+'h'+(tm?' '+tm+'m':''):tm+'m';
+  document.getElementById('total-line').innerHTML=`مجموع ۷ روز: <span>${tStr}</span>`;
+}
+
+function shiftMapMonth(n){
+  const [y,mo]=mapMonth.split('-').map(Number);
+  const dt=new Date(y, mo-1+n, 1);
+  mapMonth=dt.getFullYear()+'-'+pad(dt.getMonth()+1);
+  renderActivityMap();
+}
+
+function renderActivityMap(){
+  const map=document.getElementById('activity-map');
+  const summary=document.getElementById('map-summary');
+  const sel=document.getElementById('map-cat-select');
+  const label=document.getElementById('map-month-label');
+  const [y,mo]=mapMonth.split('-').map(Number);
+  const monthNames=['ژانویه','فوریه','مارس','آوریل','مه','ژوئن','ژوئیه','اوت','سپتامبر','اکتبر','نوامبر','دسامبر'];
+  label.textContent=monthNames[mo-1]+' '+y;
+  map.innerHTML='';
+
+  ['ش','ی','د','س','چ','پ','ج'].forEach(day=>{
+    const el=document.createElement('div');
+    el.className='map-weekday';
+    el.textContent=day;
+    map.appendChild(el);
+  });
+
+  if(!cats.length || !sel.value){
+    map.innerHTML='<div class="map-empty" style="grid-column:1/-1">برای دیدن نقشه، اول یک موضوع بسازید.</div>';
+    summary.textContent='';
+    return;
+  }
+
+  const cat=getCat(sel.value);
+  const daysInMonth=new Date(y, mo, 0).getDate();
+  const firstDay=new Date(y, mo-1, 1).getDay();
+  const startOffset=(firstDay+1)%7; 
+  const sums={};
+  let total=0;
+
+  events.forEach(e=>{
+    if(e.catId!==sel.value || !e.date.startsWith(mapMonth)) return;
+    const day=Number(e.date.slice(8,10));
+    sums[day]=(sums[day]||0)+e.durMins;
+    total+=e.durMins;
+  });
+
+  const max=Math.max(0, ...Object.values(sums));
+  for(let i=0; i<startOffset; i++){
+    const blank=document.createElement('div');
+    blank.className='map-day is-empty';
+    map.appendChild(blank);
+  }
+
+  for(let day=1; day<=daysInMonth; day++){
+    const mins=sums[day]||0;
+    const ratio=max ? mins/max : 0;
+    const fill=Math.round(ratio*100);
+    const size=mins ? Math.round(9 + ratio*23) : 5;
+    const strength=mins ? Math.round(35 + ratio*65) : 18;
+    const glow=Math.round(ratio*55);
+    const dateStr=mapMonth+'-'+pad(day);
+    const el=document.createElement('div');
+    el.className='map-day';
+    el.style.setProperty('--dot-color', cat.color);
+    el.style.setProperty('--dot-size', size+'px');
+    el.style.setProperty('--dot-strength', strength+'%');
+    el.style.setProperty('--dot-glow', glow+'%');
+    el.title=mins ? `${dateStr} - ${cat.name}: ${fmtDur(mins)} (${fill}٪ از بیشترین روز ماه)` : `${dateStr} - ${cat.name}: بدون ثبت`;
+    el.innerHTML=`
+      <span class="map-day-num">${day}</span>
+      <span class="map-dot"></span>
+    `;
+    map.appendChild(el);
+  }
+
+  summary.innerHTML=total
+    ? `مجموع این ماه برای <span>${escHtml(cat.name)}</span>: <span>${fmtDur(total)}</span>`
+    : `برای <span>${escHtml(cat.name)}</span> در این ماه چیزی ثبت نشده.`;
+}
+
+function render(){
+  document.getElementById('date-label').textContent=fmtDateLabel(curDate);
+  renderTimeline();
+  renderReport();
+  renderActivityMap();
+}
+
+function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+window.delEv=function(id){
+  if(!confirm('این فعالیت حذف شود؟')) return;
+  events=events.filter(e=>e.id!==id);
+  saveCloud();
+  render();
+};
+
+window.delCat=function(id){
+  const cat=getCat(id);
+  if(!confirm(`موضوع «${cat.name}» حذف شود؟ فعالیت‌های قبلی پاک نمی‌شوند.`)) return;
+  cats=cats.filter(c=>c.id!==id);
+  saveCloud();
+  if(liveSession && liveSession.catId===id){
+    liveSession=null;
+    saveCloud();
+  }
+  renderCats();
+  render();
+  updateLiveButton();
+};
+
+function setupTimeInput(inp){
+  inp.addEventListener('input', function(){
+    let v=this.value.replace(/[^\d:]/g,'');
+    const digits=v.replace(/:/g,'');
+    if(digits.length>=3 && !v.includes(':'))
+      v=digits.slice(0,2)+':'+digits.slice(2,4);
+    this.value=v;
+  });
+  inp.addEventListener('blur', function(){
+    const v=this.value.trim();
+    if(v && parseTime(v)===null){
+      this.style.borderColor='#ef4444';
+      this.style.boxShadow='0 0 0 3px rgba(239,68,68,.2)';
+    } else {
+      this.style.borderColor='';
+      this.style.boxShadow='';
+    }
+  });
+  inp.addEventListener('focus', function(){
+    this.style.borderColor='';
+    this.style.boxShadow='';
+  });
+}
+
+document.getElementById('prev-day').onclick = ()=>shiftDay(-1);
+document.getElementById('next-day').onclick = ()=>shiftDay(1);
+document.getElementById('btn-today').onclick = ()=>{
+  curDate=new Date().toISOString().split('T')[0];
+  render();
+};
+document.getElementById('map-prev').onclick = ()=>shiftMapMonth(-1);
+document.getElementById('map-next').onclick = ()=>shiftMapMonth(1);
+document.getElementById('map-cat-select').onchange = renderActivityMap;
+
+document.getElementById('theme-select').onchange = async e=>{
+  theme=e.target.value;
+  save('planner_theme', theme);
+  applyTheme();
+  await saveCloud();
+};
+
+document.getElementById('btn-now-s').onclick = ()=>{ document.getElementById('start-time').value=getNow(); };
+document.getElementById('btn-now-e').onclick = ()=>{ document.getElementById('end-time').value=getNow(); };
+
+document.getElementById('toggle-cat').onclick = ()=>{
+  const b=document.getElementById('new-cat-box');
+  b.style.display = b.style.display==='block'?'none':'block';
+};
+
+document.getElementById('save-cat').onclick = ()=>{
+  const name=document.getElementById('new-cat-name').value.trim();
+  const color=document.getElementById('new-cat-color').value;
+  if(!name){ alert('نام دسته‌بندی را وارد کنید'); return; }
+  const nc={id:'c'+Date.now(), name, color};
+  cats.push(nc);
+  save('planner_cats', cats);
+  saveCloud();
+  renderCats();
+  document.getElementById('cat-select').value=nc.id;
+  document.getElementById('map-cat-select').value=nc.id;
+  document.getElementById('new-cat-name').value='';
+  document.getElementById('new-cat-box').style.display='none';
+  render();
+};
+
+function createEvent({title, catId, stRaw, enRaw, pauseRaw = "0", date=curDate, targetId = null}){
+  const err=document.getElementById('time-err');
+  
+  if(!catId || !cats.some(c=>c.id===catId)){
+    alert('اول یک موضوع بسازید یا انتخاب کنید');
+    return false;
+  }
+
+  let finalTitle = (title || '').trim();
+  if(!finalTitle){
+    finalTitle = getCat(catId).name;
+  }
+
+  const sMins=parseTime(stRaw);
+  const eMinsRaw=parseTime(enRaw);
+  if(sMins===null||eMinsRaw===null){
+    err.style.display='block';
+    setTimeout(()=>err.style.display='none', 3000);
+    return false;
+  }
+
+  // محاسبه کل بازه زمانی ثبت‌شده
+  let totalMins = eMinsRaw - sMins;
+  if(totalMins < 0) totalMins += 24*60;
+
+  // محاسبه پاز و وقفه اعمال شده
+  let pauseMins = parseInt(pauseRaw || "0", 10);
+  if(isNaN(pauseMins) || pauseMins < 0) pauseMins = 0;
+
+  let durMins = totalMins - pauseMins;
+  if(durMins <= 0){
+    alert('زمان پاز/وقفه نمی‌تواند بزرگتر یا مساوی با کل زمان سپری‌شده فعالیت باشد.');
+    return false;
+  }
+
+  // ** قابلیت جدید: بررسی دقیق تداخل و همپوشانی زمانی در روز مشابه **
+  const dayEvents = events.filter(e => e.date === date && e.id !== targetId);
+  for (let ext of dayEvents) {
+    let start1 = sMins;
+    let end1 = sMins + totalMins;
+
+    let start2 = ext.sMins;
+    let extTotal = ext.durMins + (ext.pauseMins || 0);
+    let end2 = ext.sMins + extTotal;
+
+    // بررسی تقاطع دو بازه زمانی
+    if (Math.max(start1, start2) < Math.min(end1, end2)) {
+      alert(`همپوشانی زمانی رخ داد! این زمان با فعالیت ثبت‌شده «${ext.title}» (${fmtTime(ext.sMins)} تا ${fmtTime(ext.eMins)}) تداخل دارد.`);
+      return false;
+    }
+  }
+
+  const eMins = sMins + totalMins > 1440 ? sMins + totalMins - 1440 : sMins + totalMins;
+
+  if (targetId) {
+    const idx = events.findIndex(e => e.id === targetId);
+    if (idx !== -1) {
+      events[idx] = {
+        ...events[idx],
+        title: finalTitle,
+        catId,
+        sMins,
+        eMins,
+        durMins,
+        pauseMins
+      };
+    }
+  } else {
+    const ev={
+      id: Date.now().toString(),
+      date, 
+      title: finalTitle,
+      catId,
+      sMins, eMins, durMins, pauseMins
+    };
+    events.push(ev);
+  }
+
+  save('planner_ev', events);
+  saveCloud();
+  return true;
+}
+
+function clearEventForm(){
+  document.getElementById('act-title').value='';
+  document.getElementById('start-time').value='';
+  document.getElementById('end-time').value='';
+  document.getElementById('pause-time').value='';
+}
+
+document.getElementById('add-btn').onclick = ()=>{
+  const ok=createEvent({
+    title: document.getElementById('act-title').value.trim(),
+    catId: document.getElementById('cat-select').value,
+    stRaw: document.getElementById('start-time').value,
+    enRaw: document.getElementById('end-time').value,
+    pauseRaw: document.getElementById('pause-time').value,
+    targetId: editingEventId
+  });
+  if(!ok) return;
+
+  if (editingEventId) {
+    editingEventId = null;
+    document.getElementById('add-btn').textContent = '+ افزودن به تایم‌لاین';
+    document.getElementById('edit-cancel-btn').style.display = 'none';
+  }
+
+  clearEventForm();
+  render();
+};
+
+document.getElementById('edit-cancel-btn').onclick = () => {
+  editingEventId = null;
+  document.getElementById('add-btn').textContent = '+ افزودن به تایم‌لاین';
+  document.getElementById('edit-cancel-btn').style.display = 'none';
+  clearEventForm();
+};
+
+window.editEv = function(id) {
+  const ev = events.find(e => e.id === id);
+  if (!ev) return;
+
+  editingEventId = id;
+  document.getElementById('act-title').value = ev.title === getCat(ev.catId).name ? '' : ev.title;
+  document.getElementById('cat-select').value = ev.catId;
+  document.getElementById('start-time').value = fmtTime(ev.sMins);
+  document.getElementById('end-time').value = fmtTime(ev.eMins);
+  document.getElementById('pause-time').value = ev.pauseMins || '';
+
+  document.getElementById('add-btn').textContent = '✓ ثبت تغییرات فعالیت';
+  document.getElementById('edit-cancel-btn').style.display = 'block';
+
+  document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
+};
+
+function updateLiveButton(){
+  const btn=document.getElementById('live-btn');
+  const status=document.getElementById('live-status');
+  if(!btn || !status) return;
+  if(liveSession){
+    btn.classList.add('is-running');
+    btn.textContent='پایان و ثبت فعالیت';
+    const cat=getCat(liveSession.catId);
+    
+    const isPaused = liveSession.pauseStartMins !== null && liveSession.pauseStartMins !== undefined;
+    const pauseMinsTotal = liveSession.pauseMins || 0;
+    
+    status.innerHTML = `
+      <div style="margin-bottom: 4px;">در حال ثبت: ${liveSession.title}، از ${fmtTime(liveSession.sMins)} (${cat.name})</div>
+      ${pauseMinsTotal ? `<div style="color:var(--accent2); font-size:11px;">کل زمان پاز شده: ${pauseMinsTotal} دقیقه</div>` : ''}
+      ${isPaused ? `<div style="color:#f87171; font-size:11px; margin-bottom:4px;">⏳ اکنون در حالت پاز موقت</div>` : ''}
+      <button id="live-pause-btn" style="
+        padding: 4px 10px;
+        background: var(--surface3);
+        border: 1px solid var(--border2);
+        color: var(--text);
+        border-radius: 6px;
+        font-size: 11px;
+        cursor: pointer;
+        font-family: inherit;
+      ">${isPaused ? '▶ ادامه فعالیت' : '⏸ پاز موقت'}</button>
+    `;
+    
+    document.getElementById('live-pause-btn').onclick = (e) => {
+      e.stopPropagation();
+      toggleLivePause();
+    };
+    return;
+  }
+  btn.classList.remove('is-running');
+  btn.textContent='شروع / پایان با ساعت سیستم';
+  status.textContent='';
+}
+
+function toggleLivePause() {
+  if (!liveSession) return;
+  const nowStr = getNow();
+  const nowMins = parseTime(nowStr);
+
+  if (liveSession.pauseStartMins === null || liveSession.pauseStartMins === undefined) {
+    liveSession.pauseStartMins = nowMins;
+  } else {
+    let diff = nowMins - liveSession.pauseStartMins;
+    if (diff < 0) diff += 24 * 60;
+    liveSession.pauseMins = (liveSession.pauseMins || 0) + diff;
+    liveSession.pauseStartMins = null;
+  }
+  saveCloud();
+  updateLiveButton();
+}
+
+document.getElementById('live-btn').onclick=()=>{
+  if(!liveSession){
+    const title=document.getElementById('act-title').value.trim();
+    const catId=document.getElementById('cat-select').value;
+    
+    if(!catId || !cats.some(c=>c.id===catId)){
+      alert('اول یک موضوع بسازید یا انتخاب کنید');
+      return;
+    }
+
+    const finalTitle = title || getCat(catId).name;
+
+    const now=getNow();
+    const sMins=parseTime(now);
+    
+    liveSession={title: finalTitle, catId, date:curDate, sMins, pauseMins: 0, pauseStartMins: null};
+    saveCloud();
+    document.getElementById('start-time').value=now;
+    document.getElementById('end-time').value='';
+    updateLiveButton();
+    return;
+  }
+
+  const endNow=getNow();
+  const endMins=parseTime(endNow);
+
+  let finalPauseMins = liveSession.pauseMins || 0;
+  if (liveSession.pauseStartMins !== null && liveSession.pauseStartMins !== undefined) {
+    let diff = endMins - liveSession.pauseStartMins;
+    if (diff < 0) diff += 24 * 60;
+    finalPauseMins += diff;
+  }
+
+  const ok=createEvent({
+    title: liveSession.title,
+    catId: liveSession.catId,
+    stRaw: fmtTime(liveSession.sMins),
+    enRaw: endNow,
+    pauseRaw: String(finalPauseMins),
+    date: liveSession.date
+  });
+  if(!ok) return;
+  liveSession=null;
+  saveCloud();
+  clearEventForm();
+  render();
+  updateLiveButton();
+};
+
+document.getElementById('end-time').addEventListener('keydown', e=>{
+  if(e.key==='Enter') document.getElementById('add-btn').click();
+});
+
+setupTimeInput(document.getElementById('start-time'));
+setupTimeInput(document.getElementById('end-time'));
+
+const pauseInp = document.getElementById('pause-time');
+if (pauseInp) {
+  pauseInp.addEventListener('input', function(){
+    this.value = this.value.replace(/[^\d]/g, '');
+  });
+}
+
+// مدیریت و لود دقیق احراز هویت با ساختار ایمن و بدون بن‌بست
+async function handleUserSession(session) {
+  const user = session?.user;
+  if(!user){
+    window.location.href = "./login.html";
+    return;
+  }
+
+  const logoutBtn = document.getElementById("logout-btn");
+  if (logoutBtn) {
+    logoutBtn.onclick = async () => {
+      try {
+        await supabase.auth.signOut();
+      } catch (err) {
+        console.error("خطا در خروج:", err);
+      }
+      window.location.href = "./login.html";
+    };
+  }
+
+  let displayName = user.user_metadata?.display_name || "";
+  if (!displayName && user.email) {
+    displayName = user.email.split('@')[0];
+  }
+
+  const msg = document.getElementById("welcome-msg");
+  if(msg) {
+    msg.textContent = displayName ? "خوش آمدی، " + displayName + " 👋" : "خوش آمدی 👋";
+  }
+
+  setTimeout(async () => {
+    try {
+      localStorage.removeItem('planner_ev');
+      localStorage.removeItem('planner_cats');
+      localStorage.removeItem('planner_live');
+      events = [];
+      cats = [];
+      liveSession = null;
+
+      // دریافت داده‌ها از دیتابیس ابری
+      await loadCloud();
+
+      // تلاش برای خواندن جدول پروفایل در صورتی که همچنان نام نمایشی یافت نشد
+      if (!user.user_metadata?.display_name) {
+        const { data: profile, error: profileErr } = await supabase
+          .from("profiles")
+          .select("name")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (profile && !profileErr && profile.name) {
+          displayName = profile.name;
+          if (msg) msg.textContent = "خوش آمدی، " + displayName + " 👋";
+        }
+      }
+
+      applyTheme();
+      renderCats();
+      render();
+      updateLiveButton();
+    } catch (err) {
+      console.error("خطا در پردازش داده‌های ابری پس‌زمینه:", err);
+    }
+  }, 10);
+}
+
+async function initAuth() {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      await handleUserSession(session);
+    } else {
+      window.location.href = "./login.html";
+    }
+  } catch (err) {
+    console.error("خطا در واکشی وضعیت لود کاربر:", err);
+    window.location.href = "./login.html";
+  }
+}
+
+initAuth();
+
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === "SIGNED_OUT") {
+    window.location.href = "./login.html";
+  } else if (event === "SIGNED_IN" && session) {
+    handleUserSession(session);
+  }
+});
+
+// کنترل و سوییچ کردن بین نمای روزانه و هفتگی برنامه کلاسی
+window.setupViewTabs = function() {
+  const btnDaily = document.getElementById('view-daily-btn');
+  const btnWeekly = document.getElementById('view-weekly-btn');
+  if (!btnDaily || !btnWeekly) return;
+
+  btnDaily.onclick = () => {
+    activeView = 'daily';
+    btnDaily.style.background = 'var(--surface2)';
+    btnDaily.style.color = 'var(--text)';
+    btnWeekly.style.background = 'var(--surface3)';
+    btnWeekly.style.color = 'var(--muted)';
+    render();
+  };
+
+  btnWeekly.onclick = () => {
+    activeView = 'weekly';
+    btnWeekly.style.background = 'var(--surface2)';
+    btnWeekly.style.color = 'var(--text)';
+    btnDaily.style.background = 'var(--surface3)';
+    btnDaily.style.color = 'var(--muted)';
+    render();
+  };
+};
+window.setupViewTabs();
+</script>
+</body>
+</html>
