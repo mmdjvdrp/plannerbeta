@@ -8,7 +8,6 @@ const assetsToCache = [
   "/js/app.js",
   "/js/event.js",
   "/js/supabase.js",
-  "/js/planner.js", // ثبت اسکریپت جدید برای استفاده آفلاین
   "/js/storage.js",
   "/js/ui.js",
   "/icons/icon-192.png",
