@@ -89,7 +89,13 @@
           </div>
           <div class="err-msg" id="time-err">⚠ فرمت صحیح: HH:MM مثلاً ۱۴:۳۰</div>
         </div>
+        <!-- فیلد جدید وقفه/پاز -->
+        <div class="form-group">
+          <label>مدت زمان وقفه / پاز (دقیقه - اختیاری)</label>
+          <input type="text" id="pause-time" placeholder="مثلاً: ۳۰ (دقیقه)" maxlength="4" autocomplete="off">
+        </div>
         <button class="btn-primary" id="add-btn">+ افزودن به تایم‌لاین</button>
+        <button class="btn-primary" id="edit-cancel-btn" style="display:none; background:var(--surface3); color:var(--text); border:1px solid var(--border2); margin-top:8px;">انصراف از ویرایش</button>
         <button class="btn-live" id="live-btn">شروع / پایان با ساعت سیستم</button>
         <div class="live-status" id="live-status"></div>
       </div>
@@ -216,6 +222,7 @@ let curDate= new Date().toISOString().split('T')[0];
 let mapMonth = curDate.slice(0,7);
 let liveSession = load('planner_live', null);
 let theme = load('planner_theme', 'dark');
+let editingEventId = null; // متغیر شناسایی فعالیت در حال ویرایش
 
 function applyTheme(){
   document.body.dataset.theme=theme;
@@ -336,6 +343,10 @@ function renderTimeline(){
     const el=document.createElement('div');
     el.className='tl-item';
     el.style.setProperty('--ic', cat.color);
+    
+    // نمایش مدت زمان وقفه/پاز در صورت وجود
+    const pauseBadge = ev.pauseMins ? `<span class="tl-dur" style="color:#f87171; margin-inline-start: 6px">(پاز: ${ev.pauseMins}m)</span>` : '';
+
     el.innerHTML=`
       <div class="tl-dot"></div>
       <div class="tl-info">
@@ -346,9 +357,13 @@ function renderTimeline(){
           <span style="color:var(--muted);font-size:11px">→</span>
           <span class="tl-time">${fmtTime(ev.eMins)}</span>
           <span class="tl-dur">(${fmtDur(ev.durMins)})</span>
+          ${pauseBadge}
         </div>
       </div>
-      <button class="btn-del" onclick="delEv('${ev.id}')">✕</button>
+      <div style="display:flex; gap:6px">
+        <button class="btn-del" style="background:var(--surface2); color:var(--text); border-color:var(--border2);" onmouseover="this.style.color='var(--accent2)'; this.style.borderColor='var(--accent2)';" onmouseout="this.style.color='var(--text)'; this.style.borderColor='var(--border2)';" onclick="editEv('${ev.id}')" title="ویرایش">✎</button>
+        <button class="btn-del" onclick="delEv('${ev.id}')" title="حذف">✕</button>
+      </div>
     `;
     tl.appendChild(el);
   });
@@ -576,7 +591,7 @@ document.getElementById('save-cat').onclick = ()=>{
   render();
 };
 
-function createEvent({title, catId, stRaw, enRaw, date=curDate}){
+function createEvent({title, catId, stRaw, enRaw, pauseRaw = "0", date=curDate, targetId = null}){
   const err=document.getElementById('time-err');
   
   if(!catId || !cats.some(c=>c.id===catId)){
@@ -597,20 +612,48 @@ function createEvent({title, catId, stRaw, enRaw, date=curDate}){
     return false;
   }
 
-  let durMins=eMinsRaw-sMins;
-  if(durMins<0) durMins+=24*60; 
-  if(durMins===0){ alert('زمان شروع و پایان نمی‌تواند یکسان باشد'); return false; }
+  // محاسبه بازه اولیه و بررسی عبور از نصفه‌شب
+  let totalMins = eMinsRaw - sMins;
+  if(totalMins < 0) totalMins += 24*60;
 
-  const eMins=sMins+durMins > 1440 ? sMins+durMins-1440 : sMins+durMins;
+  // محاسبه پاز و وقفه اعمال شده
+  let pauseMins = parseInt(pauseRaw || "0", 10);
+  if(isNaN(pauseMins) || pauseMins < 0) pauseMins = 0;
 
-  const ev={
-    id: Date.now().toString(),
-    date, 
-    title: finalTitle,
-    catId,
-    sMins, eMins, durMins
-  };
-  events.push(ev);
+  let durMins = totalMins - pauseMins;
+  if(durMins <= 0){
+    alert('زمان پاز/وقفه نمی‌تواند بزرگتر یا مساوی با کل زمان سپری‌شده فعالیت باشد.');
+    return false;
+  }
+
+  const eMins = sMins + totalMins > 1440 ? sMins + totalMins - 1440 : sMins + totalMins;
+
+  if (targetId) {
+    // حالت ویرایش اطلاعات فعلی
+    const idx = events.findIndex(e => e.id === targetId);
+    if (idx !== -1) {
+      events[idx] = {
+        ...events[idx],
+        title: finalTitle,
+        catId,
+        sMins,
+        eMins,
+        durMins,
+        pauseMins
+      };
+    }
+  } else {
+    // حالت ثبت فعالیت کاملاً جدید
+    const ev={
+      id: Date.now().toString(),
+      date, 
+      title: finalTitle,
+      catId,
+      sMins, eMins, durMins, pauseMins
+    };
+    events.push(ev);
+  }
+
   save('planner_ev', events);
   saveCloud();
   return true;
@@ -620,6 +663,7 @@ function clearEventForm(){
   document.getElementById('act-title').value='';
   document.getElementById('start-time').value='';
   document.getElementById('end-time').value='';
+  document.getElementById('pause-time').value='';
 }
 
 document.getElementById('add-btn').onclick = ()=>{
@@ -627,12 +671,50 @@ document.getElementById('add-btn').onclick = ()=>{
     title: document.getElementById('act-title').value.trim(),
     catId: document.getElementById('cat-select').value,
     stRaw: document.getElementById('start-time').value,
-    enRaw: document.getElementById('end-time').value
+    enRaw: document.getElementById('end-time').value,
+    pauseRaw: document.getElementById('pause-time').value,
+    targetId: editingEventId
   });
   if(!ok) return;
 
+  if (editingEventId) {
+    // لغو حالت ویرایش پس از ثبت موفقیت‌آمیز تغییرات
+    editingEventId = null;
+    document.getElementById('add-btn').textContent = '+ افزودن به تایم‌لاین';
+    document.getElementById('edit-cancel-btn').style.display = 'none';
+  }
+
   clearEventForm();
   render();
+};
+
+// کنترل دکمه انصراف از ویرایش
+document.getElementById('edit-cancel-btn').onclick = () => {
+  editingEventId = null;
+  document.getElementById('add-btn').textContent = '+ افزودن به تایم‌لاین';
+  document.getElementById('edit-cancel-btn').style.display = 'none';
+  clearEventForm();
+};
+
+// تابع واکشی اطلاعات و پر کردن فرم برای حالت ویرایش
+window.editEv = function(id) {
+  const ev = events.find(e => e.id === id);
+  if (!ev) return;
+
+  editingEventId = id;
+  // پر کردن فرم
+  document.getElementById('act-title').value = ev.title === getCat(ev.catId).name ? '' : ev.title;
+  document.getElementById('cat-select').value = ev.catId;
+  document.getElementById('start-time').value = fmtTime(ev.sMins);
+  document.getElementById('end-time').value = fmtTime(ev.eMins);
+  document.getElementById('pause-time').value = ev.pauseMins || '';
+
+  // تغییر دکمه ثبت فرم و نمایش دکمه انصراف
+  document.getElementById('add-btn').textContent = '✓ ثبت تغییرات فعالیت';
+  document.getElementById('edit-cancel-btn').style.display = 'block';
+
+  // اسکرول نرم به فرم ثبت فعالیت
+  document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
 };
 
 function updateLiveButton(){
@@ -643,12 +725,56 @@ function updateLiveButton(){
     btn.classList.add('is-running');
     btn.textContent='پایان و ثبت فعالیت';
     const cat=getCat(liveSession.catId);
-    status.textContent=`در حال ثبت: ${liveSession.title}، از ${fmtTime(liveSession.sMins)}، ${cat.name}`;
+    
+    // مدیریت پازهای فعال زنده
+    const isPaused = liveSession.pauseStartMins !== null && liveSession.pauseStartMins !== undefined;
+    const pauseMinsTotal = liveSession.pauseMins || 0;
+
+    status.innerHTML = `
+      <div style="margin-bottom: 4px;">در حال ثبت: <b>${liveSession.title}</b>، از ${fmtTime(liveSession.sMins)} (${cat.name})</div>
+      ${pauseMinsTotal ? `<div style="color:var(--accent2); font-size:11px;">کل پازهای ثبت شده: ${pauseMinsTotal} دقیقه</div>` : ''}
+      ${isPaused ? `<div style="color:#f87171; font-size:11px; margin-bottom:4px;">⏳ در وضعیت پاز موقت</div>` : ''}
+      <button id="live-pause-btn" style="
+        padding: 4px 10px;
+        background: var(--surface3);
+        border: 1px solid var(--border2);
+        color: var(--text);
+        border-radius: 6px;
+        font-size: 11px;
+        cursor: pointer;
+        font-family: inherit;
+      ">${isPaused ? '▶ ادامه فعالیت' : '⏸ پاز موقت'}</button>
+    `;
+
+    document.getElementById('live-pause-btn').onclick = (e) => {
+      e.stopPropagation();
+      toggleLivePause();
+    };
     return;
   }
   btn.classList.remove('is-running');
   btn.textContent='شروع / پایان با ساعت سیستم';
   status.textContent='';
+}
+
+// تابع تغییر وضعیت پاز و ادامه در فعالیت‌های زنده
+function toggleLivePause() {
+  if (!liveSession) return;
+  const nowStr = getNow();
+  const nowMins = parseTime(nowStr);
+
+  if (liveSession.pauseStartMins === null || liveSession.pauseStartMins === undefined) {
+    // پاز کردن موقت فعالیت زنده
+    liveSession.pauseStartMins = nowMins;
+  } else {
+    // خروج از حالت پاز و بازگشت به کار
+    let diff = nowMins - liveSession.pauseStartMins;
+    if (diff < 0) diff += 24 * 60; // بررسی نیمه‌شب
+    liveSession.pauseMins = (liveSession.pauseMins || 0) + diff;
+    liveSession.pauseStartMins = null;
+  }
+  saveCloud();
+  updateLiveButton();
 }
 
 document.getElementById('live-btn').onclick=()=>{
@@ -666,7 +792,8 @@ document.getElementById('live-btn').onclick=()=>{
     const now=getNow();
     const sMins=parseTime(now);
     
-    liveSession={title: finalTitle, catId, date:curDate, sMins};
+    // اضافه کردن متغیرهای وضعیت پاز به فعالیت زنده
+    liveSession={title: finalTitle, catId, date:curDate, sMins, pauseMins: 0, pauseStartMins: null};
     saveCloud();
     document.getElementById('start-time').value=now;
     document.getElementById('end-time').value='';
@@ -675,11 +802,22 @@ document.getElementById('live-btn').onclick=()=>{
   }
 
   const endNow=getNow();
+  const endMins=parseTime(endNow);
+
+  // محاسبه میزان کل پاز ثبت‌شده تا این لحظه
+  let finalPauseMins = liveSession.pauseMins || 0;
+  if (liveSession.pauseStartMins !== null && liveSession.pauseStartMins !== undefined) {
+    let diff = endMins - liveSession.pauseStartMins;
+    if (diff < 0) diff += 24 * 60;
+    finalPauseMins += diff;
+  }
+
   const ok=createEvent({
     title: liveSession.title,
     catId: liveSession.catId,
     stRaw: fmtTime(liveSession.sMins),
     enRaw: endNow,
+    pauseRaw: String(finalPauseMins), // ارسال میزان پاز نهایی
     date: liveSession.date
   });
   if(!ok) return;
@@ -697,8 +835,16 @@ document.getElementById('end-time').addEventListener('keydown', e=>{
 setupTimeInput(document.getElementById('start-time'));
 setupTimeInput(document.getElementById('end-time'));
 
-// تابع کمکی برای پردازش کلیه تعاملات مربوط به نشست فعال کاربر
-async function handleUserSession(session) {
+// اعمال فیلتر برای فقط مجاز بودن عدد در ورودی زمان پاز
+const pauseInp = document.getElementById('pause-time');
+if (pauseInp) {
+  pauseInp.addEventListener('input', function(){
+    this.value = this.value.replace(/[^\d]/g, '');
+  });
+}
+
+// مدیریت و لود دقیق احراز هویت با ساختار ایمن و بدون بن‌بست
+supabase.auth.onAuthStateChange((event, session) => {
   const user = session?.user;
   if(!user){
     window.location.href = "./login.html";
@@ -718,7 +864,7 @@ async function handleUserSession(session) {
     };
   }
 
-  // ۲. تعیین سریع نام از متادیتای اکانت / پیش‌فرض بخش اول ایمیل
+  // ۲. دریافت سریع نام از متادیتا / ایمیل برای جلوگیری از بن‌بست دیتابیس
   let displayName = user.user_metadata?.display_name || "";
   if (!displayName && user.email) {
     displayName = user.email.split('@')[0];
@@ -729,7 +875,7 @@ async function handleUserSession(session) {
     msg.textContent = displayName ? "خوش آمدی، " + displayName + " 👋" : "خوش آمدی 👋";
   }
 
-  // ۳. لود داده‌های ابری به صورت ناهمگام در نخ پس‌زمینه با یک تاخیر کوتاه برای رفع باگ بن‌بست
+  // ۳. اجرای غیرهمزمان کوئری‌های ابری (با تاخیر کوتاه) برای آزاد کردن قفل داخلی سوپابیس
   setTimeout(async () => {
     try {
       localStorage.removeItem('planner_ev');
@@ -739,10 +885,10 @@ async function handleUserSession(session) {
       cats = [];
       liveSession = null;
 
-      // دریافت داده‌ها از دیتابیس ابری
+      // دریافت داده‌های برنامه از فضای ابری
       await loadCloud();
 
-      // تلاش برای خواندن جدول پروفایل در صورتی که همچنان نام نمایشی یافت نشد
+      // تلاش مجدد برای بررسی دیتابیس پروفایل در صورت خالی بودن نام
       if (!user.user_metadata?.display_name) {
         const { data: profile, error: profileErr } = await supabase
           .from("profiles")
@@ -763,33 +909,6 @@ async function handleUserSession(session) {
       console.error("خطا در پردازش داده‌های ابری پس‌زمینه:", err);
     }
   }, 10);
-}
-
-// بررسی دستی و همزمان نشست کاربر در هنگام لود ابتدایی صفحه (حیاتی برای تضمین اجرا)
-async function initAuth() {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      await handleUserSession(session);
-    } else {
-      window.location.href = "./login.html";
-    }
-  } catch (err) {
-    console.error("خطا در واکشی وضعیت لود کاربر:", err);
-    window.location.href = "./login.html";
-  }
-}
-
-// اجرای متد لودر اولیه
-initAuth();
-
-// گوش دادن به تغییرات نشست کاربر پس از لود اولیه
-supabase.auth.onAuthStateChange((event, session) => {
-  if (event === "SIGNED_OUT") {
-    window.location.href = "./login.html";
-  } else if (event === "SIGNED_IN" && session) {
-    handleUserSession(session);
-  }
 });
 </script>
 </body>
