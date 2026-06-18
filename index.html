@@ -158,6 +158,13 @@
           <label>عنوان فعالیت</label>
          <input type="text" id="act-title" placeholder="عنوان فعالیت (اختیاری - پیش‌فرض: نام موضوع)">
         </div>
+        <!-- اضافه کردن فیلد وقفه/پاز و دکمه لغو ویرایش -->
+        <div class="form-group">
+          <label>مدت زمان وقفه / پاز (دقیقه - اختیاری)</label>
+          <input type="text" id="pause-time" placeholder="مثلاً: ۳۰ (دقیقه)" maxlength="4" autocomplete="off">
+        </div>
+        <button class="btn-primary" id="add-btn">+ افزودن به تایم‌لاین</button>
+        <button class="btn-primary" id="edit-cancel-btn" style="display:none; background:var(--surface3); color:var(--text); border:1px solid var(--border2); margin-top:8px;">انصراف از ویرایش</button>
         <div class="form-group">
           <label>دسته‌بندی</label>
           <div class="cat-row">
@@ -1016,6 +1023,7 @@ supabase.auth.onAuthStateChange((event, session) => {
     handleUserSession(session);
   }
 });
+  <script type="module" src="./js/planner.js"></script>
 </script>
 </body>
 </html>
