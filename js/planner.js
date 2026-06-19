@@ -212,7 +212,7 @@ function getWeekDates(dateStr) {
   return weekDates;
 }
 
-/// رندر تایم‌لاین به صورت برنامه هفتگی مدارس (جدول شنبه تا جمعه) همراه با هاشور برای روزهای دارای روتین
+// رندر تایم‌لاین به صورت برنامه هفتگی مدارس (جدول شنبه تا جمعه) همراه با هاشور برای روزهای دارای روتین
 function renderWeeklyTimetable() {
   const tl = document.getElementById('timeline');
   const weekDates = getWeekDates(curDate);
@@ -299,35 +299,6 @@ function renderWeeklyTimetable() {
     }
     html += `</div>`;
   });
-  
-  html += `</div>`;
-  tl.innerHTML = html;
-}
-{
-    const catKeys = Object.keys(catGroups);
-    if (catKeys.length === 0) {
-      html += `<div style="font-size:10px; color:var(--muted); text-align:center; margin-top:20px;">خالی</div>`;
-    } else {
-      catKeys.forEach(catId => {
-        const cat = getCat(catId);
-        const mins = catGroups[catId];
-        html += `
-          <div style="
-            background: ${cat.color}18;
-            border-right: 3px solid ${cat.color};
-            border-radius: 4px;
-            padding: 4px 6px;
-            font-size: 11px;
-            cursor: pointer;
-          " onclick="curDate='${day.date}'; activeView='daily'; document.getElementById('view-daily-btn').click();" title="${cat.name} (کل این روز: ${fmtDur(mins)})">
-            <div style="font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${cat.name}</div>
-            <div style="font-size:9px; color:var(--muted);">${fmtDur(mins)}</div>
-          </div>
-        `;
-      });
-    }
-    html += `</div>`;
-  ;
   
   html += `</div>`;
   tl.innerHTML = html;
@@ -516,6 +487,7 @@ function shiftMapMonth(n){
   renderActivityMap();
 }
 
+// رسم نقشه ماهانه
 function renderActivityMap(){
   const map=document.getElementById('activity-map');
   const summary=document.getElementById('map-summary');
@@ -1247,3 +1219,4 @@ window.setupViewTabs = function() {
   };
 };
 window.setupViewTabs();
+---
