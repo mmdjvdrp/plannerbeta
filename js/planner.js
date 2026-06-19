@@ -9,7 +9,7 @@ let mapMonth = curDate.slice(0,7);
 let liveSession = load('planner_live', null);
 let theme = load('planner_theme', 'dark');
 let editingEventId = null;
-let activeView = 'daily'; // مقدار پیش‌فرض روزانه یا هفتگی
+let activeView = 'daily'; // سوییچ پیش‌فرض
 
 async function saveCloud(){
   try {
@@ -132,6 +132,8 @@ function renderCats(){
   const sel=document.getElementById('cat-select');
   const mapSel=document.getElementById('map-cat-select');
   const manager=document.getElementById('cat-manager');
+  if(!sel || !mapSel || !manager) return;
+
   const current=sel.value;
   const mapCurrent=mapSel.value;
   sel.innerHTML='';
@@ -279,6 +281,8 @@ function renderWeeklyTimetable() {
 function renderTimeline(){
   const tl=document.getElementById('timeline');
   const em=document.getElementById('empty-msg');
+  if(!tl || !em) return;
+
   document.getElementById('tl-date').textContent=fmtDateLabel(curDate);
 
   if (activeView === 'weekly') {
@@ -300,6 +304,8 @@ function renderTimeline(){
     const el=document.createElement('div');
     el.className='tl-item';
     el.style.setProperty('--ic', cat.color);
+    
+    // نمایش پاز در کنار زمان کل
     const pauseBadge = ev.pauseMins ? `<span class="tl-dur" style="color:#f87171; margin-inline-start: 6px">(پاز: ${ev.pauseMins}m)</span>` : '';
 
     el.innerHTML=`
@@ -339,6 +345,7 @@ function renderReport(){
   week.forEach(e=>{ sums[e.catId]=(sums[e.catId]||0)+e.durMins; total+=e.durMins; });
 
   const grid=document.getElementById('report-grid');
+  if(!grid) return;
   grid.innerHTML='';
 
   const reportCats=[...cats];
@@ -353,7 +360,7 @@ function renderReport(){
     if(!mins) return;
     const pct=total>0?Math.round((mins/total)*100):0;
     const h=Math.floor(mins/60), m=mins%60;
-    const durStr=h?h+'h'+(m?' '+m+'m':''):m+'m';
+    const durStr = h ? (h + 'h' + (m ? ' ' + m + 'm' : '')) : (m + 'm');
     const el=document.createElement('div');
     el.className='report-item';
     el.innerHTML=`
@@ -385,6 +392,8 @@ function renderActivityMap(){
   const summary=document.getElementById('map-summary');
   const sel=document.getElementById('map-cat-select');
   const label=document.getElementById('map-month-label');
+  if(!map || !summary || !sel || !label) return;
+
   const [y,mo]=mapMonth.split('-').map(Number);
   const monthNames=['ژانویه','فوریه','مارس','آوریل','مه','ژوئن','ژوئیه','اوت','سپتامبر','اکتبر','نوامبر','دسامبر'];
   label.textContent=monthNames[mo-1]+' '+y;
@@ -482,6 +491,7 @@ window.delCat=function(id){
 };
 
 function setupTimeInput(inp){
+  if(!inp) return;
   inp.addEventListener('input', function(){
     let v=this.value.replace(/[^\d:]/g,'');
     const digits=v.replace(/:/g,'');
@@ -527,7 +537,7 @@ document.getElementById('btn-now-e').onclick = ()=>{ document.getElementById('en
 
 document.getElementById('toggle-cat').onclick = ()=>{
   const b=document.getElementById('new-cat-box');
-  b.style.display = b.style.display==='block'?'none':'block';
+  if(b) b.style.display = b.style.display==='block'?'none':'block';
 };
 
 document.getElementById('save-cat').onclick = ()=>{
@@ -562,8 +572,8 @@ function createEvent({title, catId, stRaw, enRaw, pauseRaw = "0", date=curDate, 
   const sMins=parseTime(stRaw);
   const eMinsRaw=parseTime(enRaw);
   if(sMins===null||eMinsRaw===null){
-    err.style.display='block';
-    setTimeout(()=>err.style.display='none', 3000);
+    if(err) err.style.display='block';
+    setTimeout(()=>{ if(err) err.style.display='none'; }, 3000);
     return false;
   }
 
@@ -786,9 +796,11 @@ document.getElementById('live-btn').onclick=()=>{
   updateLiveButton();
 };
 
-document.getElementById('end-time').addEventListener('keydown', e=>{
-  if(e.key==='Enter') document.getElementById('add-btn').click();
-});
+if(document.getElementById('end-time')){
+  document.getElementById('end-time').addEventListener('keydown', e=>{
+    if(e.key==='Enter') document.getElementById('add-btn').click();
+  });
+}
 
 setupTimeInput(document.getElementById('start-time'));
 setupTimeInput(document.getElementById('end-time'));
@@ -914,6 +926,3 @@ window.setupViewTabs = function() {
   };
 };
 window.setupViewTabs();
-</script>
-</body>
-</html>
