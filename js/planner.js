@@ -1060,7 +1060,7 @@ if (reportConfirmBtn) {
   };
 }
 
-// رویدادهای مربوط به ثبت روتین جدید
+// تغییر رنگ پویا و سایه دار روزهای روتین برای وضوح بیشتر انتخاب
 const dayBtns = document.querySelectorAll('.rt-day-btn');
 dayBtns.forEach(btn => {
   btn.onclick = function() {
@@ -1070,11 +1070,13 @@ dayBtns.forEach(btn => {
       this.style.background = 'var(--surface2)';
       this.style.borderColor = 'var(--border2)';
       this.style.color = 'var(--text)';
+      this.style.boxShadow = 'none';
     } else {
       selectedRtDays.push(day);
       this.style.background = 'var(--accent)';
       this.style.borderColor = 'var(--accent)';
       this.style.color = '#fff';
+      this.style.boxShadow = '0 0 8px var(--accent-glow)'; // اعمال سایه درخشان در وضعیت فعال
     }
   };
 });
@@ -1116,7 +1118,7 @@ if (addRtBtn) {
     save('planner_routines', routines);
     saveCloud();
     
-    // ریست فرم روتین بعد از ثبت
+   // ریست فرم روتین بعد از ثبت
     document.getElementById('rt-title').value = '';
     document.getElementById('rt-start').value = '';
     document.getElementById('rt-end').value = '';
@@ -1125,12 +1127,8 @@ if (addRtBtn) {
       b.style.background = 'var(--surface2)';
       b.style.borderColor = 'var(--border2)';
       b.style.color = 'var(--text)';
+      b.style.boxShadow = 'none'; // حذف درخشش دکمه‌ها
     });
-    
-    renderRoutines();
-  };
-}
-
 // مدیریت و لود دقیق احراز هویت با ساختار ایمن و بدون بن‌بست
 async function handleUserSession(session) {
   const user = session?.user;
