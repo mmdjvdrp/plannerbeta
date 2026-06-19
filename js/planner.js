@@ -28,6 +28,32 @@ function shiftDay(n){
   render();
 }
 
+// تابع بسیار مهم اعتبارسنجی فیلدهای زمان که در نسخه ماژولار قبلی جا افتاده بود
+function setupTimeInput(inp){
+  if(!inp) return;
+  inp.addEventListener('input', function(){
+    let v=this.value.replace(/[^\d:]/g,'');
+    const digits=v.replace(/:/g,'');
+    if(digits.length>=3 && !v.includes(':'))
+      v=digits.slice(0,2)+':'+digits.slice(2,4);
+    this.value=v;
+  });
+  inp.addEventListener('blur', function(){
+    const v=this.value.trim();
+    if(v && parseTime(v)===null){
+      this.style.borderColor='#ef4444';
+      this.style.boxShadow='0 0 0 3px rgba(239,68,68,.2)';
+    } else {
+      this.style.borderColor='';
+      this.style.boxShadow='';
+    }
+  });
+  inp.addEventListener('focus', function(){
+    this.style.borderColor='';
+    this.style.boxShadow='';
+  });
+}
+
 function createEvent({title, catId, stRaw, enRaw, pauseRaw = "0", date=state.curDate, targetId = null}){
   if(!catId || !state.cats.some(c=>c.id===catId)){
     alert('اول یک موضوع بسازید یا انتخاب کنید');
@@ -142,7 +168,6 @@ document.getElementById('edit-cancel-btn').onclick = () => {
   clearEventForm();
 };
 
-// فیکس شده: اضافه شدن متد سراسری حذف رویدادها که فراموش شده بود
 window.delEv = function(id) {
   if(!confirm('این فعالیت حذف شود؟')) return;
   state.events = state.events.filter(e => e.id !== id);
@@ -359,23 +384,6 @@ window.delRoutine = function(id) {
   save('planner_routines', state.routines);
   saveCloud();
   render();
-};
-
-window.editEv = function(id) {
-  const ev = state.events.find(e => e.id === id);
-  if (!ev) return;
-
-  state.editingEventId = id;
-  document.getElementById('act-title').value = ev.title === (state.cats.find(c=>c.id===ev.catId)?.name || '') ? '' : ev.title;
-  document.getElementById('cat-select').value = ev.catId;
-  document.getElementById('start-time').value = fmtTime(ev.sMins);
-  document.getElementById('end-time').value = fmtTime(ev.eMins);
-  document.getElementById('pause-time').value = ev.pauseMins || '';
-
-  document.getElementById('add-btn').textContent = '✓ ثبت تغییرات فعالیت';
-  document.getElementById('edit-cancel-btn').style.display = 'block';
-
-  document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
 };
 
 // واگذاری رویداد خروج و احراز هویت بدون مسدودی قفل
