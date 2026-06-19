@@ -1043,19 +1043,21 @@ if (pauseInp) {
 }
 
 // اعتبارسنجی پویای بازه روزهای فیلتر گزارش دوره‌ای (عدم ورود اعداد فارسی یا حروف)
-const daysInp = document.getElementById('report-days');
-if (daysInp) {
-  daysInp.addEventListener('input', function() {
-    const val = this.value.trim();
+// فعال‌سازی تایید فیلتر گزارش دوره ای فقط با زدن دکمه تایید
+const reportConfirmBtn = document.getElementById('report-confirm-btn');
+if (reportConfirmBtn) {
+  reportConfirmBtn.onclick = function() {
+    const valInp = document.getElementById('report-days');
+    const val = valInp ? valInp.value.trim() : "7";
     const err = document.getElementById('report-err');
     
     if (/[۰-۹]/.test(val) || /[^\d]/.test(val) || val === "" || parseInt(val, 10) <= 0) {
       if (err) err.style.display = 'block';
     } else {
       if (err) err.style.display = 'none';
-      renderReport();
+      renderReport(); // به‌روزرسانی نهایی نمودار گزارش
     }
-  });
+  };
 }
 
 // رویدادهای مربوط به ثبت روتین جدید
