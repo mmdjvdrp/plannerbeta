@@ -1,22 +1,23 @@
-const CACHE_NAME = "planner-cache-v6";
+// sw.js
+const CACHE_NAME = "planner-cache-v7"; // ارتقا نسخه کش جهت بروزرسانی مرورگرها
 const assetsToCache = [
   "/",
   "/index.html",
   "/login.html",
   "/css/style.css",
   "/manifest.json",
-  "/js/app.js",
-  "/js/event.js",
   "/js/supabase.js",
   "/js/storage.js",
-  "/js/ui.js",
+  "/js/helpers.js",
+  "/js/render.js",
+  "/js/planner.js",
   "/icons/icon-192.png",
   "/icons/icon-512.png"
 ];
 
 // ۱. نصب سرویس‌ورکر و کش کردن فایل‌های اصلی پوسته
 self.addEventListener("install", (event) => {
-  self.skipWaiting(); // فعال‌سازی آنی نسخه جدید بدون منتظر ماندن
+  self.skipWaiting(); 
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(assetsToCache);
@@ -28,12 +29,12 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     Promise.all([
-      self.clients.claim(), // کنترل آنی تب‌های باز بدون نیاز به رفرش
+      self.clients.claim(), 
       caches.keys().then((cacheNames) => {
         return Promise.all(
           cacheNames.map((cache) => {
             if (cache !== CACHE_NAME) {
-              return caches.delete(cache); // حذف نسخه‌های قدیمی کش
+              return caches.delete(cache); 
             }
           })
         );
@@ -42,21 +43,17 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// ۳. مدیریت درخواست‌ها (ادغام دو بخش Fetch قبلی)
+// ۳. مدیریت درخواست‌ها و واکشی کش آفلاین
 self.addEventListener("fetch", (event) => {
-  // فقط درخواست‌های متد GET را مدیریت و کش می‌کنیم
   if (event.request.method !== "GET") return;
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      // اگر فایل در کش موجود بود، همان را برگردان
       if (cachedResponse) {
         return cachedResponse;
       }
 
-      // در غیر این صورت، فایل را از شبکه دریافت کن
       return fetch(event.request).then((response) => {
-        // اگر فایل مربوط به کتابخانه سوپابیس از CDN بود، آن را برای استفاده‌های بعدی کش کن
         if (response && response.status === 200 && event.request.url.startsWith("https://cdn.jsdelivr.net/")) {
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -65,8 +62,6 @@ self.addEventListener("fetch", (event) => {
         }
         return response;
       });
-    }).catch(() => {
-      // این بخش زمانی اجرا می‌شود که دسترسی به اینترنت کاملاً قطع باشد و فایل هم در کش نباشد
-    })
+    }).catch(() => {})
   );
 });
