@@ -326,7 +326,7 @@ function renderWeeklyTimetable() {
       });
     }
     html += `</div>`;
-  });
+  ;
   
   html += `</div>`;
   tl.innerHTML = html;
