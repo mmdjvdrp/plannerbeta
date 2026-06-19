@@ -4,12 +4,14 @@ import { supabase } from "./supabase.js";
 // متغیرهای وضعیت برنامه
 let events = load('planner_ev', []);
 let cats   = load('planner_cats', []);
-let curDate= new Date().toISOString().split('T')[0];
+let routines = load('planner_routines', []); // روتین‌های ثابت
+let curDate = new Date().toISOString().split('T')[0];
 let mapMonth = curDate.slice(0,7);
 let liveSession = load('planner_live', null);
 let theme = load('planner_theme', 'dark');
 let editingEventId = null;
-let activeView = 'daily'; // سوییچ پیش‌فرض
+let activeView = 'daily'; // سوییچ پیش‌فرض روزانه یا هفتگی
+let selectedRtDays = []; // روزهای انتخاب شده روتین جدید
 
 async function saveCloud(){
   try {
@@ -21,7 +23,7 @@ async function saveCloud(){
       .upsert(
         {
           user_id: user.id,
-          data: { events, cats, liveSession, theme }
+          data: { events, cats, liveSession, theme, routines }
         },
         { onConflict: 'user_id' }
       );
@@ -51,11 +53,13 @@ async function loadCloud(){
       cats        = cloudData.cats        || [];
       theme       = cloudData.theme       || "dark";
       liveSession = cloudData.liveSession || null;
+      routines    = cloudData.routines    || [];
 
       save('planner_ev',    events);
       save('planner_cats',  cats);
       save('planner_live',  liveSession);
       save('planner_theme', theme);
+      save('planner_routines', routines);
     }
   } catch (err) {
     console.error("خطا در بارگذاری ابری اطلاعات:", err);
@@ -221,7 +225,13 @@ function renderWeeklyTimetable() {
   ">`;
   
   weekDates.forEach(day => {
-    const dayEvs = events.filter(e => e.date === day.date).sort((a,b) => a.sMins - b.sMins);
+    // گروه‌بندی هفتگی بر اساس دسته‌بندی موضوعی
+    const dayEvs = events.filter(e => e.date === day.date);
+    const catGroups = {};
+    dayEvs.forEach(ev => {
+      catGroups[ev.catId] = (catGroups[ev.catId] || 0) + ev.durMins;
+    });
+
     const isCurrent = day.date === curDate;
     const borderStyle = isCurrent ? '2px solid var(--accent)' : '1px solid var(--border)';
     const bgStyle = isCurrent ? 'var(--surface2)' : 'var(--surface)';
@@ -250,23 +260,24 @@ function renderWeeklyTimetable() {
         </div>
     `;
     
-    if (dayEvs.length === 0) {
+    const catKeys = Object.keys(catGroups);
+    if (catKeys.length === 0) {
       html += `<div style="font-size:10px; color:var(--muted); text-align:center; margin-top:20px;">خالی</div>`;
     } else {
-      dayEvs.forEach(ev => {
-        const cat = getCat(ev.catId);
+      catKeys.forEach(catId => {
+        const cat = getCat(catId);
+        const mins = catGroups[catId];
         html += `
-          <div onclick="editEv('${ev.id}')" style="
+          <div style="
             background: ${cat.color}18;
             border-right: 3px solid ${cat.color};
             border-radius: 4px;
             padding: 4px 6px;
             font-size: 11px;
             cursor: pointer;
-            transition: opacity 0.15s;
-          " onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1" title="${ev.title} (${fmtTime(ev.sMins)} تا ${fmtTime(ev.eMins)})">
-            <div style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${ev.title}</div>
-            <div style="font-size:9px; color:var(--muted); font-family: monospace;">${fmtTime(ev.sMins)}</div>
+          " onclick="curDate='${day.date}'; activeView='daily'; document.getElementById('view-daily-btn').click();" title="${cat.name} (کل این روز: ${fmtDur(mins)})">
+            <div style="font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${cat.name}</div>
+            <div style="font-size:9px; color:var(--muted);">${fmtDur(mins)}</div>
           </div>
         `;
       });
@@ -278,6 +289,7 @@ function renderWeeklyTimetable() {
   tl.innerHTML = html;
 }
 
+// رندر آکاردئونی و پویای تایم‌لاین روزانه با ادغام رکوردهای تکراری یک موضوع
 function renderTimeline(){
   const tl=document.getElementById('timeline');
   const em=document.getElementById('empty-msg');
@@ -292,60 +304,133 @@ function renderTimeline(){
     return;
   }
 
-  const day=events.filter(e=>e.date===curDate)
-    .sort((a,b)=>a.sMins-b.sMins);
+  const dayEvents = events.filter(e => e.date === curDate);
 
-  if(!day.length){ em.style.display='block'; tl.style.display='none'; return; }
+  if(!dayEvents.length){ em.style.display='block'; tl.style.display='none'; return; }
   em.style.display='none'; tl.style.display='block';
   tl.innerHTML='';
 
-  day.forEach(ev=>{
-    const cat=getCat(ev.catId);
-    const el=document.createElement('div');
-    el.className='tl-item';
-    el.style.setProperty('--ic', cat.color);
-    
-    // نمایش پاز در کنار زمان کل
-    const pauseBadge = ev.pauseMins ? `<span class="tl-dur" style="color:#f87171; margin-inline-start: 6px">(پاز: ${ev.pauseMins}m)</span>` : '';
+  // ۱. گروه‌بندی رویدادها بر اساس شناسه دسته‌بندی (catId)
+  const groups = {};
+  dayEvents.forEach(ev => {
+    if(!groups[ev.catId]) groups[ev.catId] = [];
+    groups[ev.catId].push(ev);
+  });
 
-    el.innerHTML=`
-      <div class="tl-dot"></div>
-      <div class="tl-info">
-        <div class="tl-title">${escHtml(ev.title)}</div>
-        <div class="tl-meta">
-          <span class="tl-badge" style="background:${cat.color}">${escHtml(cat.name)}</span>
-          <span class="tl-time">${fmtTime(ev.sMins)}</span>
-          <span style="color:var(--muted);font-size:11px">→</span>
-          <span class="tl-time">${fmtTime(ev.eMins)}</span>
-          <span class="tl-dur">(${fmtDur(ev.durMins)})</span>
-          ${pauseBadge}
+  // مرتب‌سازی دسته‌ها بر اساس زودترین زمان شروع فعالیت درون آن گروه
+  const sortedCatIds = Object.keys(groups).sort((a, b) => {
+    const minA = Math.min(...groups[a].map(e => e.sMins));
+    const minB = Math.min(...groups[b].map(e => e.sMins));
+    return minA - minB;
+  });
+
+  // ۲. رندر هر گروه به صورت یک کامپوننت آکاردئونی ( details / summary ) بومی مرورگر
+  sortedCatIds.forEach(catId => {
+    const cat = getCat(catId);
+    const grp = groups[catId].sort((a,b) => a.sMins - b.sMins);
+    const totalDur = grp.reduce((sum, e) => sum + e.durMins, 0);
+
+    const details = document.createElement('details');
+    details.style.cssText = `
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 10px;
+      background: var(--surface);
+      overflow: hidden;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    `;
+
+    details.innerHTML = `
+      <summary style="
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 11px 14px;
+        cursor: pointer;
+        list-style: none;
+        outline: none;
+        border-right: 4px solid ${cat.color};
+      ">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span style="width:10px; height:10px; border-radius:50%; background:${cat.color}; box-shadow:0 0 8px ${cat.color}; display:inline-block;"></span>
+          <div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--text);">${escHtml(cat.name)}</div>
+            <div style="font-size: 11px; color: var(--muted); margin-top:2px;">
+              ${grp.length} نوبت فعالیت &mdash; مجموعاً: <b>${fmtDur(totalDur)}</b>
+            </div>
+          </div>
         </div>
-      </div>
-      <div style="display:flex; gap:6px">
-        <button class="btn-del" style="background:var(--surface2); color:var(--text); border-color:var(--border2);" onmouseover="this.style.color='var(--accent2)'; this.style.borderColor='var(--accent2)';" onmouseout="this.style.color='var(--text)'; this.style.borderColor='var(--border2)';" onclick="editEv('${ev.id}')" title="ویرایش">✎</button>
-        <button class="btn-del" onclick="delEv('${ev.id}')" title="حذف">✕</button>
+        <span style="font-size: 11px; color: var(--muted); transition: transform 0.2s;">▼</span>
+      </summary>
+      
+      <div style="
+        padding: 10px 14px;
+        background: var(--surface2);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        border-top: 1px solid var(--border);
+      ">
+        ${grp.map(ev => {
+          const pauseText = ev.pauseMins ? `<span style="color:#f87171; margin-inline-start: 6px;">(پاز: ${ev.pauseMins}m)</span>` : '';
+          return `
+            <div style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding: 6px 10px;
+              background: var(--surface3);
+              border-radius: 8px;
+            ">
+              <div>
+                <div style="font-size:12px; font-weight:700;">${escHtml(ev.title)}</div>
+                <div style="font-size:10px; color:var(--muted); margin-top:2px; font-family: monospace;">
+                  ${fmtTime(ev.sMins)} تا ${fmtTime(ev.eMins)} (${fmtDur(ev.durMins)}) ${pauseText}
+                </div>
+              </div>
+              <div style="display:flex; gap:4px">
+                <button class="btn-del" style="width:24px; height:24px; font-size:11px; background:var(--surface2);" onclick="editEv('${ev.id}')">✎</button>
+                <button class="btn-del" style="width:24px; height:24px; font-size:11px;" onclick="delEv('${ev.id}')">✕</button>
+              </div>
+            </div>
+          `;
+        }).join('')}
       </div>
     `;
-    tl.appendChild(el);
+    tl.appendChild(details);
   });
 }
 
 function renderReport(){
+  const grid = document.getElementById('report-grid');
+  if (!grid) return;
+
+  const val = document.getElementById('report-days').value.trim();
+  const err = document.getElementById('report-err');
+
+  // اعتبارسنجی ورودی بازه روزانه (فقط اعداد انگلیسی مجاز است)
+  if (/[۰-۹]/.test(val) || /[^\d]/.test(val) || val === "" || parseInt(val, 10) <= 0) {
+    if (err) err.style.display = 'block';
+    return; // متوقف کردن رندر گزارش در صورت خطای اعتبارسنجی
+  }
+
+  if (err) err.style.display = 'none';
+
+  const daysRange = parseInt(val, 10);
   const [y,mo,d]=curDate.split('-').map(Number);
   const ref=new Date(y,mo-1,d);
-  const from=new Date(ref); from.setDate(from.getDate()-6);
+  const from=new Date(ref);
+  from.setDate(from.getDate() - (daysRange - 1));
 
-  const week=events.filter(e=>{
-    const [ey,em,ed]=e.date.split('-').map(Number);
-    const dt=new Date(ey,em-1,ed);
-    return dt>=from && dt<=ref;
+  const week = events.filter(e => {
+    const [ey,em,ed] = e.date.split('-').map(Number);
+    const dt = new Date(ey,em-1,ed);
+    return dt >= from && dt <= ref;
   });
 
   const sums={}; let total=0;
   week.forEach(e=>{ sums[e.catId]=(sums[e.catId]||0)+e.durMins; total+=e.durMins; });
 
-  const grid=document.getElementById('report-grid');
-  if(!grid) return;
   grid.innerHTML='';
 
   const reportCats=[...cats];
@@ -377,7 +462,7 @@ function renderReport(){
 
   const th=Math.floor(total/60), tm=total%60;
   const tStr=th?th+'h'+(tm?' '+tm+'m':''):tm+'m';
-  document.getElementById('total-line').innerHTML=`مجموع ۷ روز: <span>${tStr}</span>`;
+  document.getElementById('total-line').innerHTML=`مجموع گزارش: <span>${tStr}</span>`;
 }
 
 function shiftMapMonth(n){
@@ -465,6 +550,7 @@ function render(){
   renderTimeline();
   renderReport();
   renderActivityMap();
+  renderRoutines();
 }
 
 function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -802,14 +888,202 @@ if(document.getElementById('end-time')){
   });
 }
 
+// واکشی و نمایش روتین‌های ثبت‌شده
+function renderRoutines() {
+  const list = document.getElementById('rt-list');
+  if (!list) return;
+  list.innerHTML = '';
+  
+  if (routines.length === 0) {
+    list.innerHTML = `<div style="font-size:11px; color:var(--muted); text-align:center;">هیچ روتینی تعریف نشده است</div>`;
+    return;
+  }
+  
+  const daysName = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
+  
+  routines.forEach(rt => {
+    const cat = getCat(rt.catId);
+    const daysStr = rt.days.map(d => daysName[d]).join('، ');
+    
+    const el = document.createElement('div');
+    el.style.cssText = `
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-right: 3px solid ${cat.color};
+      border-radius: 8px;
+      padding: 6px 10px;
+    `;
+    
+    el.innerHTML = `
+      <div>
+        <div style="font-size:12px; font-weight:700;">${escHtml(rt.title)} (${cat.name})</div>
+        <div style="font-size:10px; color:var(--muted)">
+          ساعت ${rt.startTime} تا ${rt.endTime} | روزهای: ${daysStr}
+        </div>
+      </div>
+      <button class="btn-del" style="width:24px; height:24px; font-size:11px;" onclick="delRoutine('${rt.id}')" title="حذف روتین">✕</button>
+    `;
+    list.appendChild(el);
+  });
+}
+
+window.delRoutine = function(id) {
+  if (!confirm('این روتین حذف شود؟')) return;
+  routines = routines.filter(r => r.id !== id);
+  save('planner_routines', routines);
+  saveCloud();
+  renderRoutines();
+};
+
+// پردازش و افزودن خودکار روتین‌ها به تایم‌لاین هنگام رسیدن ساعت شروع
+function checkAndAddRoutines() {
+  const now = new Date();
+  const jsDay = now.getDay(); 
+  const irDay = (jsDay + 1) % 7; // نگاشت شنبه به 0 تا جمعه به 6
+  
+  const currentTimeMins = now.getHours() * 60 + now.getMinutes();
+  const todayStr = now.toISOString().split('T')[0];
+  
+  let changed = false;
+  
+  routines.forEach(rt => {
+    if (rt.days.includes(irDay)) {
+      const sMins = parseTime(rt.startTime);
+      // اگر زمان فعلی سیستم مساوی یا بعد از شروع روتین باشد
+      if (currentTimeMins >= sMins) {
+        // چک کردن برای عدم وجود هم‌پوشانی و ثبت نشدن روتین در امروز
+        const alreadyExists = events.some(e => e.date === todayStr && e.catId === rt.catId && e.sMins === sMins);
+        if (!alreadyExists) {
+          const totalMins = parseTime(rt.endTime) - sMins;
+          const durMins = totalMins > 0 ? totalMins : totalMins + 24*60;
+          
+          const ev = {
+            id: 'rt_' + rt.id + '_' + Date.now(),
+            date: todayStr,
+            title: rt.title,
+            catId: rt.catId,
+            sMins: sMins,
+            eMins: parseTime(rt.endTime),
+            durMins: durMins,
+            pauseMins: 0
+          };
+          events.push(ev);
+          changed = true;
+        }
+      }
+    }
+  });
+  
+  if (changed) {
+    save('planner_ev', events);
+    saveCloud();
+    render();
+  }
+}
+
+// چک کردن روتین‌ها به صورت دوره‌ای هر ۳۰ ثانیه
+setInterval(checkAndAddRoutines, 30000);
+
 setupTimeInput(document.getElementById('start-time'));
 setupTimeInput(document.getElementById('end-time'));
+setupTimeInput(document.getElementById('rt-start'));
+setupTimeInput(document.getElementById('rt-end'));
 
 const pauseInp = document.getElementById('pause-time');
 if (pauseInp) {
   pauseInp.addEventListener('input', function(){
     this.value = this.value.replace(/[^\d]/g, '');
   });
+}
+
+// اعتبارسنجی پویای بازه روزهای فیلتر گزارش دوره‌ای (عدم ورود اعداد فارسی یا حروف)
+const daysInp = document.getElementById('report-days');
+if (daysInp) {
+  daysInp.addEventListener('input', function() {
+    const val = this.value.trim();
+    const err = document.getElementById('report-err');
+    
+    if (/[۰-۹]/.test(val) || /[^\d]/.test(val) || val === "" || parseInt(val, 10) <= 0) {
+      if (err) err.style.display = 'block';
+    } else {
+      if (err) err.style.display = 'none';
+      renderReport();
+    }
+  });
+}
+
+// رویدادهای مربوط به ثبت روتین جدید
+const dayBtns = document.querySelectorAll('.rt-day-btn');
+dayBtns.forEach(btn => {
+  btn.onclick = function() {
+    const day = parseInt(this.getAttribute('data-day'), 10);
+    if (selectedRtDays.includes(day)) {
+      selectedRtDays = selectedRtDays.filter(d => d !== day);
+      this.style.background = 'var(--surface2)';
+      this.style.borderColor = 'var(--border2)';
+      this.style.color = 'var(--text)';
+    } else {
+      selectedRtDays.push(day);
+      this.style.background = 'var(--accent)';
+      this.style.borderColor = 'var(--accent)';
+      this.style.color = '#fff';
+    }
+  };
+});
+
+const addRtBtn = document.getElementById('add-rt-btn');
+if (addRtBtn) {
+  addRtBtn.onclick = function() {
+    const title = document.getElementById('rt-title').value.trim();
+    const start = document.getElementById('rt-start').value.trim();
+    const end = document.getElementById('rt-end').value.trim();
+    const catId = document.getElementById('cat-select').value;
+    
+    if (!title || !start || !end || !catId) {
+      alert('لطفاً تمامی فیلدهای روتین را تکمیل کنید');
+      return;
+    }
+    if (selectedRtDays.length === 0) {
+      alert('لطفاً حداقل یک روز را برای تکرار روتین انتخاب کنید');
+      return;
+    }
+    
+    const sMins = parseTime(start);
+    const eMins = parseTime(end);
+    if (sMins === null || eMins === null) {
+      alert('فرمت زمان روتین نامعتبر است (مانند 17:00)');
+      return;
+    }
+    
+    const newRt = {
+      id: Date.now().toString(),
+      title,
+      catId,
+      days: [...selectedRtDays],
+      startTime: start,
+      endTime: end
+    };
+    
+    routines.push(newRt);
+    save('planner_routines', routines);
+    saveCloud();
+    
+    // ریست فرم روتین بعد از ثبت
+    document.getElementById('rt-title').value = '';
+    document.getElementById('rt-start').value = '';
+    document.getElementById('rt-end').value = '';
+    selectedRtDays = [];
+    dayBtns.forEach(b => {
+      b.style.background = 'var(--surface2)';
+      b.style.borderColor = 'var(--border2)';
+      b.style.color = 'var(--text)';
+    });
+    
+    renderRoutines();
+  };
 }
 
 // مدیریت و لود دقیق احراز هویت با ساختار ایمن و بدون بن‌بست
@@ -847,9 +1121,11 @@ async function handleUserSession(session) {
       localStorage.removeItem('planner_ev');
       localStorage.removeItem('planner_cats');
       localStorage.removeItem('planner_live');
+      localStorage.removeItem('planner_routines');
       events = [];
       cats = [];
       liveSession = null;
+      routines = [];
 
       // دریافت داده‌ها از دیتابیس ابری
       await loadCloud();
@@ -871,6 +1147,7 @@ async function handleUserSession(session) {
       renderCats();
       render();
       updateLiveButton();
+      checkAndAddRoutines(); // بررسی روتین‌ها پس از لود اولیه داده‌ها
     } catch (err) {
       console.error("خطا در پردازش داده‌های ابری پس‌زمینه:", err);
     }
