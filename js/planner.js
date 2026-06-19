@@ -303,6 +303,7 @@ function renderWeeklyTimetable() {
   html += `</div>`;
   tl.innerHTML = html;
 }
+{
     const catKeys = Object.keys(catGroups);
     if (catKeys.length === 0) {
       html += `<div style="font-size:10px; color:var(--muted); text-align:center; margin-top:20px;">خالی</div>`;
