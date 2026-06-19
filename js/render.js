@@ -323,13 +323,6 @@ export function renderReport(){
   document.getElementById('total-line').innerHTML=`مجموع گزارش: <span>${tStr}</span>`;
 }
 
-function shiftMapMonth(n){
-  const [y,mo]=mapMonth.split('-').map(Number);
-  const dt=new Date(y, mo-1+n, 1);
-  mapMonth=dt.getFullYear()+'-'+pad(dt.getMonth()+1);
-  renderActivityMap();
-}
-
 export function renderActivityMap(){
   const map=document.getElementById('activity-map');
   const summary=document.getElementById('map-summary');
@@ -337,7 +330,7 @@ export function renderActivityMap(){
   const label=document.getElementById('map-month-label');
   if(!map || !summary || !sel || !label) return;
 
-  const [y,mo]=mapMonth.split('-').map(Number);
+  const [y,mo]=state.mapMonth.split('-').map(Number);
   const monthNames=['ژانویه','فوریه','مارس','آوریل','مه','ژوئن','ژوئیه','اوت','سپتامبر','اکتبر','نوامبر','دسامبر'];
   label.textContent=monthNames[mo-1]+' '+y;
   map.innerHTML='';
@@ -349,7 +342,7 @@ export function renderActivityMap(){
     map.appendChild(el);
   });
 
-  if(!cats.length || !sel.value){
+  if(!state.cats.length || !sel.value){
     map.innerHTML='<div class="map-empty" style="grid-column:1/-1">برای دیدن نقشه، اول یک موضوع بسازید.</div>';
     summary.textContent='';
     return;
@@ -362,8 +355,9 @@ export function renderActivityMap(){
   const sums={};
   let total=0;
 
-  events.forEach(e=>{
-    if(e.catId!==sel.value || !e.date.startsWith(mapMonth)) return;
+  // فیکس شده: استفاده از state.events به جای events
+  state.events.forEach(e=>{
+    if(e.catId!==sel.value || !e.date.startsWith(state.mapMonth)) return;
     const day=Number(e.date.slice(8,10));
     sums[day]=(sums[day]||0)+e.durMins;
     total+=e.durMins;
