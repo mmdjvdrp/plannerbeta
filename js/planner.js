@@ -1062,7 +1062,7 @@ if (addRtBtn) {
     const start = document.getElementById('rt-start').value.trim();
     const end = document.getElementById('rt-end').value.trim();
     const catId = document.getElementById('cat-select').value;
-    
+  }
     if (!title || !start || !end || !catId) {
       alert('لطفاً تمامی فیلدهای روتین را تکمیل کنید');
       return;
@@ -1110,7 +1110,7 @@ async function handleUserSession(session) {
     window.location.href = "./login.html";
     return;
   }
-
+};
   const logoutBtn = document.getElementById("logout-btn");
   if (logoutBtn) {
     logoutBtn.onclick = async () => {
