@@ -227,14 +227,26 @@
         <div id="rt-list" style="margin-top: 15px; display: flex; flex-direction: column; gap: 6px;"></div>
       </div>
 
-      <!-- Report (داینامیک همراه با تنظیم بازه دلخواه) -->
+      <!-- Report (داینامیک همراه با دکمه تایید بازه) -->
       <div class="card">
         <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
           <span>گزارش دوره‌ای موضوعات</span>
           <div style="display:flex; align-items:center; gap:6px;">
             <span style="font-size:11px;">بازه:</span>
-            <input type="text" id="report-days" value="7" style="width: 44px; text-align: center; padding: 4px; font-size: 11px; background: var(--surface2); border: 1px solid var(--border2); color: var(--text); border-radius: 6px;">
+            <input type="text" id="report-days" value="7" style="width: 36px; text-align: center; padding: 4px; font-size: 11px; background: var(--surface2); border: 1px solid var(--border2); color: var(--text); border-radius: 6px;">
             <span style="font-size:11px;">روزه</span>
+            <!-- دکمه تایید جدید -->
+            <button id="report-confirm-btn" style="
+              padding: 4px 10px;
+              background: var(--accent);
+              color: white;
+              border: none;
+              border-radius: 6px;
+              font-size: 11px;
+              cursor: pointer;
+              font-family: inherit;
+              transition: opacity 0.15s;
+            " onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">تایید</button>
           </div>
         </div>
         <!-- هشدار خطا برای اعداد فارسی و حروف نامعتبر -->
@@ -242,7 +254,6 @@
         <div id="report-grid"></div>
         <div class="total-line" id="total-line">مجموع گزارش: <span>۰ ساعت</span></div>
       </div>
-
       <!-- Activity Map -->
       <div class="card">
         <div class="card-title">نقشه ماهانه موضوع</div>
