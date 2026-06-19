@@ -216,6 +216,7 @@ function getWeekDates(dateStr) {
 function renderWeeklyTimetable() {
   const tl = document.getElementById('timeline');
   const weekDates = getWeekDates(curDate);
+  if (!tl) return;
   
   let html = `<div class="timetable-grid" style="
     display: grid;
