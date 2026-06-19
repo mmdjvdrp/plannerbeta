@@ -1188,7 +1188,7 @@ supabase.auth.onAuthStateChange((event, session) => {
   }
 });
 
-// کنترل و سوییچ کردن بین نمای روزانه و هفتگی
+// 2کنترل و سوییچ کردن بین نمای روزانه و هفتگی
 window.setupViewTabs = function() {
   const btnDaily = document.getElementById('view-daily-btn');
   const btnWeekly = document.getElementById('view-weekly-btn');
