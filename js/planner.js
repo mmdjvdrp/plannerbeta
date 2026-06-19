@@ -672,9 +672,11 @@ function createEvent({title, catId, stRaw, enRaw, pauseRaw = "0", date=curDate, 
     return false;
   }
 
+  // محاسبه کل بازه زمانی ثبت‌شده
   let totalMins = eMinsRaw - sMins;
   if(totalMins < 0) totalMins += 24*60;
 
+  // محاسبه پاز و وقفه اعمال شده
   let pauseMins = parseInt(pauseRaw || "0", 10);
   if(isNaN(pauseMins) || pauseMins < 0) pauseMins = 0;
 
@@ -684,6 +686,7 @@ function createEvent({title, catId, stRaw, enRaw, pauseRaw = "0", date=curDate, 
     return false;
   }
 
+  // ** قابلیت جدید: بررسی دقیق تداخل و همپوشانی زمانی در روز مشابه **
   const dayEvents = events.filter(e => e.date === date && e.id !== targetId);
   for (let ext of dayEvents) {
     let start1 = sMins;
@@ -693,6 +696,7 @@ function createEvent({title, catId, stRaw, enRaw, pauseRaw = "0", date=curDate, 
     let extTotal = ext.durMins + (ext.pauseMins || 0);
     let end2 = ext.sMins + extTotal;
 
+    // بررسی تقاطع دو بازه زمانی
     if (Math.max(start1, start2) < Math.min(end1, end2)) {
       alert(`همپوشانی زمانی رخ داد! این زمان با فعالیت ثبت‌شده «${ext.title}» (${fmtTime(ext.sMins)} تا ${fmtTime(ext.eMins)}) تداخل دارد.`);
       return false;
@@ -947,7 +951,7 @@ window.delRoutine = function(id) {
 function checkAndAddRoutines() {
   const now = new Date();
   const jsDay = now.getDay(); 
-  const irDay = (jsDay + 1) % 7;
+  const irDay = (jsDay + 1) % 7; // نگاشت شنبه به 0 تا جمعه به 6
   
   const currentTimeMins = now.getHours() * 60 + now.getMinutes();
   const todayStr = now.toISOString().split('T')[0];
@@ -1209,3 +1213,4 @@ window.setupViewTabs = function() {
   };
 };
 window.setupViewTabs();
+---
