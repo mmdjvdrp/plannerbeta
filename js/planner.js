@@ -212,7 +212,7 @@ function getWeekDates(dateStr) {
   return weekDates;
 }
 
-// رندر تایم‌لاین به صورت برنامه هفتگی مدارس (جدول شنبه تا جمعه)
+/// رندر تایم‌لاین به صورت برنامه هفتگی مدارس (جدول شنبه تا جمعه) همراه با هاشور برای روزهای دارای روتین
 function renderWeeklyTimetable() {
   const tl = document.getElementById('timeline');
   const weekDates = getWeekDates(curDate);
@@ -234,7 +234,22 @@ function renderWeeklyTimetable() {
 
     const isCurrent = day.date === curDate;
     const borderStyle = isCurrent ? '2px solid var(--accent)' : '1px solid var(--border)';
-    const bgStyle = isCurrent ? 'var(--surface2)' : 'var(--surface)';
+    
+    // محاسبه شاخص روز برای بررسی داشتن روتین
+    const [y, m, dNum] = day.date.split('-').map(Number);
+    const dt = new Date(y, m - 1, dNum);
+    const jsDay = dt.getDay(); // 0: Sun, 6: Sat
+    const irDay = (jsDay + 1) % 7; // نگاشت شنبه به 0
+    
+    const hasRoutine = routines.some(rt => rt.days.includes(irDay));
+    
+    // اعمال هاله هاشوری (repeating-linear-gradient) روی روزهای دارای روتین فعال
+    let bgStyle = isCurrent ? 'var(--surface2)' : 'var(--surface)';
+    if (hasRoutine) {
+      bgStyle = isCurrent 
+        ? 'repeating-linear-gradient(-45deg, var(--surface2), var(--surface2) 10px, var(--surface3) 10px, var(--surface3) 20px)'
+        : 'repeating-linear-gradient(-45deg, var(--surface), var(--surface) 10px, var(--surface2) 10px, var(--surface2) 20px)';
+    }
     
     html += `
       <div class="timetable-day-col" style="
@@ -260,6 +275,34 @@ function renderWeeklyTimetable() {
         </div>
     `;
     
+    const catKeys = Object.keys(catGroups);
+    if (catKeys.length === 0) {
+      html += `<div style="font-size:10px; color:var(--muted); text-align:center; margin-top:20px;">خالی</div>`;
+    } else {
+      catKeys.forEach(catId => {
+        const cat = getCat(catId);
+        const mins = catGroups[catId];
+        html += `
+          <div style="
+            background: ${cat.color}18;
+            border-right: 3px solid ${cat.color};
+            border-radius: 4px;
+            padding: 4px 6px;
+            font-size: 11px;
+            cursor: pointer;
+          " onclick="curDate='${day.date}'; activeView='daily'; document.getElementById('view-daily-btn').click();" title="${cat.name} (کل این روز: ${fmtDur(mins)})">
+            <div style="font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${cat.name}</div>
+            <div style="font-size:9px; color:var(--muted);">${fmtDur(mins)}</div>
+          </div>
+        `;
+      });
+    }
+    html += `</div>`;
+  });
+  
+  html += `</div>`;
+  tl.innerHTML = html;
+}
     const catKeys = Object.keys(catGroups);
     if (catKeys.length === 0) {
       html += `<div style="font-size:10px; color:var(--muted); text-align:center; margin-top:20px;">خالی</div>`;
