@@ -1219,4 +1219,3 @@ window.setupViewTabs = function() {
   };
 };
 window.setupViewTabs();
----
