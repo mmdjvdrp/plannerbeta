@@ -226,7 +226,6 @@ function renderWeeklyTimetable() {
   ">`;
   
   weekDates.forEach(day => {
-    // گروه‌بندی هفتگی بر اساس دسته‌بندی موضوعی
     const dayEvs = events.filter(e => e.date === day.date);
     const catGroups = {};
     dayEvs.forEach(ev => {
@@ -236,15 +235,13 @@ function renderWeeklyTimetable() {
     const isCurrent = day.date === curDate;
     const borderStyle = isCurrent ? '2px solid var(--accent)' : '1px solid var(--border)';
     
-    // محاسبه شاخص روز برای بررسی داشتن روتین
     const [y, m, dNum] = day.date.split('-').map(Number);
     const dt = new Date(y, m - 1, dNum);
-    const jsDay = dt.getDay(); // 0: Sun, 6: Sat
-    const irDay = (jsDay + 1) % 7; // نگاشت شنبه به 0
+    const jsDay = dt.getDay();
+    const irDay = (jsDay + 1) % 7;
     
     const hasRoutine = routines.some(rt => rt.days.includes(irDay));
     
-    // اعمال هاله هاشوری (repeating-linear-gradient) روی روزهای دارای روتین فعال
     let bgStyle = isCurrent ? 'var(--surface2)' : 'var(--surface)';
     if (hasRoutine) {
       bgStyle = isCurrent 
@@ -326,21 +323,18 @@ function renderTimeline(){
   em.style.display='none'; tl.style.display='block';
   tl.innerHTML='';
 
-  // ۱. گروه‌بندی رویدادها بر اساس شناسه دسته‌بندی (catId)
   const groups = {};
   dayEvents.forEach(ev => {
     if(!groups[ev.catId]) groups[ev.catId] = [];
     groups[ev.catId].push(ev);
   });
 
-  // مرتب‌سازی دسته‌ها بر اساس زودترین زمان شروع فعالیت درون آن گروه
   const sortedCatIds = Object.keys(groups).sort((a, b) => {
     const minA = Math.min(...groups[a].map(e => e.sMins));
     const minB = Math.min(...groups[b].map(e => e.sMins));
     return minA - minB;
   });
 
-  // ۲. رندر هر گروه به صورت یک کامپوننت آکاردئونی ( details / summary ) بومی مرورگر
   sortedCatIds.forEach(catId => {
     const cat = getCat(catId);
     const grp = groups[catId].sort((a,b) => a.sMins - b.sMins);
@@ -424,10 +418,9 @@ function renderReport(){
   const val = document.getElementById('report-days').value.trim();
   const err = document.getElementById('report-err');
 
-  // اعتبارسنجی ورودی بازه روزانه (فقط اعداد انگلیسی مجاز است)
   if (/[۰-۹]/.test(val) || /[^\d]/.test(val) || val === "" || parseInt(val, 10) <= 0) {
     if (err) err.style.display = 'block';
-    return; // متوقف کردن رندر گزارش در صورت خطای اعتبارسنجی
+    return;
   }
 
   if (err) err.style.display = 'none';
@@ -488,7 +481,6 @@ function shiftMapMonth(n){
   renderActivityMap();
 }
 
-// رسم نقشه ماهانه
 function renderActivityMap(){
   const map=document.getElementById('activity-map');
   const summary=document.getElementById('map-summary');
@@ -680,11 +672,9 @@ function createEvent({title, catId, stRaw, enRaw, pauseRaw = "0", date=curDate, 
     return false;
   }
 
-  // محاسبه کل بازه زمانی ثبت‌شده
   let totalMins = eMinsRaw - sMins;
   if(totalMins < 0) totalMins += 24*60;
 
-  // محاسبه پاز و وقفه اعمال شده
   let pauseMins = parseInt(pauseRaw || "0", 10);
   if(isNaN(pauseMins) || pauseMins < 0) pauseMins = 0;
 
@@ -694,7 +684,6 @@ function createEvent({title, catId, stRaw, enRaw, pauseRaw = "0", date=curDate, 
     return false;
   }
 
-  // ** قابلیت جدید: بررسی دقیق تداخل و همپوشانی زمانی در روز مشابه **
   const dayEvents = events.filter(e => e.date === date && e.id !== targetId);
   for (let ext of dayEvents) {
     let start1 = sMins;
@@ -704,7 +693,6 @@ function createEvent({title, catId, stRaw, enRaw, pauseRaw = "0", date=curDate, 
     let extTotal = ext.durMins + (ext.pauseMins || 0);
     let end2 = ext.sMins + extTotal;
 
-    // بررسی تقاطع دو بازه زمانی
     if (Math.max(start1, start2) < Math.min(end1, end2)) {
       alert(`همپوشانی زمانی رخ داد! این زمان با فعالیت ثبت‌شده «${ext.title}» (${fmtTime(ext.sMins)} تا ${fmtTime(ext.eMins)}) تداخل دارد.`);
       return false;
@@ -959,7 +947,7 @@ window.delRoutine = function(id) {
 function checkAndAddRoutines() {
   const now = new Date();
   const jsDay = now.getDay(); 
-  const irDay = (jsDay + 1) % 7; // نگاشت شنبه به 0 تا جمعه به 6
+  const irDay = (jsDay + 1) % 7;
   
   const currentTimeMins = now.getHours() * 60 + now.getMinutes();
   const todayStr = now.toISOString().split('T')[0];
@@ -969,9 +957,7 @@ function checkAndAddRoutines() {
   routines.forEach(rt => {
     if (rt.days.includes(irDay)) {
       const sMins = parseTime(rt.startTime);
-      // اگر زمان فعلی سیستم مساوی یا بعد از شروع روتین باشد
       if (currentTimeMins >= sMins) {
-        // چک کردن برای عدم وجود هم‌پوشانی و ثبت نشدن روتین در امروز
         const alreadyExists = events.some(e => e.date === todayStr && e.catId === rt.catId && e.sMins === sMins);
         if (!alreadyExists) {
           const totalMins = parseTime(rt.endTime) - sMins;
@@ -1016,8 +1002,6 @@ if (pauseInp) {
   });
 }
 
-// اعتبارسنجی پویای بازه روزهای فیلتر گزارش دوره‌ای (عدم ورود اعداد فارسی یا حروف)
-// فعال‌سازی تایید فیلتر گزارش دوره ای فقط با زدن دکمه تایید
 const reportConfirmBtn = document.getElementById('report-confirm-btn');
 if (reportConfirmBtn) {
   reportConfirmBtn.onclick = function() {
@@ -1029,7 +1013,7 @@ if (reportConfirmBtn) {
       if (err) err.style.display = 'block';
     } else {
       if (err) err.style.display = 'none';
-      renderReport(); // به‌روزرسانی نهایی نمودار گزارش
+      renderReport();
     }
   };
 }
@@ -1050,11 +1034,12 @@ dayBtns.forEach(btn => {
       this.style.background = 'var(--accent)';
       this.style.borderColor = 'var(--accent)';
       this.style.color = '#fff';
-      this.style.boxShadow = '0 0 8px var(--accent-glow)'; // اعمال سایه درخشان در وضعیت فعال
+      this.style.boxShadow = '0 0 8px var(--accent-glow)';
     }
   };
 });
 
+// --------- FIX: addRtBtn با آکولادبندی درست ---------
 const addRtBtn = document.getElementById('add-rt-btn');
 if (addRtBtn) {
   addRtBtn.onclick = function() {
@@ -1062,7 +1047,7 @@ if (addRtBtn) {
     const start = document.getElementById('rt-start').value.trim();
     const end = document.getElementById('rt-end').value.trim();
     const catId = document.getElementById('cat-select').value;
-  }
+
     if (!title || !start || !end || !catId) {
       alert('لطفاً تمامی فیلدهای روتین را تکمیل کنید');
       return;
@@ -1092,7 +1077,7 @@ if (addRtBtn) {
     save('planner_routines', routines);
     saveCloud();
     
-   // ریست فرم روتین بعد از ثبت
+    // ریست فرم روتین بعد از ثبت
     document.getElementById('rt-title').value = '';
     document.getElementById('rt-start').value = '';
     document.getElementById('rt-end').value = '';
@@ -1101,16 +1086,22 @@ if (addRtBtn) {
       b.style.background = 'var(--surface2)';
       b.style.borderColor = 'var(--border2)';
       b.style.color = 'var(--text)';
-      b.style.boxShadow = 'none'; // حذف درخشش دکمه‌ها
+      b.style.boxShadow = 'none';
     });
-// مدیریت و لود دقیق احراز هویت با ساختار ایمن و بدون بن‌بست
+
+    renderRoutines();
+    render();
+  };
+}
+
+// --------- مدیریت احراز هویت ---------
 async function handleUserSession(session) {
   const user = session?.user;
-  if(!user){
+  if (!user) {
     window.location.href = "./login.html";
     return;
   }
-};
+
   const logoutBtn = document.getElementById("logout-btn");
   if (logoutBtn) {
     logoutBtn.onclick = async () => {
@@ -1129,7 +1120,7 @@ async function handleUserSession(session) {
   }
 
   const msg = document.getElementById("welcome-msg");
-  if(msg) {
+  if (msg) {
     msg.textContent = displayName ? "خوش آمدی، " + displayName + " 👋" : "خوش آمدی 👋";
   }
 
@@ -1144,10 +1135,8 @@ async function handleUserSession(session) {
       liveSession = null;
       routines = [];
 
-      // دریافت داده‌ها از دیتابیس ابری
       await loadCloud();
 
-      // تلاش برای خواندن جدول پروفایل در صورتی که همچنان نام نمایشی یافت نشد
       if (!user.user_metadata?.display_name) {
         const { data: profile, error: profileErr } = await supabase
           .from("profiles")
@@ -1164,7 +1153,7 @@ async function handleUserSession(session) {
       renderCats();
       render();
       updateLiveButton();
-      checkAndAddRoutines(); // بررسی روتین‌ها پس از لود اولیه داده‌ها
+      checkAndAddRoutines();
     } catch (err) {
       console.error("خطا در پردازش داده‌های ابری پس‌زمینه:", err);
     }
@@ -1195,7 +1184,7 @@ supabase.auth.onAuthStateChange((event, session) => {
   }
 });
 
-// کنترل و سوییچ کردن بین نمای روزانه و هفتگی برنامه کلاسی
+// کنترل و سوییچ کردن بین نمای روزانه و هفتگی
 window.setupViewTabs = function() {
   const btnDaily = document.getElementById('view-daily-btn');
   const btnWeekly = document.getElementById('view-weekly-btn');
