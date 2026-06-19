@@ -142,6 +142,15 @@ document.getElementById('edit-cancel-btn').onclick = () => {
   clearEventForm();
 };
 
+// فیکس شده: اضافه شدن متد سراسری حذف رویدادها که فراموش شده بود
+window.delEv = function(id) {
+  if(!confirm('این فعالیت حذف شود؟')) return;
+  state.events = state.events.filter(e => e.id !== id);
+  save('planner_ev', state.events);
+  saveCloud();
+  render();
+};
+
 window.editEv = function(id) {
   const ev = state.events.find(e => e.id === id);
   if (!ev) return;
