@@ -1,7 +1,6 @@
 // js/storage.js
 import { supabase } from "./supabase.js";
 
-// توابع کمکی کار با حافظه محلی مرورگر (Local Storage)
 export function load(k, def){
   try {
     const v = localStorage.getItem(k);
@@ -17,21 +16,20 @@ export function save(k, v){
   } catch(e) {}
 }
 
-// مخزن مرکزی مدیریت و تغییر وضعیت داده‌های برنامه در سراسر فایل‌ها (State)
+// مخزن سراسری و هماهنگ داده‌های برنامه (State) جهت جلوگیری از خطای ویرایش متغیرهای ایمپورت‌شده
 export const state = {
   events: load('planner_ev', []),
   cats: load('planner_cats', []),
-  routines: load('planner_routines', []), // پشتیبانی ابری از روتین‌های تکرارشونده
+  routines: load('planner_routines', []), 
   liveSession: load('planner_live', null),
   theme: load('planner_theme', 'dark'),
   curDate: new Date().toISOString().split('T')[0],
   mapMonth: new Date().toISOString().split('T')[0].slice(0, 7),
   editingEventId: null,
-  activeView: 'daily', // نمای پیش‌فرض برنامه
-  selectedRtDays: [] // روزهای انتخاب‌شده در فرم ثبت روتین جدید
+  activeView: 'daily',
+  selectedRtDays: []
 };
 
-// ذخیره وضعیت جاری برنامه در فضای ابری سوپابیس (Supabase)
 export async function saveCloud(){
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -61,7 +59,6 @@ export async function saveCloud(){
   }
 }
 
-// واکشی اطلاعات از سوپابیس و ذخیره در ساختار وضعیت محلی و مرورگر
 export async function loadCloud(){
   try {
     const { data: { user } } = await supabase.auth.getUser();
