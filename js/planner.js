@@ -407,4 +407,167 @@ window.delRoutine = function(id) {
   render();
 };
 
-window.editEv
+// واگذاری رویداد خروج و احراز هویت بدون مسدودی قفل
+async function handleUserSession(session) {
+  const user = session?.user;
+  if (!user) {
+    window.location.href = "./login.html";
+    return;
+  }
+
+  const logoutBtn = document.getElementById("logout-btn");
+  if (logoutBtn) {
+    logoutBtn.onclick = async () => {
+      try {
+        await supabase.auth.signOut();
+      } catch (err) {
+        console.error("خطا در خروج:", err);
+      }
+      window.location.href = "./login.html";
+    };
+  }
+
+  let displayName = user.user_metadata?.display_name || "";
+  if (!displayName && user.email) {
+    displayName = user.email.split('@')[0];
+  }
+
+  const msg = document.getElementById("welcome-msg");
+  if (msg) {
+    msg.textContent = displayName ? "خوش آمدی، " + displayName + " 👋" : "خوش آمدی 👋";
+  }
+
+  setTimeout(async () => {
+    try {
+      localStorage.removeItem('planner_ev');
+      localStorage.removeItem('planner_cats');
+      localStorage.removeItem('planner_live');
+      localStorage.removeItem('planner_routines');
+      state.events = [];
+      state.cats = [];
+      state.liveSession = null;
+      state.routines = [];
+
+      await loadCloud();
+
+      if (!user.user_metadata?.display_name) {
+        const { data: profile, error: profileErr } = await supabase
+          .from("profiles")
+          .select("name")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (profile && !profileErr && profile.name) {
+          displayName = profile.name;
+          if (msg) msg.textContent = "خوش آمدی، " + displayName + " 👋";
+        }
+      }
+
+      applyTheme();
+      render();
+      checkAndAddRoutines();
+    } catch (err) {
+      console.error("خطا در پردازش داده‌های ابری پس‌زمینه:", err);
+    }
+  }, 10);
+}
+
+async function initAuth() {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      await handleUserSession(session);
+    } else {
+      window.location.href = "./login.html";
+    }
+  } catch (err) {
+    console.error("خطا در واکشی وضعیت لود کاربر:", err);
+    window.location.href = "./login.html";
+  }
+}
+
+initAuth();
+
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === "SIGNED_OUT") {
+    window.location.href = "./login.html";
+  } else if (event === "SIGNED_IN" && session) {
+    handleUserSession(session);
+  }
+});
+
+// کنترل کلیک دکمه لایو تایمر سیستم
+document.getElementById('live-btn').onclick=()=>{
+  if(!state.liveSession){
+    const title=document.getElementById('act-title').value.trim();
+    const catId=document.getElementById('cat-select').value;
+    
+    if(!catId || !state.cats.some(c=>c.id===catId)){
+      alert('اول یک موضوع بسازید یا انتخاب کنید');
+      return;
+    }
+
+    const finalTitle = title || state.cats.find(c => c.id === catId)?.name || 'فعالیت بی‌نام';
+
+    const now=getNow();
+    const sMins=parseTime(now);
+    
+    state.liveSession={title: finalTitle, catId, date:state.curDate, sMins, pauseMins: 0, pauseStartMins: null};
+    save('planner_live', state.liveSession); // ذخیره فوری نشست زنده در لوکال‌استوریج محلی
+    saveCloud();
+    document.getElementById('start-time').value=now;
+    document.getElementById('end-time').value='';
+    updateLiveButton();
+    return;
+  }
+
+  const endNow=getNow();
+  const endMins=parseTime(endNow);
+
+  let finalPauseMins = state.liveSession.pauseMins || 0;
+  if (state.liveSession.pauseStartMins !== null && state.liveSession.pauseStartMins !== undefined) {
+    let diff = endMins - state.liveSession.pauseStartMins;
+    if (diff < 0) diff += 24 * 60;
+    finalPauseMins += diff;
+  }
+
+  const ok=createEvent({
+    title: state.liveSession.title,
+    catId: state.liveSession.catId,
+    stRaw: fmtTime(state.liveSession.sMins),
+    enRaw: endNow,
+    pauseRaw: String(finalPauseMins),
+    date: state.liveSession.date
+  });
+  if(!ok) return;
+  state.liveSession=null;
+  save('planner_live', null); // حذف همزمان لایو از لوکال‌استوریج محلی
+  saveCloud();
+  clearEventForm();
+  render();
+  updateLiveButton();
+};
+
+window.setupViewTabs = function() {
+  const btnDaily = document.getElementById('view-daily-btn');
+  const btnWeekly = document.getElementById('view-weekly-btn');
+  if (!btnDaily || !btnWeekly) return;
+
+  btnDaily.onclick = () => {
+    state.activeView = 'daily';
+    btnDaily.style.background = 'var(--surface2)';
+    btnDaily.style.color = 'var(--text)';
+    btnWeekly.style.background = 'var(--surface3)';
+    btnWeekly.style.color = 'var(--muted)';
+    render();
+  };
+
+  btnWeekly.onclick = () => {
+    state.activeView = 'weekly';
+    btnWeekly.style.background = 'var(--surface2)';
+    btnWeekly.style.color = 'var(--text)';
+    btnDaily.style.background = 'var(--surface3)';
+    btnDaily.style.color = 'var(--muted)';
+    render();
+  };
+};
+window.setupViewTabs();
