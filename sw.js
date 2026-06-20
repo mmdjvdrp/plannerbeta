@@ -1,5 +1,5 @@
 // sw.js
-const CACHE_NAME = "planner-cache-v7"; // ارتقا نسخه کش جهت بروزرسانی مرورگرها
+const CACHE_NAME = "planner-cache-v8"; // ارتقا نسخه کش جهت همگام‌سازی آنی تمام مراجع
 const assetsToCache = [
   "/",
   "/index.html",
@@ -43,7 +43,7 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// ۳. مدیریت درخواست‌ها و واکشی کش آفلاین
+// ۳. مدیریت درخواست‌ها و واکشی کش آفلاین بدون ایجاد ارور unhandled
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
@@ -62,6 +62,6 @@ self.addEventListener("fetch", (event) => {
         }
         return response;
       });
-    }).catch(() => {})
+    })
   );
 });
