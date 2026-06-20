@@ -28,7 +28,7 @@ function shiftDay(n){
   render();
 }
 
-// فیکس شده: اضافه شدن تابع اعتبارسنجی فیلدهای زمان در کنترلر
+// تابع اعتبارسنجی فیلدهای زمان در کنترلر
 function setupTimeInput(inp){
   if(!inp) return;
   inp.addEventListener('input', function(){
@@ -168,7 +168,7 @@ document.getElementById('edit-cancel-btn').onclick = () => {
   clearEventForm();
 };
 
-// فیکس شده: متد حذف فعالیت‌ها
+// متد سراسری حذف فعالیت‌ها
 window.delEv = function(id) {
   if(!confirm('این فعالیت حذف شود؟')) return;
   state.events = state.events.filter(e => e.id !== id);
