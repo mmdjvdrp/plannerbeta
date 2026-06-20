@@ -28,7 +28,7 @@ function shiftDay(n){
   render();
 }
 
-// تابع بسیار مهم اعتبارسنجی فیلدهای زمان که در نسخه ماژولار قبلی جا افتاده بود
+// فیکس شده: اضافه شدن تابع اعتبارسنجی فیلدهای زمان در کنترلر
 function setupTimeInput(inp){
   if(!inp) return;
   inp.addEventListener('input', function(){
@@ -168,6 +168,7 @@ document.getElementById('edit-cancel-btn').onclick = () => {
   clearEventForm();
 };
 
+// فیکس شده: متد حذف فعالیت‌ها
 window.delEv = function(id) {
   if(!confirm('این فعالیت حذف شود؟')) return;
   state.events = state.events.filter(e => e.id !== id);
@@ -360,6 +361,25 @@ if (pauseInp) {
   });
 }
 
+// فیکس شده: اضافه شدن شبیه‌ساز رویدادها در ثبت زمان «الان» تا استایل‌های قرمز خطا به درستی رفع شوند
+document.getElementById('btn-now-s').onclick = ()=>{
+  const inp = document.getElementById('start-time');
+  if (inp) {
+    inp.value = getNow();
+    inp.dispatchEvent(new Event('input', { bubbles: true }));
+    inp.dispatchEvent(new Event('blur', { bubbles: true }));
+  }
+};
+
+document.getElementById('btn-now-e').onclick = ()=>{
+  const inp = document.getElementById('end-time');
+  if (inp) {
+    inp.value = getNow();
+    inp.dispatchEvent(new Event('input', { bubbles: true }));
+    inp.dispatchEvent(new Event('blur', { bubbles: true }));
+  }
+};
+
 // اعتبارسنجی گزارش دوره‌ای
 const reportConfirmBtn = document.getElementById('report-confirm-btn');
 if (reportConfirmBtn) {
@@ -384,6 +404,23 @@ window.delRoutine = function(id) {
   save('planner_routines', state.routines);
   saveCloud();
   render();
+};
+
+window.editEv = function(id) {
+  const ev = state.events.find(e => e.id === id);
+  if (!ev) return;
+
+  state.editingEventId = id;
+  document.getElementById('act-title').value = ev.title === (state.cats.find(c=>c.id===ev.catId)?.name || '') ? '' : ev.title;
+  document.getElementById('cat-select').value = ev.catId;
+  document.getElementById('start-time').value = fmtTime(ev.sMins);
+  document.getElementById('end-time').value = fmtTime(ev.eMins);
+  document.getElementById('pause-time').value = ev.pauseMins || '';
+
+  document.getElementById('add-btn').textContent = '✓ ثبت تغییرات فعالیت';
+  document.getElementById('edit-cancel-btn').style.display = 'block';
+
+  document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
 };
 
 // واگذاری رویداد خروج و احراز هویت بدون مسدودی قفل
