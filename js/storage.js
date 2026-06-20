@@ -1,5 +1,6 @@
 // js/storage.js
 import { supabase } from "./supabase.js";
+import { getLocalDateStr } from "./helpers.js";
 
 export function load(k, def){
   try {
@@ -16,15 +17,15 @@ export function save(k, v){
   } catch(e) {}
 }
 
-// مخزن سراسری و هماهنگ داده‌های برنامه (State) جهت جلوگیری از خطای ویرایش متغیرهای ایمپورت‌شده
+// مخزن سراسری و هماهنگ داده‌های برنامه (State) با لود منطبق بر ساعت محلی سیستم کاربر
 export const state = {
   events: load('planner_ev', []),
   cats: load('planner_cats', []),
   routines: load('planner_routines', []), 
   liveSession: load('planner_live', null),
   theme: load('planner_theme', 'dark'),
-  curDate: new Date().toISOString().split('T')[0],
-  mapMonth: new Date().toISOString().split('T')[0].slice(0, 7),
+  curDate: getLocalDateStr(), // لود تاریخ محلی به جای UTC
+  mapMonth: getLocalDateStr().slice(0, 7), // لود ماه محلی به جای UTC
   editingEventId: null,
   activeView: 'daily',
   selectedRtDays: []
