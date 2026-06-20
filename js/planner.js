@@ -407,6 +407,23 @@ window.delRoutine = function(id) {
   render();
 };
 
+window.editEv = function(id) {
+  const ev = state.events.find(e => e.id === id);
+  if (!ev) return;
+
+  state.editingEventId = id;
+  document.getElementById('act-title').value = ev.title === (state.cats.find(c=>c.id===ev.catId)?.name || '') ? '' : ev.title;
+  document.getElementById('cat-select').value = ev.catId;
+  document.getElementById('start-time').value = fmtTime(ev.sMins);
+  document.getElementById('end-time').value = fmtTime(ev.eMins);
+  document.getElementById('pause-time').value = ev.pauseMins || '';
+
+  document.getElementById('add-btn').textContent = '✓ ثبت تغییرات فعالیت';
+  document.getElementById('edit-cancel-btn').style.display = 'block';
+
+  document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
+};
+
 // واگذاری رویداد خروج و احراز هویت بدون مسدودی قفل
 async function handleUserSession(session) {
   const user = session?.user;
@@ -512,7 +529,7 @@ document.getElementById('live-btn').onclick=()=>{
     const sMins=parseTime(now);
     
     state.liveSession={title: finalTitle, catId, date:state.curDate, sMins, pauseMins: 0, pauseStartMins: null};
-    save('planner_live', state.liveSession); // ذخیره فوری نشست زنده در لوکال‌استوریج محلی
+    save('planner_live', state.liveSession); // ذخیره همزمان در حافظه محلی مرورگر
     saveCloud();
     document.getElementById('start-time').value=now;
     document.getElementById('end-time').value='';
@@ -540,11 +557,21 @@ document.getElementById('live-btn').onclick=()=>{
   });
   if(!ok) return;
   state.liveSession=null;
-  save('planner_live', null); // حذف همزمان لایو از لوکال‌استوریج محلی
+  save('planner_live', null); // حذف همزمان لایو از حافظه محلی مرورگر
   saveCloud();
   clearEventForm();
   render();
   updateLiveButton();
+};
+
+// فیکس شده: اضافه شدن کنترلر لغو و حذف فعالیت زنده جهت رفع باگ عدم واکنش انصراف
+window.cancelLiveSession = function() {
+  if (!confirm('آیا از لغو و حذف زمان این فعالیت زنده اطمینان دارید؟ (هیچ فعالیتی ثبت نخواهد شد)')) return;
+  state.liveSession = null;
+  save('planner_live', null); // حذف همزمان لایو از لوکال‌استوریج محلی
+  saveCloud();
+  clearEventForm();
+  render();
 };
 
 window.setupViewTabs = function() {
