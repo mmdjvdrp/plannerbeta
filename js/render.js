@@ -2,6 +2,8 @@
 import { state, save, saveCloud } from "./storage.js";
 import { fmtDateLabel, fmtTime, fmtDur, escHtml, getWeekDates, pad, getNow, parseTime } from "./helpers.js";
 
+let liveStopwatchInterval = null;
+
 export function applyTheme(){
   document.body.dataset.theme = state.theme;
   const sel = document.getElementById('theme-select');
@@ -355,7 +357,6 @@ export function renderActivityMap(){
   const sums={};
   let total=0;
 
-  // فیکس شده: محافظت نهایی در برابر فیلد خالی تاریخ کارهای خراب قدیمی
   state.events.forEach(e=>{
     if(!e.date || e.catId!==sel.value || !e.date.startsWith(state.mapMonth)) return;
     const day=Number(e.date.slice(8,10));
@@ -438,43 +439,98 @@ export function renderRoutines() {
   });
 }
 
+// ثانیه‌شمار زنده جهت بروزرسانی آنی و کورنومتری زمان خالص سپری‌شده
+function startLiveStopwatch() {
+  if (liveStopwatchInterval) clearInterval(liveStopwatchInterval);
+  
+  const updateElapsed = () => {
+    const el = document.getElementById('live-elapsed-time');
+    if (el && state.liveSession) {
+      const nowStr = getNow();
+      const nowMins = parseTime(nowStr);
+      let diff = nowMins - state.liveSession.sMins;
+      if (diff < 0) diff += 24 * 60; // بررسی عبور از نیمه‌شب
+      
+      let netMins = diff - (state.liveSession.pauseMins || 0);
+      
+      if (state.liveSession.pauseStartMins !== null && state.liveSession.pauseStartMins !== undefined) {
+        let pauseDiff = nowMins - state.liveSession.pauseStartMins;
+        if (pauseDiff < 0) pauseDiff += 24 * 60;
+        netMins -= pauseDiff;
+      }
+      
+      if (netMins < 0) netMins = 0;
+      el.innerHTML = `مدت زمان خالص سپری‌شده: <b>${fmtDur(netMins)}</b>`;
+    }
+  };
+  
+  updateElapsed();
+  liveStopwatchInterval = setInterval(updateElapsed, 1000); // آپدیت آنی و واقعی هر ۱ ثانیه
+}
+
 export function updateLiveButton(){
-  const btn=document.getElementById('live-btn');
-  const status=document.getElementById('live-status');
+  const btn = document.getElementById('live-btn');
+  const status = document.getElementById('live-status');
   if(!btn || !status) return;
   if(state.liveSession){
     btn.classList.add('is-running');
-    btn.textContent='پایان و ثبت فعالیت';
-    const cat=getCat(state.liveSession.catId);
+    btn.textContent = 'پایان و ثبت فعالیت';
+    const cat = getCat(state.liveSession.catId);
     
     const isPaused = state.liveSession.pauseStartMins !== null && state.liveSession.pauseStartMins !== undefined;
     const pauseMinsTotal = state.liveSession.pauseMins || 0;
     
+    // شبیه‌سازی رابط کاربری کامل ثانیه‌شمار با پشتیبانی از دکمه لغو و پاز
     status.innerHTML = `
       <div style="margin-bottom: 4px;">در حال ثبت: ${state.liveSession.title}، از ${fmtTime(state.liveSession.sMins)} (${cat.name})</div>
+      <div id="live-elapsed-time" style="color:var(--accent2); font-weight:700; margin-bottom:4px;">در حال محاسبه زمان...</div>
       ${pauseMinsTotal ? `<div style="color:var(--accent2); font-size:11px;">کل زمان پاز شده: ${pauseMinsTotal} دقیقه</div>` : ''}
       ${isPaused ? `<div style="color:#f87171; font-size:11px; margin-bottom:4px;">⏳ اکنون در حالت پاز موقت</div>` : ''}
-      <button id="live-pause-btn" style="
-        padding: 4px 10px;
-        background: var(--surface3);
-        border: 1px solid var(--border2);
-        color: var(--text);
-        border-radius: 6px;
-        font-size: 11px;
-        cursor: pointer;
-        font-family: inherit;
-      ">${isPaused ? '▶ ادامه فعالیت' : '⏸ پاز موقت'}</button>
+      <div style="display:flex; gap:6px; justify-content:center; margin-top:6px;">
+        <button id="live-pause-btn" style="
+          padding: 4px 10px;
+          background: var(--surface3);
+          border: 1px solid var(--border2);
+          color: var(--text);
+          border-radius: 6px;
+          font-size: 11px;
+          cursor: pointer;
+          font-family: inherit;
+        ">${isPaused ? '▶ ادامه فعالیت' : '⏸ پاز موقت'}</button>
+        <!-- دکمه انصراف و لغو زنده جدید -->
+        <button id="live-cancel-btn" style="
+          padding: 4px 10px;
+          background: #f8717122;
+          border: 1px solid rgba(248,113,113,0.3);
+          color: #fecaca;
+          border-radius: 6px;
+          font-size: 11px;
+          cursor: pointer;
+          font-family: inherit;
+        ">🚫 لغو و انصراف</button>
+      </div>
     `;
     
     document.getElementById('live-pause-btn').onclick = (e) => {
       e.stopPropagation();
       toggleLivePause();
     };
+
+    document.getElementById('live-cancel-btn').onclick = (e) => {
+      e.stopPropagation();
+      window.cancelLiveSession();
+    };
+    
+    startLiveStopwatch(); // فعال‌سازی شبیه‌ساز کرونومتر
     return;
   }
   btn.classList.remove('is-running');
-  btn.textContent='شروع / پایان با ساعت سیستم';
-  status.textContent='';
+  btn.textContent = 'شروع / پایان با ساعت سیستم';
+  status.textContent = '';
+  if (liveStopwatchInterval) {
+    clearInterval(liveStopwatchInterval);
+    liveStopwatchInterval = null;
+  }
 }
 
 export function toggleLivePause() {
