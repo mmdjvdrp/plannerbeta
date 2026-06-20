@@ -2,21 +2,9 @@
 import { supabase } from "./supabase.js";
 import { state, save, saveCloud, loadCloud } from "./storage.js";
 import { getNow, parseTime, fmtTime, pad, getLocalDateStr } from "./helpers.js";
+import { render, applyTheme, renderRoutines } from "./render.js";
 
-// === رفع مشکل دکمه لایو: اضافه کردن updateLiveButton ===
-import { render, applyTheme, renderRoutines, updateLiveButton } from "./render.js";
-
-// راه‌اندازی تم سیستم که قبلا کار نمی‌کرد
-const themeSelect = document.getElementById('theme-select');
-if(themeSelect) {
-  themeSelect.onchange = function() {
-    state.theme = this.value;
-    save('planner_theme', state.theme);
-    saveCloud();
-    applyTheme();
-  };
-}
-
+// اتصال رویداد جابجایی پویای تقویم هفتگی به حوزه سراسری جهت رفع باگ پرش تاریخ
 window.navigateToDay = function(dateStr) {
   state.curDate = dateStr;
   state.activeView = 'daily';
@@ -40,6 +28,7 @@ function shiftDay(n){
   render();
 }
 
+// تابع اعتبارسنجی فیلدهای زمان در کنترلر
 function setupTimeInput(inp){
   if(!inp) return;
   inp.addEventListener('input', function(){
@@ -97,6 +86,7 @@ function createEvent({title, catId, stRaw, enRaw, pauseRaw = "0", date=state.cur
     return false;
   }
 
+  // بررسی عدم تداخل و همپوشانی زمانی
   const dayEvents = state.events.filter(e => e.date === date && e.id !== targetId);
   for (let ext of dayEvents) {
     let start1 = sMins;
@@ -178,6 +168,7 @@ document.getElementById('edit-cancel-btn').onclick = () => {
   clearEventForm();
 };
 
+// متد سراسری حذف فعالیت‌ها
 window.delEv = function(id) {
   if(!confirm('این فعالیت حذف شود؟')) return;
   state.events = state.events.filter(e => e.id !== id);
@@ -217,6 +208,7 @@ window.delCat = function(id) {
   render();
 };
 
+// کنترل و ثبت روتین‌های هفتگی
 const dayBtns = document.querySelectorAll('.rt-day-btn');
 dayBtns.forEach(btn => {
   btn.onclick = function() {
@@ -274,6 +266,7 @@ if (addRtBtn) {
     save('planner_routines', state.routines);
     saveCloud();
     
+    // ریست فرم روتین بعد از ثبت
     document.getElementById('rt-title').value = '';
     document.getElementById('rt-start').value = '';
     document.getElementById('rt-end').value = '';
@@ -290,10 +283,11 @@ if (addRtBtn) {
   };
 }
 
+// گوش دادن و اتصال دکمه‌های ناوبری تاریخ
 document.getElementById('prev-day').onclick = () => shiftDay(-1);
 document.getElementById('next-day').onclick = () => shiftDay(1);
 document.getElementById('btn-today').onclick = () => {
-  state.curDate = getLocalDateStr(); 
+  state.curDate = getLocalDateStr(); // تصحیح نهایی دکمه امروز متناسب با ساعت محلی سیستم
   render();
 };
 document.getElementById('map-prev').onclick = () => {
@@ -310,20 +304,21 @@ document.getElementById('map-next').onclick = () => {
 };
 document.getElementById('map-cat-select').onchange = () => render();
 
+// بررسی خودکار روتین‌ها و افزودن به تایم‌لاین
 function checkAndAddRoutines() {
   const now = new Date();
   const jsDay = now.getDay(); 
   const irDay = (jsDay + 1) % 7;
   
   const currentTimeMins = now.getHours() * 60 + now.getMinutes();
-  const todayStr = getLocalDateStr(); 
+  const todayStr = now.toISOString().split('T')[0];
   
   let changed = false;
   state.routines.forEach(rt => {
     if (rt.days.includes(irDay)) {
       const sMins = parseTime(rt.startTime);
       if (currentTimeMins >= sMins) {
-        const alreadyExists = state.events.some(e => e.date === todayStr && (e.id.startsWith('rt_' + rt.id + '_') || (e.catId === rt.catId && e.sMins === sMins)));
+        const alreadyExists = state.events.some(e => e.date === todayStr && e.catId === rt.catId && e.sMins === sMins);
         if (!alreadyExists) {
           const totalMins = parseTime(rt.endTime) - sMins;
           const durMins = totalMins > 0 ? totalMins : totalMins + 24*60;
@@ -352,6 +347,7 @@ function checkAndAddRoutines() {
   }
 }
 
+// چک کردن روتین‌ها به صورت دوره‌ای هر ۳۰ ثانیه
 setInterval(checkAndAddRoutines, 30000);
 
 setupTimeInput(document.getElementById('start-time'));
@@ -366,6 +362,7 @@ if (pauseInp) {
   });
 }
 
+// رفع تداخل دکمه‌های «الان» همراه با ارسال متد تریگر جهت پاک کردن کادر قرمز خطا
 document.getElementById('btn-now-s').onclick = ()=>{
   const inp = document.getElementById('start-time');
   if (inp) {
@@ -384,6 +381,7 @@ document.getElementById('btn-now-e').onclick = ()=>{
   }
 };
 
+// اعتبارسنجی گزارش دوره‌ای
 const reportConfirmBtn = document.getElementById('report-confirm-btn');
 if (reportConfirmBtn) {
   reportConfirmBtn.onclick = function() {
@@ -400,6 +398,7 @@ if (reportConfirmBtn) {
   };
 }
 
+// متصل کردن توابع سراسری ویرایش و حذف روتین
 window.delRoutine = function(id) {
   if (!confirm('این روتین حذف شود؟')) return;
   state.routines = state.routines.filter(r => r.id !== id);
@@ -408,6 +407,24 @@ window.delRoutine = function(id) {
   render();
 };
 
+window.editEv = function(id) {
+  const ev = state.events.find(e => e.id === id);
+  if (!ev) return;
+
+  state.editingEventId = id;
+  document.getElementById('act-title').value = ev.title === (state.cats.find(c=>c.id===ev.catId)?.name || '') ? '' : ev.title;
+  document.getElementById('cat-select').value = ev.catId;
+  document.getElementById('start-time').value = fmtTime(ev.sMins);
+  document.getElementById('end-time').value = fmtTime(ev.eMins);
+  document.getElementById('pause-time').value = ev.pauseMins || '';
+
+  document.getElementById('add-btn').textContent = '✓ ثبت تغییرات فعالیت';
+  document.getElementById('edit-cancel-btn').style.display = 'block';
+
+  document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
+};
+
+// واگذاری رویداد خروج و احراز هویت بدون مسدودی قفل
 async function handleUserSession(session) {
   const user = session?.user;
   if (!user) {
@@ -457,3 +474,157 @@ async function handleUserSession(session) {
           .eq("id", user.id)
           .maybeSingle();
         if (profile && !profileErr && profile.name) {
+          displayName = profile.name;
+          if (msg) msg.textContent = "خوش آمدی، " + displayName + " 👋";
+        }
+      }
+
+      applyTheme();
+      render();
+      checkAndAddRoutines();
+    } catch (err) {
+      console.error("خطا در پردازش داده‌های ابری پس‌زمینه:", err);
+    }
+  }, 10);
+}
+
+async function initAuth() {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      await handleUserSession(session);
+    } else {
+      window.location.href = "./login.html";
+    }
+  } catch (err) {
+    console.error("خطا در واکشی وضعیت لود کاربر:", err);
+    window.location.href = "./login.html";
+  }
+}
+
+initAuth();
+
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === "SIGNED_OUT") {
+    window.location.href = "./login.html";
+  } else if (event === "SIGNED_IN" && session) {
+    handleUserSession(session);
+  }
+});
+
+// کنترل کلیک دکمه لایو تایمر سیستم
+document.getElementById('live-btn').onclick=()=>{
+  if(!state.liveSession){
+    const title=document.getElementById('act-title').value.trim();
+    const catId=document.getElementById('cat-select').value;
+    
+    if(!catId || !state.cats.some(c=>c.id===catId)){
+      alert('اول یک موضوع بسازید یا انتخاب کنید');
+      return;
+    }
+
+    const finalTitle = title || state.cats.find(c => c.id === catId)?.name || 'فعالیت بی‌نام';
+
+    const now=getNow();
+    const sMins=parseTime(now);
+    
+    state.liveSession={title: finalTitle, catId, date:state.curDate, sMins, pauseMins: 0, pauseStartMins: null};
+    save('planner_live', state.liveSession); // ذخیره همزمان در حافظه محلی مرورگر
+    saveCloud();
+    document.getElementById('start-time').value=now;
+    document.getElementById('end-time').value='';
+    updateLiveButton();
+    return;
+  }
+
+  const endNow=getNow();
+  const endMins=parseTime(endNow);
+
+  let finalPauseMins = state.liveSession.pauseMins || 0;
+  if (state.liveSession.pauseStartMins !== null && state.liveSession.pauseStartMins !== undefined) {
+    let diff = endMins - state.liveSession.pauseStartMins;
+    if (diff < 0) diff += 24 * 60;
+    finalPauseMins += diff;
+  }
+
+  const ok=createEvent({
+    title: state.liveSession.title,
+    catId: state.liveSession.catId,
+    stRaw: fmtTime(state.liveSession.sMins),
+    enRaw: endNow,
+    pauseRaw: String(finalPauseMins),
+    date: state.liveSession.date
+  });
+  if(!ok) return;
+  const liveDate = state.liveSession.date;
+  state.liveSession=null;
+  save('planner_live', null); // حذف همزمان لایو از حافظه محلی مرورگر
+  saveCloud();
+  clearEventForm();
+  
+  // پرش آنی و اتوماتیک تقویم به تاریخی که لایو در آن ثبت شد
+  state.curDate = liveDate;
+  
+  render();
+  updateLiveButton();
+};
+
+// کنترلر لغو و حذف فعالیت زنده جهت رفع باگ عدم واکنش انصراف
+window.cancelLiveSession = function() {
+  if (!confirm('آیا از لغو و حذف زمان این فعالیت زنده اطمینان دارید؟ (هیچ فعالیتی ثبت نخواهد شد)')) return;
+  state.liveSession = null;
+  save('planner_live', null); // حذف همزمان لایو از لوکال‌استوریج محلی
+  saveCloud();
+  clearEventForm();
+  render();
+};
+
+// باز/بسته کردن فرم اضافه کردن موضوع جدید
+document.getElementById('toggle-cat').onclick = ()=>{
+  const box = document.getElementById('new-cat-box');
+  if(!box) return;
+  box.style.display = box.style.display === 'block' ? 'none' : 'block';
+};
+
+// ثبت موضوع جدید به دیتابیس ابری سوپابیس
+document.getElementById('save-cat').onclick = ()=>{
+  const name=document.getElementById('new-cat-name').value.trim();
+  const color=document.getElementById('new-cat-color').value;
+  if(!name){ alert('نام دسته‌بندی را وارد کنید'); return; }
+  const nc={id:'c'+Date.now(), name, color};
+  
+  state.cats.push(nc);
+  save('planner_cats', state.cats);
+  saveCloud();
+  
+  document.getElementById('new-cat-name').value='';
+  document.getElementById('new-cat-box').style.display='none';
+  render(); // اول render، بعد set مقدار تا reset نشه
+  document.getElementById('cat-select').value=nc.id;
+  document.getElementById('map-cat-select').value=nc.id;
+};
+
+window.setupViewTabs = function() {
+  const btnDaily = document.getElementById('view-daily-btn');
+  const btnWeekly = document.getElementById('view-weekly-btn');
+  if (!btnDaily || !btnWeekly) return;
+
+  btnDaily.onclick = () => {
+    state.activeView = 'daily';
+    btnDaily.style.background = 'var(--surface2)';
+    btnDaily.style.color = 'var(--text)';
+    btnWeekly.style.background = 'var(--surface3)';
+    btnWeekly.style.color = 'var(--muted)';
+    render();
+  };
+
+  btnWeekly.onclick = () => {
+    state.activeView = 'weekly';
+    btnWeekly.style.background = 'var(--surface2)';
+    btnWeekly.style.color = 'var(--text)';
+    btnDaily.style.background = 'var(--surface3)';
+    btnDaily.style.color = 'var(--muted)';
+    render();
+  };
+};
+window.setupViewTabs();
