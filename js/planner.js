@@ -2,7 +2,7 @@
 import { supabase } from "./supabase.js";
 import { state, save, saveCloud, loadCloud } from "./storage.js";
 import { getNow, parseTime, fmtTime, pad, getLocalDateStr } from "./helpers.js";
-import { render, applyTheme, renderRoutines } from "./render.js";
+import { render, applyTheme, renderRoutines, updateLiveButton } from "./render.js";
 
 // اتصال رویداد جابجایی پویای تقویم هفتگی به حوزه سراسری جهت رفع باگ پرش تاریخ
 window.navigateToDay = function(dateStr) {
@@ -593,6 +593,7 @@ document.getElementById('save-cat').onclick = ()=>{
   if(!name){ alert('نام دسته‌بندی را وارد کنید'); return; }
   const nc={id:'c'+Date.now(), name, color};
   
+  // فیکس شده: همگام‌سازی مراجع با state سراسری به جای متغیرهای محلی
   state.cats.push(nc);
   save('planner_cats', state.cats);
   saveCloud();
@@ -601,7 +602,7 @@ document.getElementById('save-cat').onclick = ()=>{
   document.getElementById('new-cat-box').style.display='none';
   render(); // اول render، بعد set مقدار تا reset نشه
   document.getElementById('cat-select').value=nc.id;
-  document.getElementById('map-cat-select').value=nc.id;
+  document.getElementById('map-cat-select').value=nc.id; // رندر سراسری به جای فراخوانی renderCats مفقود شده
 };
 
 window.setupViewTabs = function() {
