@@ -355,7 +355,7 @@ export function renderActivityMap(){
   const sums={};
   let total=0;
 
-  // فیکس شده: استفاده از state.events به جای events
+  // فیکس شده: استفاده صحیح از state.events سراسری
   state.events.forEach(e=>{
     if(e.catId!==sel.value || !e.date.startsWith(state.mapMonth)) return;
     const day=Number(e.date.slice(8,10));
