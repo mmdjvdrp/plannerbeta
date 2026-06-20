@@ -355,9 +355,9 @@ export function renderActivityMap(){
   const sums={};
   let total=0;
 
-  // فیکس شده: استفاده صحیح از state.events سراسری
+  // فیکس شده: محافظت نهایی در برابر فیلد خالی تاریخ کارهای خراب قدیمی
   state.events.forEach(e=>{
-    if(e.catId!==sel.value || !e.date.startsWith(state.mapMonth)) return;
+    if(!e.date || e.catId!==sel.value || !e.date.startsWith(state.mapMonth)) return;
     const day=Number(e.date.slice(8,10));
     sums[day]=(sums[day]||0)+e.durMins;
     total+=e.durMins;
@@ -490,6 +490,7 @@ export function toggleLivePause() {
     state.liveSession.pauseMins = (state.liveSession.pauseMins || 0) + diff;
     state.liveSession.pauseStartMins = null;
   }
+  save('planner_live', state.liveSession); // ذخیره همزمان پاز در لوکال‌استوریج محلی
   saveCloud();
   updateLiveButton();
 }
