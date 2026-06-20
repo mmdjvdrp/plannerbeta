@@ -51,9 +51,17 @@ export function renderCats(){
       <button class="cat-delete" type="button" title="حذف موضوع">×</button>
     `;
     const colorInput=item.querySelector('.cat-color-edit');
+    // oninput: فقط پیش‌نمایش زنده رنگ بدون rebuild کردن DOM
     colorInput.oninput=()=>{
+      item.style.setProperty('--cat-color', colorInput.value);
+      const swatch = item.querySelector('.cat-swatch');
+      if(swatch) swatch.style.background = colorInput.value;
+    };
+    // onchange: ذخیره و رندر فقط وقتی picker بسته شد (انتخاب نهایی)
+    colorInput.onchange=()=>{
       c.color=colorInput.value;
       item.style.setProperty('--cat-color', c.color);
+      save('planner_cats', state.cats);
       saveCloud();
       render();
     };
