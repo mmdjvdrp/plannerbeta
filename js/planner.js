@@ -556,6 +556,7 @@ document.getElementById('live-btn').onclick=()=>{
     date: state.liveSession.date
   });
   if(!ok) return;
+  const liveDate = state.liveSession.date;
   state.liveSession=null;
   save('planner_live', null); // حذف همزمان لایو از حافظه محلی مرورگر
   saveCloud();
@@ -578,6 +579,13 @@ window.cancelLiveSession = function() {
   render();
 };
 
+// باز/بسته کردن فرم اضافه کردن موضوع جدید
+document.getElementById('toggle-cat').onclick = ()=>{
+  const box = document.getElementById('new-cat-box');
+  if(!box) return;
+  box.style.display = box.style.display === 'block' ? 'none' : 'block';
+};
+
 // ثبت موضوع جدید به دیتابیس ابری سوپابیس
 document.getElementById('save-cat').onclick = ()=>{
   const name=document.getElementById('new-cat-name').value.trim();
@@ -590,11 +598,12 @@ document.getElementById('save-cat').onclick = ()=>{
   save('planner_cats', state.cats);
   saveCloud();
   
-  document.getElementById('cat-select').value=nc.id;
-  document.getElementById('map-cat-select').value=nc.id;
   document.getElementById('new-cat-name').value='';
   document.getElementById('new-cat-box').style.display='none';
-  render(); // رندر سراسری به جای فراخوانی renderCats مفقود شده
+  render(); // رندر سراسری - بعد از render مقدار select ست می‌شه
+  // ست کردن مقدار select بعد از render تا reset نشه
+  document.getElementById('cat-select').value=nc.id;
+  document.getElementById('map-cat-select').value=nc.id;
 };
 
 window.setupViewTabs = function() {
