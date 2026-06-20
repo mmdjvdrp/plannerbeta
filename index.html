@@ -100,6 +100,7 @@
     font-size: 11px;
     border-radius: 6px;
   }
+  /* ریسپانسیو کردن جدول برنامه هفتگی کلاس درس */
   .timetable-grid {
     grid-template-columns: 1fr !important;
     gap: 12px !important;
@@ -186,7 +187,7 @@
           </div>
           <div class="err-msg" id="time-err">⚠ فرمت صحیح: HH:MM مثلاً ۱۴:۳۰</div>
         </div>
-        <!-- فیلد وقفه/پاز زمان دستی -->
+        <!-- فیلد وقفه/پاز زمان دستی (بدون تکرار) -->
         <div class="form-group">
           <label>مدت زمان وقفه / پاز (دقیقه - اختیاری)</label>
           <input type="text" id="pause-time" placeholder="مثلاً: ۳۰ (دقیقه)" maxlength="4" autocomplete="off">
@@ -197,7 +198,7 @@
         <div class="live-status" id="live-status"></div>
       </div>
 
-      <!-- کارت جدید: روتین‌های ثابت روزانه -->
+      <!-- کارت: روتین‌های ثابت روزانه -->
       <div class="card">
         <div class="card-title">تعریف روتین‌های ثابت</div>
         <div class="form-group">
