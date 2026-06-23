@@ -30,10 +30,10 @@ export const state = {
   theme: load('planner_theme', 'auto'),
   accentColor: load('planner_accent', '#7c5cfc'), 
   
-  // فیلدهای تنظیمی جدید کاربر
-  calendarPref: load('planner_calendar_pref', 'jalali'), // جلالی یا میلادی
-  timeFormatPref: load('planner_time_format_pref', 'hour-min'), // ساختار دقیقه یا ساعت
-  weekStartPref: load('planner_week_start_pref', 'sat'), // روز آغازین هفته
+  calendarPref: load('planner_calendar_pref', 'jalali'), 
+  timeFormatPref: load('planner_time_format_pref', 'hour-min'), 
+  weekStartPref: load('planner_week_start_pref', 'sat'), 
+  chartTypePref: load('planner_chart_type_pref', 'doughnut'), // اولویت نوع چارت تفکیکی
   
   curDate: getLocalDateStr(),
   mapMonth: getLocalDateStr().slice(0, 7),
@@ -54,7 +54,8 @@ export async function saveCloud(){
         theme: state.theme, routines: state.routines, goals: state.goals,
         todos: state.todos, habits: state.habits, habitLogs: state.habitLogs,
         moods: state.moods, accentColor: state.accentColor,
-        calendarPref: state.calendarPref, timeFormatPref: state.timeFormatPref, weekStartPref: state.weekStartPref
+        calendarPref: state.calendarPref, timeFormatPref: state.timeFormatPref, 
+        weekStartPref: state.weekStartPref, chartTypePref: state.chartTypePref
       }
     }, { onConflict: 'user_id' });
   } catch (err) { console.error("Error saving to cloud", err); }
@@ -80,10 +81,10 @@ export async function loadCloud(){
       state.habitLogs   = cd.habitLogs || {};
       state.moods       = cd.moods || {};
       
-      // بازیابی متغیرهای شخصی‌سازی
       state.calendarPref   = cd.calendarPref || "jalali";
       state.timeFormatPref = cd.timeFormatPref || "hour-min";
       state.weekStartPref  = cd.weekStartPref || "sat";
+      state.chartTypePref  = cd.chartTypePref || "doughnut";
 
       save('planner_ev', state.events);
       save('planner_cats', state.cats);
@@ -99,6 +100,7 @@ export async function loadCloud(){
       save('planner_calendar_pref', state.calendarPref);
       save('planner_time_format_pref', state.timeFormatPref);
       save('planner_week_start_pref', state.weekStartPref);
+      save('planner_chart_type_pref', state.chartTypePref);
     }
   } catch (err) { console.error("Error loading cloud data", err); }
 }
