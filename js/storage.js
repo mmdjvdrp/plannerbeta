@@ -1,6 +1,12 @@
 // js/storage.js
 import { supabase } from "./supabase.js";
-import { getLocalDateStr } from "./helpers.js";
+
+// پیاده‌سازی مستقیم توابع کمکی جهت شکستن چرخه ایمپورت‌ها با helpers.js
+function pad(n){ return String(n).padStart(2,'0'); }
+function getLocalDateStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+}
 
 export function load(k, def){
   try {
@@ -35,7 +41,7 @@ export const state = {
   weekStartPref: load('planner_week_start_pref', 'sat'), 
   chartTypePref: load('planner_chart_type_pref', 'doughnut'), 
   groupTimelinePref: load('planner_group_timeline_pref', true), 
-  selectedReportCats: load('planner_selected_report_cats', []), // آرایه جدید فیلتر نمودار گزارش‌ها
+  selectedReportCats: load('planner_selected_report_cats', []), 
   
   // متغیرهای ذخیره‌سازی پیش‌فرض زمان پومودورو شخصی‌سازی شده
   pomodoroWorkPref: load('planner_pomo_work_pref', 25),
