@@ -327,7 +327,7 @@
 
         <!-- بخش نمایش اطلاعات جزئی دسته کلیک شده در گزارش ویژه نسخه گوشی و تبلت -->
         <div id="report-detail-card" style="margin-top: 10px; margin-bottom: 16px; padding: 12px; border-radius: 10px; background: var(--surface2); border: 1px solid var(--border2); text-align: center; font-size: 12px; color: var(--text); min-height: 44px; display: flex; align-items: center; justify-content: center; line-height: 1.6;">
-          📊 برای فیلتر یا مشاهده آمار دقیق‌تر، روی دسته‌ب بندی‌های زیر ضربه بزنید.
+          📊 برای فیلتر یا مشاهده آمار دقیق‌تر، روی دسته‌بندی‌های زیر ضربه بزنید.
         </div>
 
         <div id="report-grid"></div>
@@ -448,6 +448,30 @@
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- مدال گالری اموجی‌های متحرک سوپابیس -->
+<div id="emoji-gallery-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:2000; align-items:center; justify-content:center; padding:16px; backdrop-filter:blur(6px);">
+  <div class="card" style="width:100%; max-width:500px; background:var(--surface); border:1px solid var(--border2); max-height:85vh; display:flex; flex-direction:column; padding:20px; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--border); padding-bottom:10px;">
+      <strong style="font-size:15px; color:var(--text);">🖼️ گالری شکلک‌های متحرک سوپابیس</strong>
+      <button id="close-gallery-modal" style="background:transparent; border:none; color:var(--muted); font-size:20px; cursor:pointer;">✕</button>
+    </div>
+    
+    <p style="font-size:11px; color:var(--muted); margin-bottom:14px; line-height:1.6;">لیست فایل‌های متحرک WebM موجود در باکت پروژه شما. یکی را انتخاب کنید تا به عنوان حالت روحی امروز یا دیگر پریست‌ها تنظیم شود:</p>
+    
+    <!-- کانتینر ابزارهای بالای گالری -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px;">
+      <span style="font-size:11px; color:var(--muted);" id="gallery-range-label">نمایش موارد ۱ تا ۳۰</span>
+      <div style="display:flex; gap:6px;">
+        <button id="gallery-prev" class="action-btn" style="padding:4px 8px; font-size:11px; background:var(--surface2); color:var(--text); border:1px solid var(--border2);">&#8249; قبلی</button>
+        <button id="gallery-next" class="action-btn" style="padding:4px 8px; font-size:11px; background:var(--surface2); color:var(--text); border:1px solid var(--border2);">بعدی &#8250;</button>
+      </div>
+    </div>
+
+    <!-- شبکه نمایش اموجی‌ها -->
+    <div id="gallery-grid" style="display:grid; grid-template-columns:repeat(5, 1fr); gap:12px; overflow-y:auto; flex:1; padding:4px;"></div>
   </div>
 </div>
 
