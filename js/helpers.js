@@ -27,7 +27,7 @@ export function fmtTime(mins){
   return pad(Math.floor(mins/60))+':'+pad(mins%60);
 }
 
-// تغییر یافته: قالب‌بندی مدت زمان بر اساس انتخاب کاربر (ساعت و دقیقه / ساعت اعشاری / فقط دقیقه)
+// قالب‌بندی مدت زمان بر اساس انتخاب کاربر (ساعت و دقیقه / ساعت اعشاری / فقط دقیقه)
 export function fmtDur(mins){
   const pref = state.timeFormatPref || 'hour-min';
   
@@ -45,7 +45,7 @@ export function fmtDur(mins){
   return h+'h '+m+'m';
 }
 
-// تغییر یافته: نمایش بومی تاریخ بر اساس سیستم تقویم انتخاب شده (شمسی یا انگلیسی)
+// نمایش بومی تاریخ بر اساس سیستم تقویم انتخاب شده (شمسی یا انگلیسی)
 export function fmtDateLabel(d){
   const [y,mo,day]=d.split('-').map(Number);
   const dt=new Date(y, mo-1, day);
@@ -64,7 +64,7 @@ export function fmtDateLabel(d){
 
 export function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-// تغییر یافته: تطبیق تاریخ هفته با روز شروع هفته انتخاب شده
+// تطبیق تاریخ هفته با روز شروع هفته انتخاب شده
 export function getWeekDates(dateStr) {
   const [y, m, d] = dateStr.split('-').map(Number);
   const dt = new Date(y, m - 1, d);
