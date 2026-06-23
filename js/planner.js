@@ -161,10 +161,29 @@ safeBindEvent("save-cat", "onclick", () => {
   document.getElementById("map-cat-select").value = nc.id;
 });
 
+// حذف کاملاً سراسری دسته‌بندی به همراه تمام داده‌های مربوط به آن جهت جلوگیری از اثرگذاری در گزارش‌ها
 window.delCat = function(id) {
-  if(!confirm("آیا مطمئن هستید؟ فعالیت‌های قبلی پاک نمی‌شوند.")) return;
+  if(!confirm("آیا مطمئن هستید؟ با تایید شما، تمام فعالیت‌ها، روتین‌ها و اهدافی که تاکنون تحت این موضوع ثبت شده‌اند به طور کامل و بدون بازگشت پاک خواهند شد.")) return;
+  
+  // ۱. حذف از لیست دسته‌بندی‌ها
   state.cats = state.cats.filter(c => c.id !== id);
+  // ۲. فیلتر و حذف کامل رویدادها، روتین‌ها و اهداف مرتبط با این موضوع
+  state.events = state.events.filter(e => e.catId !== id);
+  state.routines = state.routines.filter(r => r.catId !== id);
+  state.goals = state.goals.filter(g => g.catId !== id);
+  
+  // ۳. فیلتر کردن از لیست فیلترهای فعال گزارش
+  if (state.selectedReportCats) {
+    state.selectedReportCats = state.selectedReportCats.filter(cId => cId !== id);
+    save("planner_selected_report_cats", state.selectedReportCats);
+  }
+
+  // ۴. ذخیره همگانی اطلاعات
   save("planner_cats", state.cats); 
+  save("planner_ev", state.events);
+  save("planner_routines", state.routines);
+  save("planner_goals", state.goals);
+  
   saveCloud(); 
   render();
 };
@@ -506,6 +525,38 @@ safeBindEvent("add-goal-btn", "onclick", () => {
   render();
   alert('هدف با موفقیت ثبت شد!');
 });
+
+// مدیریت، درخواست مجوز و فعال‌سازی سیستم اعلان‌های سیستمی
+const notifyBtn = document.getElementById("notify-enable-btn");
+if (notifyBtn) {
+  // اگر دسترسی از قبل داده شده است، حالت دکمه به صورت بصری فعال نشان داده شود
+  if ('Notification' in window && Notification.permission === 'granted') {
+    notifyBtn.textContent = "🔔 فعال شد";
+    notifyBtn.style.background = "var(--accent-glow)";
+    notifyBtn.style.color = "var(--accent)";
+  }
+
+  notifyBtn.onclick = async () => {
+    if (!('Notification' in window)) {
+      alert("مرورگر شما از سیستم ارسال اعلان‌های سیستمی پشتیبانی نمی‌کند.");
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      notifyBtn.textContent = "🔔 فعال شد";
+      notifyBtn.style.background = "var(--accent-glow)";
+      notifyBtn.style.color = "var(--accent)";
+
+      new Notification("تقویم روزانه 📅", {
+        body: "اعلان‌های سیستمی با موفقیت فعال شدند! از این پس اتمام پومودورو به شما اعلام می‌شود.",
+        icon: "./icons/icon-192.png"
+      });
+    } else if (permission === 'denied') {
+      alert("درخواست دسترسی به اعلان‌ها توسط شما مسدود شده است. برای فعال‌سازی مجدد، باید از تنظیمات آدرس‌بار مرورگر خود دسترسی اعلان (Notification) را فعال کنید.");
+    }
+  };
+}
 
 // احراز هویت و بارگذاری اطلاعات کاربری
 async function handleUserSession(session) {
