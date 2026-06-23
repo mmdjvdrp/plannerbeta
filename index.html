@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="./css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+<!-- استایل واکنش‌گرا -->
 <style>
 @media(max-width: 768px) {
   body { padding: 12px 8px; padding-bottom: 90px; }
@@ -63,6 +64,7 @@
   <nav class="app-nav">
     <button class="nav-btn active" data-tab="tab-timeline"><span class="nav-icon">📅</span> تایم‌لاین</button>
     <button class="nav-btn" data-tab="tab-habits"><span class="nav-icon">✔️</span> کار و عادت</button>
+    <button class="nav-btn" data-tab="tab-journal"><span class="nav-icon">📖</span> دفترچه روزانه</button>
     <button class="nav-btn" data-tab="tab-add"><span class="nav-icon">⚙️</span> مدیریت</button>
     <button class="nav-btn" data-tab="tab-reports"><span class="nav-icon">📊</span> گزارش‌ها</button>
     <button class="nav-btn" data-tab="tab-settings"><span class="nav-icon">🛠️</span> تنظیمات</button>
@@ -72,21 +74,6 @@
     
     <!-- ================= تب 1: تایم‌لاین ================= -->
     <div id="tab-timeline" class="tab-section active">
-      <div class="card">
-        <div class="card-title">حال و هوای امروز من</div>
-        <div class="mood-container" style="display:flex; gap:12px; align-items:center;">
-          <div id="mood-emojis" style="display:flex; gap:12px;">
-            <span class="mood-emoji" data-mood="🤩">🤩</span>
-            <span class="mood-emoji" data-mood="😊">😊</span>
-            <span class="mood-emoji" data-mood="😐">😐</span>
-            <span class="mood-emoji" data-mood="😔">😔</span>
-            <span class="mood-emoji" data-mood="😡">😡</span>
-          </div>
-          <input type="text" id="mood-note" placeholder="یادداشت کوتاه..." style="flex:1;">
-          <button id="save-mood-btn" class="action-btn">ثبت مود</button>
-        </div>
-      </div>
-
       <div class="card" style="margin-bottom:0">
         <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
           <div>تایم‌لاین &mdash; <span id="tl-date" style="color:var(--accent2)"></span></div>
@@ -117,7 +104,33 @@
       </div>
     </div>
 
-    <!-- ================= تب 3: ثبت و مدیریت ================= -->
+    <!-- ================= تب 3: دفترچه روزانه و یادداشت (جدید) ================= -->
+    <div id="tab-journal" class="tab-section">
+      <!-- حال و هوای روزانه -->
+      <div class="card">
+        <div class="card-title">حال و هوای امروز من</div>
+        <div class="mood-container" style="display:flex; gap:12px; align-items:center; justify-content: center;">
+          <div id="mood-emojis" style="display:flex; gap:16px;">
+            <span class="mood-emoji" data-mood="🤩">🤩</span>
+            <span class="mood-emoji" data-mood="😊">😊</span>
+            <span class="mood-emoji" data-mood="😐">😐</span>
+            <span class="mood-emoji" data-mood="😔">😔</span>
+            <span class="mood-emoji" data-mood="😡">😡</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- دفترچه و ژورنال روزانه -->
+      <div class="card">
+        <div class="card-title">دفترچه روزانه / یادداشت خاطرات امروز</div>
+        <div class="form-group">
+          <textarea id="journal-textarea" placeholder="امروز چطور گذشت؟ چالش‌ها، موفقیت‌ها و افکارت را بنویس..." style="width:100%; height:180px; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); padding:12px; font-family:inherit; font-size:14px; outline:none; resize:vertical;"></textarea>
+        </div>
+        <button id="save-journal-btn" class="btn-primary" style="margin-top:4px;">💾 ثبت یادداشت امروز</button>
+      </div>
+    </div>
+
+    <!-- ================= تب 4: ثبت و مدیریت ================= -->
     <div id="tab-add" class="tab-section">
       <div class="card">
         <div class="card-title">ثبت فعالیت جدید</div>
@@ -157,17 +170,22 @@
       </div>
     </div>
 
-    <!-- ================= تب 4: گزارش‌ها ================= -->
+    <!-- ================= تب 5: گزارش‌ها ================= -->
     <div id="tab-reports" class="tab-section">
       <div class="card">
-        <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+        <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap: wrap; gap:8px;">
           <span>گزارش دوره‌ای موضوعات</span>
           <div style="display:flex; gap:6px; align-items:center;">
-            <input type="text" id="report-days" value="7" style="width:36px; padding:4px; text-align:center; font-size:11px;">
-            <button id="report-confirm-btn" class="action-btn">تایید</button>
+            <!-- منوی سوئیچ ساختار چارت -->
+            <select id="report-chart-type" style="width: auto; padding: 4px; font-size: 11px; height: 28px; border-radius: 6px; background:var(--surface2); color:var(--text); border:1px solid var(--border2);">
+              <option value="doughnut">دایره‌ای (Doughnut)</option>
+              <option value="bar">ستونی (Bar)</option>
+            </select>
+            <input type="text" id="report-days" value="7" style="width:36px; padding:4px; text-align:center; font-size:11px; height:28px;">
+            <button id="report-confirm-btn" class="action-btn" style="height:28px; padding:0 8px;">تایید</button>
           </div>
         </div>
-        <div style="position:relative; height:200px; margin-bottom:20px;"><canvas id="report-chart"></canvas></div>
+        <div style="position:relative; height:220px; margin-bottom:20px;"><canvas id="report-chart"></canvas></div>
         <div id="report-grid"></div>
         <div class="total-line" id="total-line"></div>
       </div>
@@ -186,8 +204,20 @@
       </div>
     </div>
 
-    <!-- ================= تب 5: تنظیمات (جدید) ================= -->
+    <!-- ================= تب 6: تنظیمات ================= -->
     <div id="tab-settings" class="tab-section">
+      <!-- تنظیمات پروفایل و نام کاربری -->
+      <div class="card">
+        <div class="card-title">تنظیمات پروفایل</div>
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label>تغییر نام نمایشی (Display Name)</label>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="setting-display-name" placeholder="نام جدید شما">
+            <button id="save-display-name-btn" class="action-btn">ثبت تغییرات</button>
+          </div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-title">شخصی‌سازی ظاهر</div>
         
@@ -208,7 +238,7 @@
           <label>رنگ شاخص دلخواه (Accent Color)</label>
           <div style="display:flex; gap:10px; align-items:center;">
             <input type="color" id="setting-accent-picker" style="width:40px; height:40px; border:none; cursor:pointer; background:transparent;">
-            <span style="font-size:12px; color:var(--muted);">رنگ دکمه‌ها، هاله‌ها و بخش‌های فعال برنامه را به دلخواه تنظیم کنید.</span>
+            <span style="font-size:12px; color:var(--muted);">رنگ دکمه‌ها و بخش‌های فعال برنامه را تنظیم کنید.</span>
           </div>
         </div>
       </div>
