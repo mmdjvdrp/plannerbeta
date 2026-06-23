@@ -420,12 +420,36 @@ window.delEv = function(id) {
 // تودو و عادت
 safeBindEvent("add-todo-btn", "onclick", () => {
   const title = document.getElementById("todo-input").value.trim(); if(!title) return;
-  state.todos.push({ id: "t" + Date.now(), title, date: state.curDate, done: false });
+  state.todos.push({ id: "t" + Date.now(), title, date: state.curDate, done: false, isDaily: false, doneDates: {} });
   save("planner_todos", state.todos); saveCloud(); render(); document.getElementById("todo-input").value = "";
 });
 
 window.toggleTodo = (id) => {
-  const t = state.todos.find(x => x.id === id); if(t) { t.done = !t.done; save("planner_todos", state.todos); saveCloud(); render(); }
+  const t = state.todos.find(x => x.id === id);
+  if (t) {
+    if (t.isDaily) {
+      t.doneDates = t.doneDates || {};
+      t.doneDates[state.curDate] = !t.doneDates[state.curDate];
+    } else {
+      t.done = !t.done;
+    }
+    save("planner_todos", state.todos);
+    saveCloud();
+    render();
+  }
+};
+
+window.toggleRecurringTodo = (id) => {
+  const t = state.todos.find(x => x.id === id);
+  if (t) {
+    t.isDaily = !t.isDaily;
+    if (t.isDaily) {
+      t.doneDates = t.doneDates || {};
+    }
+    save("planner_todos", state.todos);
+    saveCloud();
+    render();
+  }
 };
 
 window.deleteTodo = (id) => { 
@@ -652,6 +676,22 @@ window.deleteGoal = function(id) {
   save('planner_goals', state.goals);
   saveCloud();
   render();
+};
+
+// ثبت وقفه دستی بر حسب دقیقه روی فعالیت زنده
+window.addManualPause = () => {
+  if (!state.liveSession) return;
+  const minsInput = prompt("چند دقیقه وقفه دستی مایلید ثبت کنید؟ (مثلاً ۶۰)", "30");
+  if (minsInput === null) return;
+  const mins = parseInt(minsInput, 10);
+  if (isNaN(mins) || mins < 0) {
+    alert("لطفاً یک عدد معتبر وارد کنید.");
+    return;
+  }
+  state.liveSession.pauseMins = (state.liveSession.pauseMins || 0) + mins;
+  save('planner_live', state.liveSession);
+  saveCloud();
+  updateLiveButton();
 };
 
 // مدیریت، درخواست مجوز و فعال‌سازی سیستم اعلان‌های سیستمی
