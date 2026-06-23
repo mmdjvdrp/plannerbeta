@@ -23,6 +23,7 @@ export function renderCats(){
   if(!sel || !mapSel || !manager) return;
 
   const currentVal = sel.value;
+  const currentMapVal = mapSel.value; // ۱. ذخیره انتخاب فعلی نقشه ماهانه جهت جلوگیری از ریست شدن
   sel.innerHTML=''; mapSel.innerHTML=''; manager.innerHTML='';
   
   // افزودن گزینه پیش‌فرض خلق و خو به نقشه ماهانه موضوعات
@@ -72,6 +73,13 @@ export function renderCats(){
   
   if (currentVal && state.cats.some(c => c.id === currentVal)) {
     sel.value = currentVal;
+  }
+
+  // ۲. بازیابی انتخاب نقشه ماهانه در صورتی که هنوز معتبر باشد
+  if (currentMapVal && (currentMapVal === 'mood_tracker' || state.cats.some(c => c.id === currentMapVal))) {
+    mapSel.value = currentMapVal;
+  } else {
+    mapSel.value = 'mood_tracker';
   }
 }
 
@@ -643,6 +651,15 @@ function startLiveStopwatch() {
       if(isPom && netMins>=pomoLimit && !notified) { 
         notified=true; 
         new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(()=>{});
+        
+        // ارسال اعلان سیستمی در صورت داشتن مجوز معتبر
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification("پومودورو 🍅", {
+            body: `زمان کار پومودورو با موفقیت به پایان رسید! (${pomoLimit} دقیقه)`,
+            icon: "./icons/icon-192.png"
+          });
+        }
+        
         alert(`🍅 زمان کار پومودورو با موفقیت به پایان رسید! (${pomoLimit} دقیقه)`); 
       }
       el.innerHTML = `زمان خالص: <b>${fmtDur(netMins)}</b> ${isPom?'(پومودورو) 🍅':''}`;
