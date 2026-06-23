@@ -29,10 +29,24 @@ function triggerNavPeekAnimation() {
 state.galleryPage = 0;
 state.galleryPageSize = 30;
 state.currentSelectingPresetIdx = null;
+state.currentSelectingCatId = null; // متغیر جدید برای ذخیره آیدی موضوع در حال ویرایش شکلک
 
-// باز کردن گالری اموجی‌های متحرک
+// باز کردن گالری اموجی‌های متحرک برای خلق‌وخو
 window.openEmojiGallery = function(idx) {
   state.currentSelectingPresetIdx = idx;
+  state.currentSelectingCatId = null;
+  state.galleryPage = 0;
+  const modal = document.getElementById("emoji-gallery-modal");
+  if (modal) {
+    modal.style.display = "flex";
+    renderGalleryGrid();
+  }
+};
+
+// باز کردن گالری اموجی‌های متحرک برای شکلک دسته‌بندی (موضوعات)
+window.openCatEmojiPicker = function(catId) {
+  state.currentSelectingCatId = catId;
+  state.currentSelectingPresetIdx = null;
   state.galleryPage = 0;
   const modal = document.getElementById("emoji-gallery-modal");
   if (modal) {
@@ -55,7 +69,7 @@ window.renderGalleryGrid = function() {
 
   for (let i = start; i <= end; i++) {
     const numStr = String(i).padStart(3, '0');
-    // آدرس عمومی باکت عمومی سوپابیس شما بر اساس ساختار نام‌گذاری سه رقمی
+    // آدرس عمومی باکت عمومی سوپابیس
     const fileUrl = `https://ipureiqnhgatigewbggj.supabase.co/storage/v1/object/public/emojis/${numStr}.webm`;
 
     const item = document.createElement('div');
@@ -82,16 +96,31 @@ window.renderGalleryGrid = function() {
       <span style="position:absolute; bottom:2px; font-size:8px; color:var(--muted); font-family:monospace; background:rgba(0,0,0,0.35); padding:0 3px; border-radius:3px;">${numStr}</span>
     `;
 
-    // کلیک روی هر المان و انتساب آن به عنوان پریست شکلک
+    // کلیک روی هر المان و انتساب آن به پریست مناسب
     item.onclick = () => {
       const idx = state.currentSelectingPresetIdx;
+      const catId = state.currentSelectingCatId;
+
       if (idx !== null && idx !== undefined) {
+        // اختصاص به پریست خلق و خو
         state.moodPresets[idx].type = 'webm';
         state.moodPresets[idx].value = fileUrl;
         save("planner_mood_presets", state.moodPresets);
         saveCloud();
         render();
+      } else if (catId) {
+        // اختصاص به شکلک دسته‌بندی (موضوع)
+        const cat = state.cats.find(c => c.id === catId);
+        if (cat) {
+          cat.emoji = fileUrl;
+          save("planner_cats", state.cats);
+          saveCloud();
+          render();
+        }
       }
+      
+      state.currentSelectingPresetIdx = null;
+      state.currentSelectingCatId = null;
       document.getElementById("emoji-gallery-modal").style.display = "none";
     };
 
@@ -102,6 +131,8 @@ window.renderGalleryGrid = function() {
 // رویدادهای مدال گالری سوپابیس
 safeBindEvent("close-gallery-modal", "onclick", () => {
   document.getElementById("emoji-gallery-modal").style.display = "none";
+  state.currentSelectingPresetIdx = null;
+  state.currentSelectingCatId = null;
 });
 
 safeBindEvent("gallery-prev", "onclick", () => {
@@ -311,6 +342,9 @@ window.editEv = function(id) {
   document.getElementById("act-tags").value = (ev.tags || []).join(" ");
   document.getElementById("start-time").value = fmtTime(ev.sMins);
   document.getElementById("end-time").value = fmtTime(ev.eMins);
+  if (document.getElementById("act-pause")) {
+    document.getElementById("act-pause").value = ev.pauseMins || 0;
+  }
   
   switchTab("tab-add");
   render();
@@ -323,16 +357,20 @@ safeBindEvent("cancel-edit-btn", "onclick", () => {
   document.getElementById("act-tags").value = "";
   document.getElementById("start-time").value = "";
   document.getElementById("end-time").value = "";
+  if (document.getElementById("act-pause")) {
+    document.getElementById("act-pause").value = "0";
+  }
   render();
 });
 
-// ثبت یا ذخیره تغییرات ویرایش شده فعالیت دستی
+// ثبت یا ذخیره تغییرات ویرایش شده فعالیت دستی با فیلد وقفه/پاز و اعتبارسنجی آن
 safeBindEvent("add-btn", "onclick", () => {
   const title = document.getElementById("act-title").value.trim();
   const catId = document.getElementById("cat-select").value;
   const tagsRaw = document.getElementById("act-tags").value.trim();
   const stRaw = document.getElementById("start-time").value;
   const enRaw = document.getElementById("end-time").value;
+  const pauseRaw = document.getElementById("act-pause") ? document.getElementById("act-pause").value.trim() : "0";
   
   if(!catId){ 
     alert("موضوع انتخاب نشده است"); 
@@ -342,7 +380,23 @@ safeBindEvent("add-btn", "onclick", () => {
   const eMins = parseTime(enRaw);
   if(sMins === null || eMins === null) return alert("فرمت زمان وارد شده صحیح نیست");
 
-  let durMins = eMins - sMins; if(durMins < 0) durMins += 24 * 60;
+  // محاسبه مدت کل فعالیت به دقیقه
+  let totalDur = eMins - sMins; 
+  if(totalDur < 0) totalDur += 24 * 60; // مدیریت ساعت نیمه شب
+
+  // دریافت و اعتبارسنجی مقدار وقفه/پاز وارد شده به صورت دستی
+  const pauseMins = parseInt(pauseRaw, 10) || 0;
+  if (pauseMins < 0) {
+    alert("مقدار زمان وقفه نمی‌تواند عدد منفی باشد!");
+    return;
+  }
+  if (pauseMins >= totalDur) {
+    alert(`خطا: مدت زمان وقفه (${pauseMins} دقیقه) نمی‌تواند بزرگتر یا مساوی کل زمان فعالیت (${totalDur} دقیقه) باشد!`);
+    return;
+  }
+
+  // کسر زمان وقفه از کل مدت فعالیت
+  const durMins = totalDur - pauseMins;
   const tags = tagsRaw ? tagsRaw.split(" ").filter(t => t.startsWith("#")) : [];
 
   if (state.editingEventId) {
@@ -354,13 +408,14 @@ safeBindEvent("add-btn", "onclick", () => {
       state.events[idx].sMins = sMins;
       state.events[idx].eMins = eMins;
       state.events[idx].durMins = durMins;
+      state.events[idx].pauseMins = pauseMins;
       state.events[idx].tags = tags;
     }
     state.editingEventId = null;
     alert("تغییرات فعالیت با موفقیت بروزرسانی شد.");
   } else {
     // افزودن فعالیت کاملاً جدید
-    state.events.push({ id: Date.now().toString(), date: state.curDate, title, catId, sMins, eMins, durMins, tags });
+    state.events.push({ id: Date.now().toString(), date: state.curDate, title, catId, sMins, eMins, durMins, pauseMins, tags });
   }
 
   save("planner_ev", state.events); 
@@ -697,7 +752,6 @@ window.addManualPause = () => {
 // مدیریت، درخواست مجوز و فعال‌سازی سیستم اعلان‌های سیستمی
 const notifyBtn = document.getElementById("notify-enable-btn");
 if (notifyBtn) {
-  // اگر دسترسی از قبل داده شده است، حالت دکمه به صورت بصری فعال نشان داده شود
   if ('Notification' in window && Notification.permission === 'granted') {
     notifyBtn.textContent = "🔔 فعال شد";
     notifyBtn.style.background = "var(--accent-glow)";
@@ -742,7 +796,6 @@ async function handleUserSession(session) {
   let displayName = user.user_metadata?.display_name || "";
   
   try {
-    // دریافت نام کاربر از جدول دیتابیس به عنوان اولویت اول جهت جلوگیری از نمایش آیدی خام یا سیستم در زمان شروع برنامه
     const { data: profData } = await supabase
       .from("profiles")
       .select("name")
