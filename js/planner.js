@@ -4,7 +4,7 @@ import { state, save, saveCloud, loadCloud } from "./storage.js";
 import { getNow, parseTime, pad, getLocalDateStr, fmtDateLabel } from "./helpers.js";
 import { render, applyTheme, updateLiveButton } from "./render.js";
 
-// ساختار ایمن برای اتصال رویدادها (Safe Binding) جهت جلوگیری از ارورهای Null در لود اولیه
+// تابع کمکی محافظت در برابر خطاهای اتصال به متدهای DOM (فیکس کامل باگ کرش در صورت تداخل کدهای قدیمی)
 function safeBindEvent(id, event, callback) {
   const el = document.getElementById(id);
   if (el) el[event] = callback;
@@ -21,7 +21,7 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.getAttribute('data-tab')));
 });
 
-// مدیریت تاریخ روزانه
+// مدیریت روز و ماه
 safeBindEvent('prev-day', 'onclick', () => shiftDay(-1));
 safeBindEvent('next-day', 'onclick', () => shiftDay(1));
 safeBindEvent('btn-today', 'onclick', () => { state.curDate = getLocalDateStr(); render(); });
@@ -147,7 +147,7 @@ safeBindEvent('live-btn', 'onclick', ()=>{
     });
     state.liveSession=null; save('planner_live', null); save('planner_ev', state.events); saveCloud(); render(); updateLiveButton();
   }
-});
+};
 
 window.cancelLiveSession = function() {
   if(!confirm('آیا از لغو و حذف زمان این فعالیت زنده اطمینان دارید؟ (هیچ فعالیتی ثبت نخواهد شد)')) return;
@@ -157,12 +157,6 @@ window.cancelLiveSession = function() {
   updateLiveButton();
 };
 
-// کپی و حذف فعالیت
-window.duplicateEv = function(id) {
-  const ev = state.events.find(e => e.id === id); if(!ev) return;
-  state.events.push({ ...ev, id: Date.now().toString(), date: state.curDate });
-  save('planner_ev', state.events); saveCloud(); render(); alert('فعالیت کپی شد!');
-};
 window.delEv = function(id) {
   if(!confirm('حذف شود؟')) return;
   state.events = state.events.filter(e => e.id !== id);
@@ -197,13 +191,6 @@ safeBindEvent('save-journal-btn', 'onclick', () => {
   let selectedMood = state.moods[state.curDate]?.mood || null;
   state.moods[state.curDate] = { mood: selectedMood, note }; save('planner_moods', state.moods); saveCloud(); alert('خاطره‌نویسی و یادداشت امروز با موفقیت ثبت شد!');
 });
-document.querySelectorAll('.mood-emoji').forEach(sp => {
-  sp.onclick = () => {
-    const textInp = document.getElementById('journal-textarea') ? document.getElementById('journal-textarea').value : '';
-    if(!state.moods[state.curDate]) state.moods[state.curDate] = { note: textInp };
-    state.moods[state.curDate].mood = sp.getAttribute('data-mood'); save('planner_moods', state.moods); saveCloud(); render();
-  };
-});
 
 // تغییر نام نمایشی کاربری در تب تنظیمات
 safeBindEvent('save-display-name-btn', 'onclick', async () => {
@@ -228,6 +215,24 @@ safeBindEvent('save-display-name-btn', 'onclick', async () => {
   } catch (err) {
     console.error(err);
     alert('خطایی در حین ثبت تغییر نام رخ داد.');
+  }
+});
+
+// ذخیره چیدمان اختصاصی اموجی‌ها یا فایل‌های WebM انیمیشنی
+safeBindEvent('save-custom-emojis-btn', 'onclick', () => {
+  const types = document.querySelectorAll('.emoji-type-select');
+  const values = document.querySelectorAll('.emoji-value-input');
+  
+  if (types.length === 5 && values.length === 5) {
+    types.forEach((sel, idx) => {
+      state.moodPresets[idx].type = sel.value;
+      state.moodPresets[idx].value = values[idx].value.trim();
+    });
+    
+    save('planner_mood_presets', state.moodPresets);
+    saveCloud();
+    render();
+    alert('شخصی‌سازی شکلک‌های زنده با موفقیت ذخیره شد!');
   }
 });
 
