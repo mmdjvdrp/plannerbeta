@@ -1,7 +1,7 @@
 // js/planner.js
 import { supabase } from "./supabase.js";
 import { state, save, saveCloud, loadCloud } from "./storage.js";
-import { getNow, parseTime, pad, getLocalDateStr } from "./helpers.js";
+import { getNow, parseTime, pad, getLocalDateStr, fmtDateLabel } from "./helpers.js";
 import { render, applyTheme, updateLiveButton } from "./render.js";
 
 // مدیریت تغییر تب‌ها
@@ -15,7 +15,7 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.getAttribute('data-tab')));
 });
 
-// مدیریت تاریخ روزانه
+// مدیریت روز و ماه
 document.getElementById('prev-day').onclick = () => shiftDay(-1);
 document.getElementById('next-day').onclick = () => shiftDay(1);
 document.getElementById('btn-today').onclick = () => { state.curDate = getLocalDateStr(); render(); };
@@ -54,6 +54,11 @@ document.getElementById('setting-duration-format').onchange = (e) => {
 };
 document.getElementById('setting-week-start').onchange = (e) => {
   state.weekStartPref = e.target.value; save('planner_week_start_pref', state.weekStartPref); saveCloud(); render();
+};
+
+// تغییر نوع چارت از منوی گزارش‌ها
+document.getElementById('report-chart-type').onchange = (e) => {
+  state.chartTypePref = e.target.value; save('planner_chart_type_pref', state.chartTypePref); saveCloud(); render();
 };
 
 // باز و بسته کردن باکس افزودن دسته‌بندی
@@ -104,7 +109,7 @@ document.getElementById('add-btn').onclick = ()=>{
   save('planner_ev', state.events); saveCloud(); render(); switchTab('tab-timeline');
 };
 
-// شروع و پایان فعالیت زنده (پایان با ذخیره کسری زمان وقفه و پاز زنده)
+// شروع و پایان فعالیت زنده
 document.getElementById('live-btn').onclick=()=>{
   if(!state.liveSession){
     state.liveSession = {
@@ -119,7 +124,6 @@ document.getElementById('live-btn').onclick=()=>{
   } else {
     const endNow = parseTime(getNow());
     
-    // محاسبه مجموع وقفه‌های سپری شده قبل از ثبت نهایی
     let finalPauseMins = state.liveSession.pauseMins || 0;
     if (state.liveSession.pauseStartMins !== null && state.liveSession.pauseStartMins !== undefined) {
       let diff = endNow - state.liveSession.pauseStartMins;
@@ -129,7 +133,7 @@ document.getElementById('live-btn').onclick=()=>{
 
     let totalElapsed = endNow - state.liveSession.sMins; if(totalElapsed<0) totalElapsed += 24*60;
     let durMins = totalElapsed - finalPauseMins;
-    if(durMins <= 0) durMins = 1; // جلوگیری از ذخیره زمان منفی
+    if(durMins <= 0) durMins = 1;
 
     state.events.push({
       id: Date.now().toString(), date: state.liveSession.date, title: state.liveSession.title,
@@ -139,7 +143,6 @@ document.getElementById('live-btn').onclick=()=>{
   }
 };
 
-// متد لغو و انصراف از ثبت زنده فعلی (جلوگیری از ذخیره شدن)
 window.cancelLiveSession = function() {
   if(!confirm('آیا از لغو و حذف زمان این فعالیت زنده اطمینان دارید؟ (هیچ فعالیتی ثبت نخواهد شد)')) return;
   state.liveSession = null;
@@ -182,18 +185,48 @@ window.toggleHabit = (hId, dateStr) => {
 };
 window.deleteHabit = (id) => { state.habits = state.habits.filter(x => x.id !== id); delete state.habitLogs[id]; save('planner_habits', state.habits); save('planner_habitLogs', state.habitLogs); saveCloud(); render(); };
 
-// مود
-document.getElementById('save-mood-btn').onclick = () => {
-  const note = document.getElementById('mood-note').value.trim();
-  let selectedMood = state.moods[state.curDate]?.mood;
-  state.moods[state.curDate] = { mood: selectedMood, note }; save('planner_moods', state.moods); saveCloud(); alert('ثبت شد!');
+// ژورنال و خاطره‌نویسی روزانه
+document.getElementById('save-journal-btn').onclick = () => {
+  const note = document.getElementById('journal-textarea').value.trim();
+  let selectedMood = state.moods[state.curDate]?.mood || null;
+  state.moods[state.curDate] = { mood: selectedMood, note }; save('planner_moods', state.moods); saveCloud(); alert('خاطره‌نویسی و یادداشت امروز با موفقیت ثبت شد!');
 };
 document.querySelectorAll('.mood-emoji').forEach(sp => {
   sp.onclick = () => {
-    if(!state.moods[state.curDate]) state.moods[state.curDate] = { note: document.getElementById('mood-note').value };
+    const textInp = document.getElementById('journal-textarea').value;
+    if(!state.moods[state.curDate]) state.moods[state.curDate] = { note: textInp };
     state.moods[state.curDate].mood = sp.getAttribute('data-mood'); save('planner_moods', state.moods); saveCloud(); render();
   };
 });
+
+// تغییر نام نمایشی کاربری در تب تنظیمات
+document.getElementById('save-display-name-btn').onclick = async () => {
+  const newName = document.getElementById('setting-display-name').value.trim();
+  if(!newName) return alert('لطفاً نام نمایشی معتبری وارد کنید.');
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if(!user) return;
+
+    // ۱. بروزرسانی متادیتای هویتی در Supabase Auth
+    const { error: authErr } = await supabase.auth.updateUser({
+      data: { display_name: newName }
+    });
+    if (authErr) throw authErr;
+
+    // ۲. بروزرسانی همزمان در دیتابیس پشتیبان profiles
+    await supabase.from("profiles").upsert({ id: user.id, name: newName });
+    
+    // ۳. آپدیت آنی خوش‌آمدگویی بالای صفحه
+    const msg = document.getElementById("welcome-msg");
+    if (msg) msg.textContent = "خوش آمدی، " + newName + " 👋";
+    
+    document.getElementById('setting-display-name').value = '';
+    alert('نام نمایشی شما با موفقیت به ' + newName + ' تغییر یافت!');
+  } catch (err) {
+    console.error(err);
+    alert('خطایی در حین ثبت تغییر نام رخ داد.');
+  }
+};
 
 // خروجی بک‌آپ
 document.getElementById('export-btn').onclick = () => {
@@ -204,7 +237,7 @@ document.getElementById('export-btn').onclick = () => {
 
 document.getElementById('report-confirm-btn').onclick = () => render();
 
-// احراز هویت
+// احراز هویت و بارگذاری اطلاعات کاربری
 async function handleUserSession(session) {
   const user = session?.user;
   if (!user) { window.location.href = "./login.html"; return; }
@@ -221,6 +254,10 @@ async function handleUserSession(session) {
   if (!displayName && user.email) displayName = user.email.split('@')[0];
   const msg = document.getElementById("welcome-msg");
   if (msg) msg.textContent = displayName ? "خوش آمدی، " + displayName + " 👋" : "خوش آمدی 👋";
+
+  // فیکس دوم: لود کردن سریع تقویم و رندر تاریخ در ابتدای احراز هویت
+  const dateLabel = document.getElementById('date-label');
+  if (dateLabel) dateLabel.textContent = fmtDateLabel(state.curDate);
 
   try {
     await loadCloud();
