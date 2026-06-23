@@ -20,11 +20,13 @@ export function renderCats(){
   const sel=document.getElementById('cat-select');
   const mapSel=document.getElementById('map-cat-select');
   const manager=document.getElementById('cat-manager');
+  const goalSel=document.getElementById('goal-cat-select');
   if(!sel || !mapSel || !manager) return;
 
   const currentVal = sel.value;
   const currentMapVal = mapSel.value; // ذخیره انتخاب فعلی نقشه ماهانه جهت جلوگیری از ریست شدن
   sel.innerHTML=''; mapSel.innerHTML=''; manager.innerHTML='';
+  if (goalSel) goalSel.innerHTML = '';
   
   // افزودن گزینه پیش‌فرض خلق و خو به نقشه ماهانه موضوعات
   const moodOpt = document.createElement('option');
@@ -39,18 +41,23 @@ export function renderCats(){
   }
   
   state.cats.forEach(c=>{
-    const o=document.createElement('option'); o.value=c.id; o.textContent=c.name;
+    const emoji = c.emoji || '📅';
+    const o=document.createElement('option'); o.value=c.id; o.textContent=`${emoji} ${c.name}`;
     sel.appendChild(o); mapSel.appendChild(o.cloneNode(true));
+    if (goalSel) goalSel.appendChild(o.cloneNode(true));
 
     const item=document.createElement('div');
     item.className='cat-item'; item.style.setProperty('--cat-color', c.color);
+    item.style.gridTemplateColumns = "20px 24px 1fr 34px 34px"; // تطبیق عرض برای قرارگیری نماد اموجی
     
     if (c.id === currentVal) {
       item.classList.add('selected');
     }
 
     item.innerHTML=`
-      <span class="cat-swatch"></span><span class="cat-name">${escHtml(c.name)}</span>
+      <span class="cat-swatch"></span>
+      <span style="font-size:15px; text-align:center;">${emoji}</span>
+      <span class="cat-name">${escHtml(c.name)}</span>
       <input class="cat-color-edit" type="color" value="${c.color}">
       <button class="cat-delete" type="button">✕</button>
     `;
@@ -109,7 +116,8 @@ export function renderTimeline(){
     });
 
     sortedCatIds.forEach(catId => {
-      const cat = state.cats.find(c => c.id === catId) || {name: 'حذف شده', color: '#999'};
+      const cat = state.cats.find(c => c.id === catId) || {name: 'حذف شده', color: '#999', emoji: '📅'};
+      const catEmoji = cat.emoji || '📅';
       const grp = groups[catId].sort((a,b) => a.sMins - b.sMins);
       const totalDur = grp.reduce((sum, e) => sum + e.durMins, 0);
 
@@ -136,7 +144,7 @@ export function renderTimeline(){
           <div style="display:flex; align-items:center; gap:12px;">
             <span style="width:10px; height:10px; border-radius:50%; background:${cat.color}; display:inline-block;"></span>
             <div>
-              <div style="font-size: 13px; font-weight: 700; color: var(--text);">${escHtml(cat.name)}</div>
+              <div style="font-size: 13px; font-weight: 700; color: var(--text);">${catEmoji} ${escHtml(cat.name)}</div>
               <div style="font-size: 11px; color: var(--muted); margin-top:2px;">
                 ${grp.length} بار تکرار فعالیت &mdash; مجموعاً: <b>${fmtDur(totalDur)}</b>
               </div>
@@ -187,7 +195,8 @@ export function renderTimeline(){
   // حالت دوم: نمایش سنتی و ترتیبی خام (Off)
   else {
     dayEvents.sort((a,b) => a.sMins - b.sMins).forEach(ev => {
-      const cat = state.cats.find(c => c.id === ev.catId) || {name: 'حذف شده', color: '#999'};
+      const cat = state.cats.find(c => c.id === ev.catId) || {name: 'حذف شده', color: '#999', emoji: '📅'};
+      const catEmoji = cat.emoji || '📅';
       const tagsHtml = (ev.tags||[]).map(t => `<span class="tag-badge">${escHtml(t)}</span>`).join('');
       
       tl.innerHTML += `
@@ -196,7 +205,7 @@ export function renderTimeline(){
           <div class="tl-info">
             <div class="tl-title">${escHtml(ev.title || cat.name)}</div>
             <div class="tl-meta">
-              <span class="tl-badge" style="background:${cat.color}">${escHtml(cat.name)}</span>
+              <span class="tl-badge" style="background:${cat.color}">${catEmoji} ${escHtml(cat.name)}</span>
               <span class="tl-time">${fmtTime(ev.sMins)} تا ${fmtTime(ev.eMins)}</span>
               <span class="tl-dur">(${fmtDur(ev.durMins)})</span>
               ${ev.pauseMins ? `<span style="color:#f87171; font-size:10px; margin-right:6px;">(وقفه: ${ev.pauseMins}m)</span>` : ''}
@@ -382,7 +391,8 @@ export function renderReport(){
     grid.innerHTML = '<div style="color:var(--muted); font-size:12px; text-align:center; padding:10px;">داده‌ای برای دوره‌ی انتخاب شده وجود ندارد.</div>';
   } else {
     recordedCatIds.forEach(catId => {
-      const cat = state.cats.find(c => c.id === catId) || {name: 'حذف شده', color: '#999'};
+      const cat = state.cats.find(c => c.id === catId) || {name: 'حذف شده', color: '#999', emoji: '📅'};
+      const catEmoji = cat.emoji || '📅';
       const mins = sums[catId];
       const isSelected = state.selectedReportCats.includes(catId);
       const pct = total > 0 ? Math.round((mins / total) * 100) : 0;
@@ -398,7 +408,7 @@ export function renderReport(){
             <span style="display:inline-block; width:16px; height:16px; border-radius:5px; border:2px solid ${cat.color}; background:${isSelected ? cat.color : 'transparent'}; transition: background 0.2s, transform 0.15s; position:relative; flex-shrink:0;">
               ${isSelected ? '<span style="position:absolute; left:3px; top:-1px; color:#fff; font-size:9px; font-weight:bold; line-height:1;">✓</span>' : ''}
             </span>
-            <span style="color:${cat.color}; font-weight:700; font-size:13px;">${escHtml(cat.name)}</span>
+            <span style="color:${cat.color}; font-weight:700; font-size:13px;">${catEmoji} ${escHtml(cat.name)}</span>
           </div>
           <span style="font-size:12px; color:var(--text); font-weight:500;">${fmtDur(mins)} (${pct}٪)</span>
         </div>
@@ -483,10 +493,11 @@ export function renderActivityMap(){
       if (dayMood && dayMood.mood) {
         const preset = state.moodPresets.find(p => String(p.level) === String(dayMood.mood));
         if (preset) {
+          // بزرگ‌نمایی کامل اموجی و انیمیشن WebM به طوری که کل کادر روز را بپوشاند
           if (preset.type === 'webm' || preset.type === 'video') {
-            displayContent = `<video src="${preset.value}" autoplay loop muted playsinline style="width:24px; height:24px; object-fit:cover; border-radius:50%; pointer-events:none;"></video>`;
+            displayContent = `<video src="${preset.value}" autoplay loop muted playsinline style="width:100%; height:100%; object-fit:cover; border-radius:8px; pointer-events:none; position:absolute; inset:0;"></video>`;
           } else {
-            displayContent = `<span style="font-size: 16px;">${preset.value}</span>`;
+            displayContent = `<span style="font-size:26px; line-height:1; display:flex; align-items:center; justify-content:center; width:100%; height:100%; position:absolute; inset:0;">${preset.value}</span>`;
           }
           tooltipText = `${formattedDate} | حال‌و‌هوا: ${preset.label} ${dayMood.note ? `\nیادداشت: ${dayMood.note}` : ''}`;
         }
@@ -499,9 +510,11 @@ export function renderActivityMap(){
       dayCell.className = 'map-day';
       dayCell.setAttribute('title', tooltipText.replace(/\n/g, ' - '));
       dayCell.style.cursor = 'pointer';
+      
+      // تنظیم نمایش عدد روز با اولویت لایه‌ای (z-index) بالاتر جهت خوانایی بر روی اموجی‌های بزرگ
       dayCell.innerHTML = `
-        <span class="map-day-num">${day}</span>
-        <div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; padding-top:6px;">${displayContent}</div>
+        <span class="map-day-num" style="z-index: 10; opacity: 0.85; font-weight: 700; text-shadow: 0px 0px 4px var(--bg), 0px 0px 4px #000; color: #fff;">${day}</span>
+        <div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; position:relative;">${displayContent}</div>
       `;
 
       dayCell.onclick = () => {
@@ -774,13 +787,14 @@ export function renderRoutines() {
   
   const daysName = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
   state.routines.forEach(rt => {
-    const cat = state.cats.find(c => c.id === rt.catId) || {name: 'حذف شده', color: '#999'};
+    const cat = state.cats.find(c => c.id === rt.catId) || {name: 'حذف شده', color: '#999', emoji: '📅'};
+    const catEmoji = cat.emoji || '📅';
     const daysStr = rt.days.map(d => daysName[d]).join('، ');
     
     list.innerHTML += `
       <div style="display:flex; align-items:center; justify-content:space-between; background:var(--surface2); border:1px solid var(--border); border-right:3px solid ${cat.color}; border-radius:8px; padding:6px 10px;">
         <div>
-          <div style="font-size:12px; font-weight:700;">${escHtml(rt.title)} (${cat.name})</div>
+          <div style="font-size:12px; font-weight:700;">${escHtml(rt.title)} (${catEmoji} ${cat.name})</div>
           <div style="font-size:10px; color:var(--muted)">ساعت ${rt.startTime} تا ${rt.endTime} | روزهای: ${daysStr}</div>
         </div>
         <button class="btn-del" style="width:24px; height:24px; font-size:11px;" onclick="delRoutine('${rt.id}')">✕</button>
