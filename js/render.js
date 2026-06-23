@@ -35,13 +35,7 @@ export function renderCats(){
     sel.appendChild(o); mapSel.appendChild(o.cloneNode(true));
 
     const item=document.createElement('div');
-    item.className='cat-item'; 
-    item.style.setProperty('--cat-color', c.color);
-    
-    if (c.id === currentVal) {
-      item.classList.add('selected');
-    }
-
+    item.className='cat-item'; item.style.setProperty('--cat-color', c.color);
     item.innerHTML=`
       <span class="cat-swatch"></span><span class="cat-name">${escHtml(c.name)}</span>
       <input class="cat-color-edit" type="color" value="${c.color}">
@@ -55,8 +49,7 @@ export function renderCats(){
     
     item.onclick=(e)=>{ 
       if(e.target.tagName!=='INPUT' && e.target.tagName!=='BUTTON'){ 
-        sel.value=c.id; 
-        mapSel.value=c.id; 
+        sel.value=c.id; mapSel.value=c.id; 
         document.querySelectorAll('.cat-item').forEach(el => el.classList.remove('selected'));
         item.classList.add('selected');
         saveCloud();
@@ -70,6 +63,7 @@ export function renderCats(){
   }
 }
 
+// حذف کامل دکمه کپی از خروجی رندر تایم‌لاین به درخواست شما
 export function renderTimeline(){
   const tl=document.getElementById('timeline');
   const em=document.getElementById('empty-msg');
@@ -94,12 +88,10 @@ export function renderTimeline(){
             <span class="tl-badge" style="background:${cat.color}">${escHtml(cat.name)}</span>
             <span class="tl-time">${fmtTime(ev.sMins)} تا ${fmtTime(ev.eMins)}</span>
             <span class="tl-dur">(${fmtDur(ev.durMins)})</span>
-            ${ev.pauseMins ? `<span style="color:#f87171; font-size:10px; margin-right:6px;">(وقفه: ${ev.pauseMins}m)</span>` : ''}
           </div>
           ${tagsHtml ? `<div style="margin-top:6px;">${tagsHtml}</div>` : ''}
         </div>
         <div style="display:flex; flex-direction:column; gap:4px;">
-          <button class="btn-del" onclick="duplicateEv('${ev.id}')" title="کپی به امروز" style="background:var(--surface3); font-size:12px;">📋</button>
           <button class="btn-del" onclick="delEv('${ev.id}')">✕</button>
         </div>
       </div>`;
@@ -149,7 +141,7 @@ export function renderReport(){
 
   const chartType = state.chartTypePref || 'doughnut';
 
-  // ۱. رندر نمودار خطی روند روزانه فعالیت‌ها
+  // ۱. پیاده‌سازی بی‌نقص نمودار خطی روند پیشرفت در طول هفته
   if (chartType === 'line') {
     const dates = [];
     for (let i = daysRange - 1; i >= 0; i--) {
@@ -197,7 +189,7 @@ export function renderReport(){
       }
     });
   } 
-  // ۲. رندر نمودارهای یکپارچه دایره‌ای یا ستونی
+  // ۲. رندرهای ستونی و دایره‌ای کلاسیک
   else if (data.length > 0) {
     const chartOptions = {
       responsive: true,
@@ -326,18 +318,58 @@ export function renderHabitsAndTodos() {
   });
 }
 
+// رندر پویای شکلک‌ها (پشتیبانی کاملاً بومی از فایل‌های WebM انیمیشنی)
 export function renderMood() {
   const noteInp = document.getElementById('journal-textarea');
-  const emojiSpans = document.querySelectorAll('.mood-emoji');
-  if(!noteInp || !emojiSpans.length) return;
+  const emojiContainer = document.getElementById('mood-emojis');
+  if(!noteInp || !emojiContainer) return;
 
   const todayMood = state.moods[state.curDate] || { mood: null, note: '' };
   noteInp.value = todayMood.note;
-  
-  emojiSpans.forEach(sp => {
-    if(todayMood.mood === sp.getAttribute('data-mood')) sp.classList.add('active');
-    else sp.classList.remove('active');
+
+  emojiContainer.innerHTML = state.moodPresets.map(preset => {
+    const isActive = (todayMood.mood === String(preset.level));
+    const activeStyle = isActive 
+      ? 'opacity: 1; transform: scale(1.15); filter: drop-shadow(0 0 10px var(--accent)); border: 2px solid var(--accent);' 
+      : 'opacity: 0.45; border: 2px solid transparent;';
+      
+    if (preset.type === 'webm' || preset.type === 'video') {
+      return `
+        <div class="mood-emoji" data-mood="${preset.level}" style="cursor:pointer; display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:50%; overflow:hidden; transition: all 0.2s; ${activeStyle}">
+          <video src="${preset.value}" autoplay loop muted playsinline style="width:100%; height:100%; object-fit:cover; pointer-events:none;"></video>
+        </div>`;
+    } else {
+      return `
+        <span class="mood-emoji" data-mood="${preset.level}" style="cursor:pointer; font-size:32px; display:inline-block; transition: all 0.2s; ${activeStyle}">${preset.value}</span>`;
+    }
+  }).join('');
+
+  document.querySelectorAll('.mood-emoji').forEach(sp => {
+    sp.onclick = () => {
+      const val = sp.getAttribute('data-mood');
+      if(!state.moods[state.curDate]) state.moods[state.curDate] = { note: noteInp.value };
+      state.moods[state.curDate].mood = String(val);
+      save('planner_moods', state.moods); saveCloud(); renderMood();
+    };
   });
+}
+
+// ساخت ردیف‌های شخصی‌سازی پیشرفته شکلک‌ها در تنظیمات
+export function renderCustomEmojisEditor() {
+  const container = document.getElementById('custom-emojis-container');
+  if (!container) return;
+  
+  container.innerHTML = state.moodPresets.map((preset, idx) => {
+    return `
+      <div style="display:flex; align-items:center; gap:8px; background:var(--surface2); padding:10px; border-radius:8px; border:1px solid var(--border); flex-wrap:wrap;">
+        <span style="font-size:12px; min-width:80px; color:var(--text); font-weight:700;">${escHtml(preset.label)}:</span>
+        <select class="emoji-type-select" data-idx="${idx}" style="width:120px; padding:6px; font-size:12px; height:32px; border-radius:6px;">
+          <option value="text" ${preset.type === 'text' ? 'selected' : ''}>شکلک متنی</option>
+          <option value="webm" ${preset.type === 'webm' ? 'selected' : ''}>انیمیشن (WebM)</option>
+        </select>
+        <input type="text" class="emoji-value-input" data-idx="${idx}" value="${escHtml(preset.value)}" style="flex:1; padding:6px; font-size:12px; height:32px; border-radius:6px;" placeholder="${preset.type === 'text' ? 'مثلاً: 😊' : 'آدرس فایل مثل: ./emojis/happy.webm'}">
+      </div>`;
+  }).join('');
 }
 
 function startLiveStopwatch() {
@@ -441,12 +473,13 @@ export function syncSettingsForm() {
   if (document.getElementById('setting-calendar')) document.getElementById('setting-calendar').value = state.calendarPref;
   if (document.getElementById('setting-duration-format')) document.getElementById('setting-duration-format').value = state.timeFormatPref;
   if (document.getElementById('setting-week-start')) document.getElementById('setting-week-start').value = state.weekStartPref;
+  if (document.getElementById('report-chart-type')) document.getElementById('report-chart-type').value = state.chartTypePref;
 }
 
 export function render(){
   applyTheme();
   
-  // رفع اشکال تاریخ: مقداردهی اولیه همزمان با شروع رندر
+  // فیکس مجدد: تضمین نمایش در ثانیه اول لود برنامه پس از ورود موفقیت آمیز
   const dateLabel = document.getElementById('date-label');
   if (dateLabel) dateLabel.textContent = fmtDateLabel(state.curDate);
   
@@ -458,4 +491,5 @@ export function render(){
   renderMood();
   updateLiveButton();
   syncSettingsForm();
+  renderCustomEmojisEditor(); // رندر پنل شخصی‌سازی اموجی‌ها در تنظیمات
 }
