@@ -2,14 +2,13 @@
 
 export function pad(n){ return String(n).padStart(2,'0'); }
 
-// واکشی تاریخ محلی سیستم کاربر بدون تداخل با ساعت جهانی UTC
 export function getLocalDateStr() {
   const d = new Date();
   return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 }
 
 export function getNow(){
-  const n=new Date();
+  const n = new Date();
   return pad(n.getHours())+':'+pad(n.getMinutes());
 }
 
@@ -34,12 +33,13 @@ export function fmtDur(mins){
   return h+'h '+m+'m';
 }
 
+// تغییر یافته: تبدیل تاریخ میلادی به هجری شمسی برای نمایش گرافیکی زیباتر
 export function fmtDateLabel(d){
   const [y,mo,day]=d.split('-').map(Number);
   const dt=new Date(y, mo-1, day);
-  const days=['یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنج‌شنبه','جمعه','شنبه'];
-  const months=['ژانویه','فوریه','مارس','آوریل','مه','ژوئن','ژوئیه','اوت','سپتامبر','اکتبر','نوامبر','دسامبر'];
-  return days[dt.getDay()]+' '+day+' '+months[mo-1]+' '+y;
+  return new Intl.DateTimeFormat('fa-IR', { 
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+  }).format(dt);
 }
 
 export function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -64,7 +64,7 @@ export function getWeekDates(dateStr) {
     weekDates.push({
       name: daysName[i],
       date: `${yStr}-${mStr}-${dStr}`,
-      dayNum: dTmp.getDate()
+      dayNum: new Intl.DateTimeFormat('fa-IR', { day: 'numeric' }).format(dTmp) // روز به شمسی
     });
   }
   return weekDates;
