@@ -34,9 +34,11 @@ export const state = {
   timeFormatPref: load('planner_time_format_pref', 'hour-min'), 
   weekStartPref: load('planner_week_start_pref', 'sat'), 
   chartTypePref: load('planner_chart_type_pref', 'doughnut'), 
-  
-  // تنظیم ترجیح گروه‌بندی خودکار تایم‌لاین (ذخیره در دیتابیس محلی و ابری)
   groupTimelinePref: load('planner_group_timeline_pref', true), 
+  
+  // متغیرهای ذخیره‌سازی پیش‌فرض زمان پومودورو شخصی‌سازی شده
+  pomodoroWorkPref: load('planner_pomo_work_pref', 25),
+  pomodoroBreakPref: load('planner_pomo_break_pref', 5),
   
   moodPresets: load('planner_mood_presets', [
     { level: '1', type: 'text', value: '🤩', label: 'بسیار عالی' },
@@ -67,7 +69,8 @@ export async function saveCloud(){
         moods: state.moods, accentColor: state.accentColor,
         calendarPref: state.calendarPref, timeFormatPref: state.timeFormatPref, 
         weekStartPref: state.weekStartPref, chartTypePref: state.chartTypePref,
-        groupTimelinePref: state.groupTimelinePref, moodPresets: state.moodPresets
+        groupTimelinePref: state.groupTimelinePref, moodPresets: state.moodPresets,
+        pomodoroWorkPref: state.pomodoroWorkPref, pomodoroBreakPref: state.pomodoroBreakPref
       }
     }, { onConflict: 'user_id' });
   } catch (err) { console.error("Error saving to cloud", err); }
@@ -99,6 +102,9 @@ export async function loadCloud(){
       state.chartTypePref  = cd.chartTypePref || "doughnut";
       state.moodPresets    = cd.moodPresets || state.moodPresets;
       state.groupTimelinePref = cd.groupTimelinePref !== undefined ? cd.groupTimelinePref : true;
+      
+      state.pomodoroWorkPref  = cd.pomodoroWorkPref || 25;
+      state.pomodoroBreakPref = cd.pomodoroBreakPref || 5;
 
       save('planner_ev', state.events);
       save('planner_cats', state.cats);
@@ -116,6 +122,8 @@ export async function loadCloud(){
       save('planner_week_start_pref', state.weekStartPref);
       save('planner_chart_type_pref', state.chartTypePref);
       save('planner_group_timeline_pref', state.groupTimelinePref);
+      save('planner_pomo_work_pref', state.pomodoroWorkPref);
+      save('planner_pomo_break_pref', state.pomodoroBreakPref);
     }
   } catch (err) { console.error("Error loading cloud data", err); }
 }
