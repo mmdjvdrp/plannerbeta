@@ -11,6 +11,20 @@ function safeBindEvent(id, event, callback) {
   }
 }
 
+// انیمیشن کوچک حرکت منو در شروع برنامه برای آگاهی کاربر از قابلیت اسکرول افقی
+function triggerNavPeekAnimation() {
+  const nav = document.querySelector(".app-nav");
+  if (nav) {
+    setTimeout(() => {
+      // شبیه‌سازی کشش انگشت به چپ و برگشت به راست
+      nav.scrollTo({ left: 60, behavior: "smooth" });
+      setTimeout(() => {
+        nav.scrollTo({ left: 0, behavior: "smooth" });
+      }, 450);
+    }, 1200);
+  }
+}
+
 // مدیریت تغییر تب‌ها
 window.switchTab = function(tabId) {
   document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
@@ -439,7 +453,7 @@ safeBindEvent("export-btn", "onclick", () => {
 
 safeBindEvent("report-confirm-btn", "onclick", () => render());
 
-// ================= مدیریت و احیای روتین‌ها و اهداف زنده =================
+// ================= مدیریت و اهداف =================
 
 // دکمه‌های بازکننده پنل روتین و اهداف
 safeBindEvent("toggle-rt-form-btn", "onclick", () => {
@@ -583,6 +597,7 @@ async function handleUserSession(session) {
     await loadCloud();
     applyTheme();
     render();
+    triggerNavPeekAnimation(); // اجرای انیمیشن ملایم کشش ناوبری در موبایل جهت جلب نظر کاربر
   } catch (err) { console.error(err); }
 }
 
