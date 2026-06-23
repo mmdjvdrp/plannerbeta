@@ -1,4 +1,5 @@
 // js/helpers.js
+import { state } from "./storage.js";
 
 export function pad(n){ return String(n).padStart(2,'0'); }
 
@@ -26,45 +27,87 @@ export function fmtTime(mins){
   return pad(Math.floor(mins/60))+':'+pad(mins%60);
 }
 
+// تغییر یافته: قالب‌بندی مدت زمان بر اساس انتخاب کاربر (ساعت و دقیقه / ساعت اعشاری / فقط دقیقه)
 export function fmtDur(mins){
+  const pref = state.timeFormatPref || 'hour-min';
+  
+  if (pref === 'minutes') {
+    return mins + 'm';
+  }
+  if (pref === 'decimal-hour') {
+    return (mins / 60).toFixed(1) + 'h';
+  }
+  
+  // پیش‌فرض: ساعت و دقیقه
   const h=Math.floor(mins/60), m=mins%60;
   if(h===0) return m+'m';
   if(m===0) return h+'h';
   return h+'h '+m+'m';
 }
 
-// تغییر یافته: تبدیل تاریخ میلادی به هجری شمسی برای نمایش گرافیکی زیباتر
+// تغییر یافته: نمایش بومی تاریخ بر اساس سیستم تقویم انتخاب شده (شمسی یا انگلیسی)
 export function fmtDateLabel(d){
   const [y,mo,day]=d.split('-').map(Number);
   const dt=new Date(y, mo-1, day);
-  return new Intl.DateTimeFormat('fa-IR', { 
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
-  }).format(dt);
+  const isJalali = (state.calendarPref === 'jalali');
+  
+  if (isJalali) {
+    return new Intl.DateTimeFormat('fa-IR', { 
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+    }).format(dt);
+  } else {
+    return new Intl.DateTimeFormat('en-US', { 
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+    }).format(dt);
+  }
 }
 
 export function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+// تغییر یافته: تطبیق تاریخ هفته با روز شروع هفته انتخاب شده
 export function getWeekDates(dateStr) {
   const [y, m, d] = dateStr.split('-').map(Number);
   const dt = new Date(y, m - 1, d);
   const jsDay = dt.getDay(); 
-  const irDay = (jsDay + 1) % 7; 
+  
+  let offset = 0;
+  const pref = state.weekStartPref || 'sat';
+  if (pref === 'sat') {
+    offset = (jsDay + 1) % 7;
+  } else if (pref === 'mon') {
+    offset = (jsDay + 6) % 7;
+  } else {
+    offset = jsDay;
+  }
   
   const sat = new Date(dt);
-  sat.setDate(dt.getDate() - irDay);
+  sat.setDate(dt.getDate() - offset);
   
   const weekDates = [];
-  const daysName = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه'];
+  const daysMap = {
+    'sat': ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه'],
+    'sun': ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه', 'شنبه'],
+    'mon': ['دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه', 'شنبه', 'یکشنبه']
+  };
+  
+  const currentDaysNames = daysMap[pref] || daysMap['sat'];
+  
   for (let i = 0; i < 7; i++) {
     const dTmp = new Date(sat);
     dTmp.setDate(sat.getDate() + i);
     const yStr = dTmp.getFullYear();
     const mStr = String(dTmp.getMonth() + 1).padStart(2, '0');
     const dStr = String(dTmp.getDate()).padStart(2, '0');
+    
+    const isJalali = (state.calendarPref === 'jalali');
+    const dayNumDisplay = isJalali 
+      ? new Intl.DateTimeFormat('fa-IR', { day: 'numeric' }).format(dTmp)
+      : dTmp.getDate();
+      
     weekDates.push({
-      name: daysName[i],
+      name: currentDaysNames[i],
       date: `${yStr}-${mStr}-${dStr}`,
-      dayNum: new Intl.DateTimeFormat('fa-IR', { day: 'numeric' }).format(dTmp) // روز به شمسی
+      dayNum: dayNumDisplay
     });
   }
   return weekDates;
