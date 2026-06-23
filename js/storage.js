@@ -33,7 +33,16 @@ export const state = {
   calendarPref: load('planner_calendar_pref', 'jalali'), 
   timeFormatPref: load('planner_time_format_pref', 'hour-min'), 
   weekStartPref: load('planner_week_start_pref', 'sat'), 
-  chartTypePref: load('planner_chart_type_pref', 'doughnut'), // اولویت نوع چارت تفکیکی
+  chartTypePref: load('planner_chart_type_pref', 'doughnut'), 
+  
+  // تنظیمات پیش‌فرض اموجی‌های ۵ گانه حال و هوا (قابل شخصی‌سازی با WebM)
+  moodPresets: load('planner_mood_presets', [
+    { level: '1', type: 'text', value: '🤩', label: 'بسیار عالی' },
+    { level: '2', type: 'text', value: '😊', label: 'خوب و آرام' },
+    { level: '3', type: 'text', value: '😐', label: 'معمولی و تخت' },
+    { level: '4', type: 'text', value: '😔', label: 'دلگیر و غمگین' },
+    { level: '5', type: 'text', value: '😡', label: 'عصبانی یا کلافه' }
+  ]),
   
   curDate: getLocalDateStr(),
   mapMonth: getLocalDateStr().slice(0, 7),
@@ -55,7 +64,8 @@ export async function saveCloud(){
         todos: state.todos, habits: state.habits, habitLogs: state.habitLogs,
         moods: state.moods, accentColor: state.accentColor,
         calendarPref: state.calendarPref, timeFormatPref: state.timeFormatPref, 
-        weekStartPref: state.weekStartPref, chartTypePref: state.chartTypePref
+        weekStartPref: state.weekStartPref, chartTypePref: state.chartTypePref,
+        moodPresets: state.moodPresets
       }
     }, { onConflict: 'user_id' });
   } catch (err) { console.error("Error saving to cloud", err); }
@@ -85,6 +95,7 @@ export async function loadCloud(){
       state.timeFormatPref = cd.timeFormatPref || "hour-min";
       state.weekStartPref  = cd.weekStartPref || "sat";
       state.chartTypePref  = cd.chartTypePref || "doughnut";
+      state.moodPresets    = cd.moodPresets || state.moodPresets;
 
       save('planner_ev', state.events);
       save('planner_cats', state.cats);
