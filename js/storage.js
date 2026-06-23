@@ -22,13 +22,19 @@ export const state = {
   cats: load('planner_cats', []),
   routines: load('planner_routines', []), 
   goals: load('planner_goals', []),
-  todos: load('planner_todos', []), // کارهای روزانه
-  habits: load('planner_habits', []), // مشخصات عادت‌ها
-  habitLogs: load('planner_habitLogs', {}), // لاگ انجام عادت‌ها
-  moods: load('planner_moods', {}), // حال و هوای روزانه
+  todos: load('planner_todos', []), 
+  habits: load('planner_habits', []), 
+  habitLogs: load('planner_habitLogs', {}), 
+  moods: load('planner_moods', {}), 
   liveSession: load('planner_live', null),
   theme: load('planner_theme', 'auto'),
-  accentColor: load('planner_accent', '#7c5cfc'), // رنگ سفارشی
+  accentColor: load('planner_accent', '#7c5cfc'), 
+  
+  // فیلدهای تنظیمی جدید کاربر
+  calendarPref: load('planner_calendar_pref', 'jalali'), // جلالی یا میلادی
+  timeFormatPref: load('planner_time_format_pref', 'hour-min'), // ساختار دقیقه یا ساعت
+  weekStartPref: load('planner_week_start_pref', 'sat'), // روز آغازین هفته
+  
   curDate: getLocalDateStr(),
   mapMonth: getLocalDateStr().slice(0, 7),
   editingEventId: null,
@@ -47,7 +53,8 @@ export async function saveCloud(){
         events: state.events, cats: state.cats, liveSession: state.liveSession, 
         theme: state.theme, routines: state.routines, goals: state.goals,
         todos: state.todos, habits: state.habits, habitLogs: state.habitLogs,
-        moods: state.moods, accentColor: state.accentColor
+        moods: state.moods, accentColor: state.accentColor,
+        calendarPref: state.calendarPref, timeFormatPref: state.timeFormatPref, weekStartPref: state.weekStartPref
       }
     }, { onConflict: 'user_id' });
   } catch (err) { console.error("Error saving to cloud", err); }
@@ -72,6 +79,11 @@ export async function loadCloud(){
       state.habits      = cd.habits || [];
       state.habitLogs   = cd.habitLogs || {};
       state.moods       = cd.moods || {};
+      
+      // بازیابی متغیرهای شخصی‌سازی
+      state.calendarPref   = cd.calendarPref || "jalali";
+      state.timeFormatPref = cd.timeFormatPref || "hour-min";
+      state.weekStartPref  = cd.weekStartPref || "sat";
 
       save('planner_ev', state.events);
       save('planner_cats', state.cats);
@@ -84,6 +96,9 @@ export async function loadCloud(){
       save('planner_habits', state.habits);
       save('planner_habitLogs', state.habitLogs);
       save('planner_moods', state.moods);
+      save('planner_calendar_pref', state.calendarPref);
+      save('planner_time_format_pref', state.timeFormatPref);
+      save('planner_week_start_pref', state.weekStartPref);
     }
   } catch (err) { console.error("Error loading cloud data", err); }
 }
