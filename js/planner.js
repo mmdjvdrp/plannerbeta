@@ -248,21 +248,23 @@ safeBindEvent("toggle-cat", "onclick", () => {
   }
 });
 
-// ذخیره دسته‌بندی جدید
+// ذخیره دسته‌بندی جدید مجهز به فیلد اموجی
 safeBindEvent("save-cat", "onclick", () => {
   const name = document.getElementById("new-cat-name").value.trim();
   const color = document.getElementById("new-cat-color").value;
+  const emoji = document.getElementById("new-cat-emoji").value.trim() || "📅";
   if(!name){ 
     alert("نام دسته‌بندی را وارد کنید"); 
     return; 
   }
   
-  const nc = { id: "c" + Date.now(), name, color };
+  const nc = { id: "c" + Date.now(), name, color, emoji };
   state.cats.push(nc);
   save("planner_cats", state.cats); 
   saveCloud();
   
   document.getElementById("new-cat-name").value = "";
+  document.getElementById("new-cat-emoji").value = "";
   document.getElementById("new-cat-box").style.display = "none";
   render();
   document.getElementById("cat-select").value = nc.id;
