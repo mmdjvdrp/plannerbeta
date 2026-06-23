@@ -794,7 +794,8 @@ export function renderCustomEmojisEditor() {
           <option value="text" ${preset.type === 'text' ? 'selected' : ''}>شکلک متنی</option>
           <option value="webm" ${preset.type === 'webm' ? 'selected' : ''}>انیمیشن (WebM)</option>
         </select>
-        <input type="text" class="emoji-value-input" data-idx="${idx}" value="${escHtml(preset.value)}" style="flex:1; min-width:80px; padding:6px; font-size:12px; height:32px; border-radius:6px;" placeholder="${preset.type === 'text' ? 'مثلاً: 😊' : 'آدرس وب فایل .webm'}">
+        <input type="text" class="emoji-value-input" data-idx="${idx}" id="preset-val-input-${idx}" value="${escHtml(preset.value)}" style="flex:1; min-width:80px; padding:6px; font-size:12px; height:32px; border-radius:6px;" placeholder="${preset.type === 'text' ? 'مثلاً: 😊' : 'آدرس وب فایل .webm'}">
+        <button class="action-btn" type="button" onclick="openEmojiGallery(${idx})" style="padding: 0 10px; height:32px; font-size:11px; background:var(--surface3); border:1px solid var(--border2); color:var(--text);">🖼️ گالری سوپابیس</button>
         <button class="btn-del" type="button" onclick="deleteMoodPreset(${idx})" style="width:32px; height:32px; font-size:12px; flex-shrink:0;">✕</button>
       </div>`;
   }).join('');
@@ -816,24 +817,6 @@ export function render(){
   
   const groupToggle = document.getElementById('timeline-group-toggle');
   if (groupToggle) groupToggle.checked = state.groupTimelinePref;
-
-  // فیکس دکمه ادیت / افزودن
-  const addBtn = document.getElementById("add-btn");
-  const cancelEditBtn = document.getElementById("cancel-edit-btn");
-  const titleHeader = document.getElementById("manage-card-title");
-  if (addBtn && cancelEditBtn && titleHeader) {
-    if (state.editingEventId) {
-      addBtn.textContent = "💾 ذخیره تغییرات ویرایش";
-      addBtn.style.background = "linear-gradient(135deg, #10b981, #059669)";
-      cancelEditBtn.style.display = "block";
-      titleHeader.textContent = "ویرایش فعالیت انتخاب شده";
-    } else {
-      addBtn.textContent = "+ افزودن به تایم‌لاین";
-      addBtn.style.background = "";
-      cancelEditBtn.style.display = "none";
-      titleHeader.textContent = "ثبت فعالیت جدید";
-    }
-  }
   
   renderCats();
   renderTimeline();
