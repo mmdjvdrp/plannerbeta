@@ -13,7 +13,6 @@
   <link rel="stylesheet" href="./css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<!-- استایل واکنش‌گرا (همان استایل دقیق خودتان) -->
 <style>
 @media(max-width: 768px) {
   body { padding: 12px 8px; padding-bottom: 90px; }
@@ -26,7 +25,7 @@
   .app-nav { position: fixed; bottom: 0; left: 0; right: 0; margin-bottom: 0; border-radius: 20px 20px 0 0; padding: 10px 15px 20px 15px; z-index: 1000; box-shadow: 0 -5px 20px rgba(0,0,0,0.4); border: none; background: var(--surface); display: flex; gap: 10px; }
   .nav-btn { flex-direction: column; gap: 4px; font-size: 11px; padding: 8px; }
   .nav-icon { font-size: 22px; }
-  .mood-container { flex-direction: column; align-items: stretch; } /* فیکس موبایل برای مود */
+  .mood-container { flex-direction: column; align-items: stretch; }
 }
 .tab-section { display: none; animation: fadeIn 0.3s ease; }
 .tab-section.active { display: block; }
@@ -57,20 +56,6 @@
       <div id="date-label"></div>
       <button id="next-day" title="روز بعد">&#8250;</button>
       <button class="btn-today" id="btn-today">امروز</button>
-      
-      <!-- منوی رنگ و تم -->
-      <div style="display:flex; gap:6px; align-items:center;">
-        <input type="color" id="accent-color-picker" title="رنگ دلخواه" style="width:28px; height:28px; border:none; background:transparent; cursor:pointer;">
-        <select id="theme-select" class="theme-select" title="تم">
-          <option value="auto">خودکار</option>
-          <option value="dark">دارک</option>
-          <option value="amoled">مشکی مطلق</option>
-          <option value="light">لایت</option>
-          <option value="pastel">پاستلی</option>
-          <option value="forest">سبز</option>
-          <option value="sunset">غروب</option>
-        </select>
-      </div>
     </div>
   </div>
 
@@ -80,13 +65,13 @@
     <button class="nav-btn" data-tab="tab-habits"><span class="nav-icon">✔️</span> کار و عادت</button>
     <button class="nav-btn" data-tab="tab-add"><span class="nav-icon">⚙️</span> مدیریت</button>
     <button class="nav-btn" data-tab="tab-reports"><span class="nav-icon">📊</span> گزارش‌ها</button>
+    <button class="nav-btn" data-tab="tab-settings"><span class="nav-icon">🛠️</span> تنظیمات</button>
   </nav>
 
   <div class="tab-container">
     
     <!-- ================= تب 1: تایم‌لاین ================= -->
     <div id="tab-timeline" class="tab-section active">
-      <!-- حال و هوای امروز (منطبق با موبایل) -->
       <div class="card">
         <div class="card-title">حال و هوای امروز من</div>
         <div class="mood-container" style="display:flex; gap:12px; align-items:center;">
@@ -125,7 +110,7 @@
       <div class="card">
         <div class="card-title">عادت‌ها (Habit Tracker)</div>
         <div style="display:flex; gap:8px; margin-bottom: 15px;">
-          <input type="text" id="habit-input" placeholder="عادت جدید (مثلاً: ورزش صبحگاهی)">
+          <input type="text" id="habit-input" placeholder="عادت جدید...">
           <button id="add-habit-btn" class="action-btn">افزودن</button>
         </div>
         <div id="habit-list"></div>
@@ -139,8 +124,18 @@
         <div class="form-group"><label>عنوان فعالیت</label><input type="text" id="act-title"></div>
         <div class="form-group"><label>تگ‌ها (اختیاری)</label><input type="text" id="act-tags" placeholder="#طراحی #پروژه"></div>
         <div class="form-group">
-          <label>دسته‌بندی</label>
-          <div class="cat-row"><select id="cat-select"></select><button class="btn-icon" id="toggle-cat">+</button></div>
+          <label>دسته‌بندی (برای انتخاب سریع، روی دسته‌بندی کلیک کنید)</label>
+          <div class="cat-row">
+            <select id="cat-select"></select>
+            <button class="btn-icon" id="toggle-cat" title="ایجاد دسته جدید">+</button>
+          </div>
+          <div class="new-cat-box" id="new-cat-box" style="background: var(--surface2); border: 1px dashed var(--border2); border-radius: 8px; padding: 10px; margin-top: 8px; display: none;">
+            <div class="new-cat-inner" style="display: flex; gap: 6px; align-items: center;">
+              <input type="text" id="new-cat-name" placeholder="نام دسته جدید">
+              <input type="color" id="new-cat-color" value="#7c5cfc">
+              <button class="btn-save-cat" id="save-cat" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border2); background: var(--surface3); color: var(--text); font-size: 12px; cursor: pointer;">ذخیره</button>
+            </div>
+          </div>
           <div class="cat-manager" id="cat-manager"></div>
         </div>
         <div class="form-group">
@@ -175,7 +170,6 @@
         <div style="position:relative; height:200px; margin-bottom:20px;"><canvas id="report-chart"></canvas></div>
         <div id="report-grid"></div>
         <div class="total-line" id="total-line"></div>
-        <button id="export-btn" class="btn-live" style="margin-top:20px;">💾 دانلود اطلاعات (Backup)</button>
       </div>
 
       <div class="card">
@@ -189,6 +183,69 @@
           </div>
         </div>
         <div id="activity-map" class="activity-map"></div>
+      </div>
+    </div>
+
+    <!-- ================= تب 5: تنظیمات (جدید) ================= -->
+    <div id="tab-settings" class="tab-section">
+      <div class="card">
+        <div class="card-title">شخصی‌سازی ظاهر</div>
+        
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label>پوسته برنامه (تم)</label>
+          <select id="setting-theme-select">
+            <option value="auto">خودکار (هماهنگ با سیستم)</option>
+            <option value="dark">تیره (Dark)</option>
+            <option value="amoled">مشکی عمیق (AMOLED)</option>
+            <option value="light">روشن (Light)</option>
+            <option value="pastel">پاستلی ملایم</option>
+            <option value="forest">سبز جنگل</option>
+            <option value="sunset">غروب سرخ</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label>رنگ شاخص دلخواه (Accent Color)</label>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <input type="color" id="setting-accent-picker" style="width:40px; height:40px; border:none; cursor:pointer; background:transparent;">
+            <span style="font-size:12px; color:var(--muted);">رنگ دکمه‌ها، هاله‌ها و بخش‌های فعال برنامه را به دلخواه تنظیم کنید.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">تنظیمات تقویم و زمان</div>
+
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label>سیستم تقویم نمایشگر</label>
+          <select id="setting-calendar">
+            <option value="jalali">هجری شمسی (جلالی)</option>
+            <option value="gregorian">میلادی (Gregorian)</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label>فرمت نمایش مدت زمان (در گزارش‌ها و تایم‌لاین)</label>
+          <select id="setting-duration-format">
+            <option value="hour-min">ساعت و دقیقه (مثال: 1h 30m)</option>
+            <option value="decimal-hour">ساعت اعشاری (مثال: 1.5h)</option>
+            <option value="minutes">فقط دقیقه (مثال: 90m)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>اولین روز شروع هفته (جهت گزارش‌های هفتگی)</label>
+          <select id="setting-week-start">
+            <option value="sat">شنبه</option>
+            <option value="sun">یکشنبه</option>
+            <option value="mon">دوشنبه</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">پشتیبان‌گیری</div>
+        <button id="export-btn" class="btn-live" style="margin-top:0;">💾 خروجی کامل و دانلود فایل پشتیبان (Backup)</button>
       </div>
     </div>
 
