@@ -35,7 +35,13 @@ export function renderCats(){
     sel.appendChild(o); mapSel.appendChild(o.cloneNode(true));
 
     const item=document.createElement('div');
-    item.className='cat-item'; item.style.setProperty('--cat-color', c.color);
+    item.className='cat-item'; 
+    item.style.setProperty('--cat-color', c.color);
+    
+    if (c.id === currentVal) {
+      item.classList.add('selected');
+    }
+
     item.innerHTML=`
       <span class="cat-swatch"></span><span class="cat-name">${escHtml(c.name)}</span>
       <input class="cat-color-edit" type="color" value="${c.color}">
@@ -49,7 +55,8 @@ export function renderCats(){
     
     item.onclick=(e)=>{ 
       if(e.target.tagName!=='INPUT' && e.target.tagName!=='BUTTON'){ 
-        sel.value=c.id; mapSel.value=c.id; 
+        sel.value=c.id; 
+        mapSel.value=c.id; 
         document.querySelectorAll('.cat-item').forEach(el => el.classList.remove('selected'));
         item.classList.add('selected');
         saveCloud();
@@ -63,7 +70,7 @@ export function renderCats(){
   }
 }
 
-// حذف کامل دکمه کپی از خروجی رندر تایم‌لاین به درخواست شما
+// ساختار هوشمند و تعاملی تایم‌لاین با قابلیت پشتیبانی از هر دو حالت ادغام کارهای مشابه یا نمایش خام خطی
 export function renderTimeline(){
   const tl=document.getElementById('timeline');
   const em=document.getElementById('empty-msg');
@@ -75,27 +82,120 @@ export function renderTimeline(){
   if(!dayEvents.length){ em.style.display='block'; tl.style.display='none'; return; }
   em.style.display='none'; tl.style.display='block'; tl.innerHTML='';
 
-  dayEvents.sort((a,b) => a.sMins - b.sMins).forEach(ev => {
-    const cat = state.cats.find(c => c.id === ev.catId) || {name: 'حذف شده', color: '#999'};
-    const tagsHtml = (ev.tags||[]).map(t => `<span class="tag-badge">${escHtml(t)}</span>`).join('');
-    
-    tl.innerHTML += `
-      <div class="tl-item" style="--ic:${cat.color}">
-        <div class="tl-dot"></div>
-        <div class="tl-info">
-          <div class="tl-title">${escHtml(ev.title || cat.name)}</div>
-          <div class="tl-meta">
-            <span class="tl-badge" style="background:${cat.color}">${escHtml(cat.name)}</span>
-            <span class="tl-time">${fmtTime(ev.sMins)} تا ${fmtTime(ev.eMins)}</span>
-            <span class="tl-dur">(${fmtDur(ev.durMins)})</span>
+  // حالت اول: گروه‌بندی خودکار کارهای هم‌موضوع (On)
+  if (state.groupTimelinePref) {
+    const groups = {};
+    dayEvents.forEach(ev => {
+      if(!groups[ev.catId]) groups[ev.catId] = [];
+      groups[ev.catId].push(ev);
+    });
+
+    const sortedCatIds = Object.keys(groups).sort((a, b) => {
+      const minA = Math.min(...groups[a].map(e => e.sMins));
+      const minB = Math.min(...groups[b].map(e => e.sMins));
+      return minA - minB;
+    });
+
+    sortedCatIds.forEach(catId => {
+      const cat = state.cats.find(c => c.id === catId) || {name: 'حذف شده', color: '#999'};
+      const grp = groups[catId].sort((a,b) => a.sMins - b.sMins);
+      const totalDur = grp.reduce((sum, e) => sum + e.durMins, 0);
+
+      const details = document.createElement('details');
+      details.style.cssText = `
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        margin-bottom: 10px;
+        background: var(--surface);
+        overflow: hidden;
+      `;
+
+      details.innerHTML = `
+        <summary style="
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 11px 14px;
+          cursor: pointer;
+          list-style: none;
+          outline: none;
+          border-right: 4px solid ${cat.color};
+        ">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span style="width:10px; height:10px; border-radius:50%; background:${cat.color}; display:inline-block;"></span>
+            <div>
+              <div style="font-size: 13px; font-weight: 700; color: var(--text);">${escHtml(cat.name)}</div>
+              <div style="font-size: 11px; color: var(--muted); margin-top:2px;">
+                ${grp.length} بار تکرار فعالیت &mdash; مجموعاً: <b>${fmtDur(totalDur)}</b>
+              </div>
+            </div>
           </div>
-          ${tagsHtml ? `<div style="margin-top:6px;">${tagsHtml}</div>` : ''}
+          <span style="font-size: 11px; color: var(--muted);">▼</span>
+        </summary>
+        
+        <div style="
+          padding: 10px 14px;
+          background: var(--surface2);
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          border-top: 1px solid var(--border);
+        ">
+          ${grp.map(ev => {
+            const tagsHtml = (ev.tags||[]).map(t => `<span class="tag-badge">${escHtml(t)}</span>`).join('');
+            const pauseText = ev.pauseMins ? `<span style="color:#f87171; margin-inline-start: 6px;">(پاز: ${ev.pauseMins}m)</span>` : '';
+            return `
+              <div style="
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 6px 10px;
+                background: var(--surface3);
+                border-radius: 8px;
+              ">
+                <div>
+                  <div style="font-size:12px; font-weight:700;">${escHtml(ev.title || cat.name)}</div>
+                  <div style="font-size:10px; color:var(--muted); margin-top:2px; font-family: monospace;">
+                    ${fmtTime(ev.sMins)} تا ${fmtTime(ev.eMins)} (${fmtDur(ev.durMins)}) ${pauseText}
+                  </div>
+                  ${tagsHtml ? `<div style="margin-top:4px;">${tagsHtml}</div>` : ''}
+                </div>
+                <div style="display:flex; gap:4px">
+                  <button class="btn-del" onclick="delEv('${ev.id}')">✕</button>
+                </div>
+              </div>
+            `;
+          }).join('')}
         </div>
-        <div style="display:flex; flex-direction:column; gap:4px;">
-          <button class="btn-del" onclick="delEv('${ev.id}')">✕</button>
-        </div>
-      </div>`;
-  });
+      `;
+      tl.appendChild(details);
+    });
+  } 
+  // حالت دوم: نمایش سنتی و ترتیبی خام (Off)
+  else {
+    dayEvents.sort((a,b) => a.sMins - b.sMins).forEach(ev => {
+      const cat = state.cats.find(c => c.id === ev.catId) || {name: 'حذف شده', color: '#999'};
+      const tagsHtml = (ev.tags||[]).map(t => `<span class="tag-badge">${escHtml(t)}</span>`).join('');
+      
+      tl.innerHTML += `
+        <div class="tl-item" style="--ic:${cat.color}">
+          <div class="tl-dot"></div>
+          <div class="tl-info">
+            <div class="tl-title">${escHtml(ev.title || cat.name)}</div>
+            <div class="tl-meta">
+              <span class="tl-badge" style="background:${cat.color}">${escHtml(cat.name)}</span>
+              <span class="tl-time">${fmtTime(ev.sMins)} تا ${fmtTime(ev.eMins)}</span>
+              <span class="tl-dur">(${fmtDur(ev.durMins)})</span>
+              ${ev.pauseMins ? `<span style="color:#f87171; font-size:10px; margin-right:6px;">(وقفه: ${ev.pauseMins}m)</span>` : ''}
+            </div>
+            ${tagsHtml ? `<div style="margin-top:6px;">${tagsHtml}</div>` : ''}
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <button class="btn-del" onclick="delEv('${ev.id}')">✕</button>
+          </div>
+        </div>`;
+    });
+  }
 }
 
 export function renderReport(){
@@ -141,7 +241,6 @@ export function renderReport(){
 
   const chartType = state.chartTypePref || 'doughnut';
 
-  // ۱. پیاده‌سازی بی‌نقص نمودار خطی روند پیشرفت در طول هفته
   if (chartType === 'line') {
     const dates = [];
     for (let i = daysRange - 1; i >= 0; i--) {
@@ -189,7 +288,6 @@ export function renderReport(){
       }
     });
   } 
-  // ۲. رندرهای ستونی و دایره‌ای کلاسیک
   else if (data.length > 0) {
     const chartOptions = {
       responsive: true,
@@ -318,7 +416,7 @@ export function renderHabitsAndTodos() {
   });
 }
 
-// رندر پویای شکلک‌ها (پشتیبانی کاملاً بومی از فایل‌های WebM انیمیشنی)
+// نمایش خلق‌وخو و دفترچه خاطرات روزانه
 export function renderMood() {
   const noteInp = document.getElementById('journal-textarea');
   const emojiContainer = document.getElementById('mood-emojis');
@@ -352,24 +450,6 @@ export function renderMood() {
       save('planner_moods', state.moods); saveCloud(); renderMood();
     };
   });
-}
-
-// ساخت ردیف‌های شخصی‌سازی پیشرفته شکلک‌ها در تنظیمات
-export function renderCustomEmojisEditor() {
-  const container = document.getElementById('custom-emojis-container');
-  if (!container) return;
-  
-  container.innerHTML = state.moodPresets.map((preset, idx) => {
-    return `
-      <div style="display:flex; align-items:center; gap:8px; background:var(--surface2); padding:10px; border-radius:8px; border:1px solid var(--border); flex-wrap:wrap;">
-        <span style="font-size:12px; min-width:80px; color:var(--text); font-weight:700;">${escHtml(preset.label)}:</span>
-        <select class="emoji-type-select" data-idx="${idx}" style="width:120px; padding:6px; font-size:12px; height:32px; border-radius:6px;">
-          <option value="text" ${preset.type === 'text' ? 'selected' : ''}>شکلک متنی</option>
-          <option value="webm" ${preset.type === 'webm' ? 'selected' : ''}>انیمیشن (WebM)</option>
-        </select>
-        <input type="text" class="emoji-value-input" data-idx="${idx}" value="${escHtml(preset.value)}" style="flex:1; padding:6px; font-size:12px; height:32px; border-radius:6px;" placeholder="${preset.type === 'text' ? 'مثلاً: 😊' : 'آدرس فایل مثل: ./emojis/happy.webm'}">
-      </div>`;
-  }).join('');
 }
 
 function startLiveStopwatch() {
@@ -473,15 +553,17 @@ export function syncSettingsForm() {
   if (document.getElementById('setting-calendar')) document.getElementById('setting-calendar').value = state.calendarPref;
   if (document.getElementById('setting-duration-format')) document.getElementById('setting-duration-format').value = state.timeFormatPref;
   if (document.getElementById('setting-week-start')) document.getElementById('setting-week-start').value = state.weekStartPref;
-  if (document.getElementById('report-chart-type')) document.getElementById('report-chart-type').value = state.chartTypePref;
 }
 
 export function render(){
   applyTheme();
   
-  // فیکس مجدد: تضمین نمایش در ثانیه اول لود برنامه پس از ورود موفقیت آمیز
   const dateLabel = document.getElementById('date-label');
   if (dateLabel) dateLabel.textContent = fmtDateLabel(state.curDate);
+  
+  // سینک مقدار تودو-سوییچ اتوماتیک تایم‌لاین با وضعیت استیت برنامه
+  const groupToggle = document.getElementById('timeline-group-toggle');
+  if (groupToggle) groupToggle.checked = state.groupTimelinePref;
   
   renderCats();
   renderTimeline();
@@ -491,5 +573,5 @@ export function render(){
   renderMood();
   updateLiveButton();
   syncSettingsForm();
-  renderCustomEmojisEditor(); // رندر پنل شخصی‌سازی اموجی‌ها در تنظیمات
+  renderCustomEmojisEditor(); 
 }
