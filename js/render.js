@@ -590,16 +590,26 @@ export function renderHabitsAndTodos() {
   const habitList = document.getElementById('habit-list');
   if(!todoList || !habitList) return;
 
-  const todaysTodos = state.todos.filter(t => t.date === state.curDate);
+  // شامل کارهای امروز به همراه تمام کارهای تکرار شونده روزانه
+  const todaysTodos = state.todos.filter(t => t.date === state.curDate || t.isDaily);
   todoList.innerHTML = todaysTodos.length ? '' : '<div style="color:var(--muted); font-size:12px;">کاری ثبت نشده</div>';
   todaysTodos.forEach(t => {
+    const isChecked = t.isDaily ? (t.doneDates && t.doneDates[state.curDate]) : t.done;
+    const activeClass = isChecked ? 'done' : '';
+    const dailyActiveColor = t.isDaily ? 'color: var(--accent);' : '';
+    const dailyButtonLabel = t.isDaily ? '🔁 روزانه (فعال)' : '🔁 تکرار روزانه';
+    const dailyButtonClass = t.isDaily ? 'action-btn' : 'btn-del';
+
     todoList.innerHTML += `
-      <div class="todo-item">
+      <div class="todo-item" style="gap: 8px; flex-wrap: wrap;">
         <div style="display:flex; align-items:center; flex:1;">
-          <input type="checkbox" class="todo-checkbox" ${t.done?'checked':''} onchange="toggleTodo('${t.id}')">
-          <span class="todo-title ${t.done?'done':''}">${escHtml(t.title)}</span>
+          <input type="checkbox" class="todo-checkbox" ${isChecked ? 'checked' : ''} onchange="toggleTodo('${t.id}')">
+          <span class="todo-title ${activeClass}">${escHtml(t.title)}</span>
         </div>
-        <button class="btn-del" onclick="deleteTodo('${t.id}')">✕</button>
+        <div style="display:flex; gap:6px; align-items: center;">
+          <button class="${dailyButtonClass}" style="font-size:10px; padding: 4px 8px; height: 28px; ${dailyActiveColor}" onclick="toggleRecurringTodo('${t.id}')" title="تکرار هر روزه این کار">${dailyButtonLabel}</button>
+          <button class="btn-del" style="width:28px; height:28px;" onclick="deleteTodo('${t.id}')">✕</button>
+        </div>
       </div>`;
   });
 
@@ -747,8 +757,9 @@ export function updateLiveButton(){
       <div id="live-elapsed-time" style="color:var(--accent2); font-weight:700; margin-bottom:4px;">در حال محاسبه...</div>
       ${pauseMinsTotal ? `<div style="color:var(--accent2); font-size:11px;">کل زمان وقفه: ${pauseMinsTotal} دقیقه</div>` : ''}
       ${isPaused ? `<div style="color:#f87171; font-size:11px; margin-bottom:4px;">⏳ اکنون در حالت پاز موقت</div>` : ''}
-      <div style="display:flex; gap:6px; justify-content:center; margin-top:6px;">
+      <div style="display:flex; gap:6px; justify-content:center; margin-top:6px; flex-wrap: wrap;">
         <button id="live-pause-btn" class="action-btn" style="background:var(--surface3); color:var(--text); border:1px solid var(--border2);">${isPaused ? '▶ ادامه فعالیت' : '⏸ پاز موقت'}</button>
+        <button id="live-manual-pause-btn" class="action-btn" style="background:var(--surface3); color:var(--text); border:1px solid var(--border2);">⏳ ثبت وقفه دستی</button>
         <button id="live-cancel-btn" class="action-btn" style="background:#f8717122; border:1px solid rgba(248,113,113,0.3); color:#fecaca;">🚫 لغو و انصراف</button>
       </div>
     `;
@@ -756,6 +767,11 @@ export function updateLiveButton(){
     document.getElementById('live-pause-btn').onclick = (e) => {
       e.stopPropagation();
       toggleLivePause();
+    };
+
+    document.getElementById('live-manual-pause-btn').onclick = (e) => {
+      e.stopPropagation();
+      window.addManualPause();
     };
 
     document.getElementById('live-cancel-btn').onclick = (e) => {
@@ -802,33 +818,55 @@ export function renderRoutines() {
   });
 }
 
-// ساخت ویرایشگر پیشرفته و کاملاً شخصی‌سازی شده اموجی‌ها با دکمه اضافه و حذف
+// ساخت ویرایشگر پیشرفته و کاملاً شخصی‌سازی شده اموجی‌ها با مخفی‌سازی کامل لینک متنی و دکمه اضافه و حذف
 export function renderCustomEmojisEditor() {
   const container = document.getElementById('custom-emojis-container');
   if (!container) return;
   
   container.innerHTML = state.moodPresets.map((preset, idx) => {
-    let displayVal = preset.value;
+    // ایجاد نمایه گرافیکی از پیش‌نمایش به جای کادر متنی طولانی آدرس
+    let previewHtml = '';
     if (preset.type === 'webm') {
-      const match = preset.value.match(/emojis\/(\d{3})\.webm$/);
-      if (match) {
-        displayVal = match[1]; // نمایش فقط آیدی ۳ رقمی برای تمیزی ظاهر
-      }
+      previewHtml = `<video src="${preset.value}" autoplay loop muted playsinline style="width:32px; height:32px; border-radius:50%; object-fit:cover; border:1px solid var(--border);"></video>`;
+    } else {
+      previewHtml = `<span style="font-size:24px; display:inline-block; width:32px; text-align:center;">${preset.value}</span>`;
     }
+
+    // اگر متنی بود، کادر متنی کوچکی برای تایپ مستقیم اموجی نشان می‌دهیم، در غیر این صورت آن را کاملاً پنهان می‌کنیم تا هیچ آدرس زشتی نمایش داده نشود
+    const textInputStyle = preset.type === 'webm' ? 'display: none;' : '';
 
     return `
       <div style="display:flex; align-items:center; gap:8px; background:var(--surface2); padding:10px; border-radius:8px; border:1px solid var(--border); flex-wrap:wrap;">
         <input type="text" class="emoji-label-input" data-idx="${idx}" value="${escHtml(preset.label)}" style="width:110px; padding:6px; font-size:12px; height:32px; border-radius:6px;" placeholder="عنوان مثلاً: عالی">
-        <select class="emoji-type-select" data-idx="${idx}" style="width:100px; padding:6px; font-size:12px; height:32px; border-radius:6px; background:var(--surface); color:var(--text); border:1px solid var(--border2);">
+        <select class="emoji-type-select" data-idx="${idx}" style="width:100px; padding:6px; font-size:12px; height:32px; border-radius:6px; background:var(--surface); color:var(--text); border:1px solid var(--border2);" onchange="onEmojiTypeChange(this, ${idx})">
           <option value="text" ${preset.type === 'text' ? 'selected' : ''}>شکلک متنی</option>
           <option value="webm" ${preset.type === 'webm' ? 'selected' : ''}>انیمیشن (WebM)</option>
         </select>
-        <input type="text" class="emoji-value-input" data-idx="${idx}" id="preset-val-input-${idx}" value="${escHtml(displayVal)}" style="flex:1; min-width:80px; padding:6px; font-size:12px; height:32px; border-radius:6px;" placeholder="${preset.type === 'text' ? 'مثلاً: 😊' : 'آیدی شکلک (مثلاً ۱۳۷)'}">
-        <button class="action-btn" type="button" onclick="openEmojiGallery(${idx})" style="padding: 0 10px; height:32px; font-size:11px; background:var(--surface3); border:1px solid var(--border2); color:var(--text);">🖼️ گالری</button>
+        
+        <!-- پیش‌نمایش زنده شکلک -->
+        <div style="display:flex; align-items:center; justify-content:center; width:38px; height:32px;">
+          ${previewHtml}
+        </div>
+
+        <!-- کادر متنی که فقط در حالت شکلک متنی نمایش داده می‌شود و در حالت WebM کاملاً پنهان است -->
+        <input type="text" class="emoji-value-input" data-idx="${idx}" id="preset-val-input-${idx}" value="${escHtml(preset.value)}" style="width:60px; padding:6px; font-size:12px; height:32px; border-radius:6px; ${textInputStyle}" placeholder="😊">
+        
+        <button class="action-btn" type="button" onclick="openEmojiGallery(${idx})" style="padding: 0 10px; height:32px; font-size:11px; background:var(--surface3); border:1px solid var(--border2); color:var(--text); ${preset.type === 'text' ? 'display:none;' : ''}">🖼️ گالری</button>
         <button class="btn-del" type="button" onclick="deleteMoodPreset(${idx})" style="width:32px; height:32px; font-size:12px; flex-shrink:0;">✕</button>
       </div>`;
   }).join('');
 }
+
+// تغییر آنی فیلدها در زمان سوییچ نوع شکلک در مدیریت شکلک‌ها
+window.onEmojiTypeChange = function(selectEl, idx) {
+  state.moodPresets[idx].type = selectEl.value;
+  if (selectEl.value === 'webm' && !state.moodPresets[idx].value.startsWith('http')) {
+    state.moodPresets[idx].value = 'https://ipureiqnhgatigewbggj.supabase.co/storage/v1/object/public/emojis/001.webm'; // پیش‌فرض
+  } else if (selectEl.value === 'text' && state.moodPresets[idx].value.startsWith('http')) {
+    state.moodPresets[idx].value = '😊'; // پیش‌فرض
+  }
+  renderCustomEmojisEditor();
+};
 
 // تابع رندر وضعیت و درصد پیشرفت اهداف ماه جاری بر اساس فعالیت‌های واقعی ثبت شده
 export function renderGoals() {
