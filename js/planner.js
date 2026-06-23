@@ -25,6 +25,100 @@ function triggerNavPeekAnimation() {
   }
 }
 
+// پیاده‌سازی متغیرهای صفحه گالری سوپابیس
+state.galleryPage = 0;
+state.galleryPageSize = 30;
+state.currentSelectingPresetIdx = null;
+
+// باز کردن گالری اموجی‌های متحرک سوپابیس
+window.openEmojiGallery = function(idx) {
+  state.currentSelectingPresetIdx = idx;
+  state.galleryPage = 0;
+  const modal = document.getElementById("emoji-gallery-modal");
+  if (modal) {
+    modal.style.display = "flex";
+    renderGalleryGrid();
+  }
+};
+
+// رندر کردن گالری ۲۰۰ تایی اموجی‌ها با قابلیت صفحه‌بندی هوشمند
+window.renderGalleryGrid = function() {
+  const grid = document.getElementById("gallery-grid");
+  const label = document.getElementById("gallery-range-label");
+  if (!grid || !label) return;
+
+  grid.innerHTML = '';
+  const start = state.galleryPage * state.galleryPageSize + 1;
+  const end = Math.min(start + state.galleryPageSize - 1, 200);
+
+  label.textContent = `نمایش شکلک‌های ${start} تا ${end} (از مجموع ۲۰۰)`;
+
+  for (let i = start; i <= end; i++) {
+    const numStr = String(i).padStart(3, '0');
+    // آدرس عمومی باکت عمومی سوپابیس شما بر اساس ساختار نام‌گذاری سه رقمی
+    const fileUrl = `https://ipureiqnhgatigewbggj.supabase.co/storage/v1/object/public/emojis/${numStr}.webm`;
+
+    const item = document.createElement('div');
+    item.style.cssText = `
+      aspect-ratio: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+      transition: all 0.2s;
+    `;
+
+    // افکت‌های هاور بصری روی هر شکلک
+    item.onmouseenter = () => { item.style.borderColor = 'var(--accent)'; item.style.transform = 'scale(1.05)'; };
+    item.onmouseleave = () => { item.style.borderColor = 'var(--border)'; item.style.transform = 'none'; };
+
+    item.innerHTML = `
+      <video src="${fileUrl}" autoplay loop muted playsinline style="width:85%; height:85%; object-fit:cover; pointer-events:none; border-radius:50%;"></video>
+      <span style="position:absolute; bottom:2px; font-size:8px; color:var(--muted); font-family:monospace; background:rgba(0,0,0,0.35); padding:0 3px; border-radius:3px;">${numStr}</span>
+    `;
+
+    // کلیک روی هر المان و انتساب آن به عنوان پریست شکلک
+    item.onclick = () => {
+      const idx = state.currentSelectingPresetIdx;
+      if (idx !== null && idx !== undefined) {
+        state.moodPresets[idx].type = 'webm';
+        state.moodPresets[idx].value = fileUrl;
+        save("planner_mood_presets", state.moodPresets);
+        saveCloud();
+        render();
+      }
+      document.getElementById("emoji-gallery-modal").style.display = "none";
+    };
+
+    grid.appendChild(item);
+  }
+};
+
+// رویدادهای مدال گالری سوپابیس
+safeBindEvent("close-gallery-modal", "onclick", () => {
+  document.getElementById("emoji-gallery-modal").style.display = "none";
+});
+
+safeBindEvent("gallery-prev", "onclick", () => {
+  if (state.galleryPage > 0) {
+    state.galleryPage--;
+    renderGalleryGrid();
+  }
+});
+
+safeBindEvent("gallery-next", "onclick", () => {
+  const maxPages = Math.ceil(200 / state.galleryPageSize);
+  if (state.galleryPage + 1 < maxPages) {
+    state.galleryPage++;
+    renderGalleryGrid();
+  }
+});
+
 // مدیریت تغییر تب‌ها
 window.switchTab = function(tabId) {
   document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
@@ -597,7 +691,7 @@ async function handleUserSession(session) {
     await loadCloud();
     applyTheme();
     render();
-    triggerNavPeekAnimation(); // اجرای انیمیشن ملایم کشش ناوبری در موبایل جهت جلب نظر کاربر
+    triggerNavPeekAnimation(); // اجرای انیمیشن حرکت افقی منو در اولین لود صفحه
   } catch (err) { console.error(err); }
 }
 
