@@ -17,15 +17,20 @@ export function save(k, v){
   } catch(e) {}
 }
 
-// مخزن سراسری و هماهنگ داده‌های برنامه (State) با لود منطبق بر ساعت محلی سیستم کاربر
 export const state = {
   events: load('planner_ev', []),
   cats: load('planner_cats', []),
   routines: load('planner_routines', []), 
+  goals: load('planner_goals', []),
+  todos: load('planner_todos', []), // کارهای روزانه
+  habits: load('planner_habits', []), // مشخصات عادت‌ها
+  habitLogs: load('planner_habitLogs', {}), // لاگ انجام عادت‌ها
+  moods: load('planner_moods', {}), // حال و هوای روزانه
   liveSession: load('planner_live', null),
-  theme: load('planner_theme', 'dark'),
-  curDate: getLocalDateStr(), // لود تاریخ محلی به جای UTC
-  mapMonth: getLocalDateStr().slice(0, 7), // لود ماه محلی به جای UTC
+  theme: load('planner_theme', 'auto'),
+  accentColor: load('planner_accent', '#7c5cfc'), // رنگ سفارشی
+  curDate: getLocalDateStr(),
+  mapMonth: getLocalDateStr().slice(0, 7),
   editingEventId: null,
   activeView: 'daily',
   selectedRtDays: []
@@ -36,57 +41,49 @@ export async function saveCloud(){
     const { data: { user } } = await supabase.auth.getUser();
     if(!user) return;
     
-    const { error } = await supabase
-      .from("planner_data")
-      .upsert(
-        {
-          user_id: user.id,
-          data: { 
-            events: state.events, 
-            cats: state.cats, 
-            liveSession: state.liveSession, 
-            theme: state.theme, 
-            routines: state.routines 
-          }
-        },
-        { onConflict: 'user_id' }
-      );
-
-    if (error) {
-      console.error("خطا در ذخیره‌سازی ابری سوپابیس:", error.message);
-    }
-  } catch (err) {
-    console.error("خطای غیرمنتظره در ذخیره ابری:", err);
-  }
+    await supabase.from("planner_data").upsert({
+      user_id: user.id,
+      data: { 
+        events: state.events, cats: state.cats, liveSession: state.liveSession, 
+        theme: state.theme, routines: state.routines, goals: state.goals,
+        todos: state.todos, habits: state.habits, habitLogs: state.habitLogs,
+        moods: state.moods, accentColor: state.accentColor
+      }
+    }, { onConflict: 'user_id' });
+  } catch (err) { console.error("Error saving to cloud", err); }
 }
 
 export async function loadCloud(){
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if(!user) return;
-
-    const { data, error } = await supabase
-      .from("planner_data")
-      .select("data")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
+    const { data } = await supabase.from("planner_data").select("data").eq("user_id", user.id).maybeSingle();
+    
     if(data && data.data){
-      const cloudData = data.data;
-      
-      state.events      = cloudData.events      || [];
-      state.cats        = cloudData.cats        || [];
-      state.theme       = cloudData.theme       || "dark";
-      state.liveSession = cloudData.liveSession || null;
-      state.routines    = cloudData.routines    || [];
+      const cd = data.data;
+      state.events      = cd.events || [];
+      state.cats        = cd.cats || [];
+      state.theme       = cd.theme || "auto";
+      state.accentColor = cd.accentColor || "#7c5cfc";
+      state.liveSession = cd.liveSession || null;
+      state.routines    = cd.routines || [];
+      state.goals       = cd.goals || [];
+      state.todos       = cd.todos || [];
+      state.habits      = cd.habits || [];
+      state.habitLogs   = cd.habitLogs || {};
+      state.moods       = cd.moods || {};
 
-      save('planner_ev',       state.events);
-      save('planner_cats',     state.cats);
-      save('planner_live',     state.liveSession);
-      save('planner_theme',    state.theme);
+      save('planner_ev', state.events);
+      save('planner_cats', state.cats);
+      save('planner_theme', state.theme);
+      save('planner_accent', state.accentColor);
+      save('planner_live', state.liveSession);
       save('planner_routines', state.routines);
+      save('planner_goals', state.goals);
+      save('planner_todos', state.todos);
+      save('planner_habits', state.habits);
+      save('planner_habitLogs', state.habitLogs);
+      save('planner_moods', state.moods);
     }
-  } catch (err) {
-    console.error("خطا در بارگذاری ابری اطلاعات از سوپابیس:", err);
-  }
+  } catch (err) { console.error("Error loading cloud data", err); }
 }
