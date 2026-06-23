@@ -8,34 +8,33 @@
   --text: #e8e8f0;
   --muted: #7070a0;
   --accent: #7c5cfc;
-  --accent2: #a78bfa;
-  --accent-glow: rgba(124,92,252,0.25);
+  --accent2: color-mix(in srgb, var(--accent) 80%, white);
+  --accent-glow: color-mix(in srgb, var(--accent) 25%, transparent);
 }
 body[data-theme="light"] {
   --bg: #f4f6fb; --surface: #ffffff; --surface2: #eef1f7; --surface3: #e1e6f0;
   --border: rgba(16,24,40,0.08); --border2: rgba(16,24,40,0.16);
-  --text: #1f2937; --muted: #64748b; --accent: #2563eb; --accent2: #0f766e; --accent-glow: rgba(37,99,235,0.18);
+  --text: #1f2937; --muted: #64748b;
 }
-body[data-theme="forest"] {
-  --bg: #101612; --surface: #18221c; --surface2: #203027; --surface3: #2a3d32;
-  --border: rgba(220,252,231,0.08); --border2: rgba(220,252,231,0.16);
-  --text: #e7f6ec; --muted: #82a891; --accent: #22c55e; --accent2: #86efac; --accent-glow: rgba(34,197,94,0.2);
-}
-body[data-theme="sunset"] {
-  --bg: #171114; --surface: #24191d; --surface2: #302126; --surface3: #3d2b31;
-  --border: rgba(255,237,213,0.08); --border2: rgba(255,237,213,0.16);
-  --text: #fff1f2; --muted: #bd8f9b; --accent: #f43f5e; --accent2: #fbbf24; --accent-glow: rgba(244,63,94,0.2);
-}
-/* تم‌های جدید */
 body[data-theme="amoled"] {
   --bg: #000000; --surface: #0a0a0a; --surface2: #141414; --surface3: #1f1f1f;
   --border: rgba(255,255,255,0.05); --border2: rgba(255,255,255,0.1);
-  --text: #ffffff; --muted: #666666; --accent: #7c5cfc; --accent2: #a78bfa; --accent-glow: rgba(124,92,252,0.15);
+  --text: #ffffff; --muted: #666666;
 }
 body[data-theme="pastel"] {
   --bg: #fdfbf7; --surface: #ffffff; --surface2: #f4f0ec; --surface3: #eae4dd;
   --border: #e6dfd7; --border2: #d8cec4;
-  --text: #4a4440; --muted: #8b8076; --accent: #b08bb6; --accent2: #c5a3cb; --accent-glow: rgba(176,139,182,0.2);
+  --text: #4a4440; --muted: #8b8076;
+}
+body[data-theme="forest"] {
+  --bg: #101612; --surface: #18221c; --surface2: #203027; --surface3: #2a3d32;
+  --border: rgba(220,252,231,0.08); --border2: rgba(220,252,231,0.16);
+  --text: #e7f6ec; --muted: #82a891;
+}
+body[data-theme="sunset"] {
+  --bg: #171114; --surface: #24191d; --surface2: #302126; --surface3: #3d2b31;
+  --border: rgba(255,237,213,0.08); --border2: rgba(255,237,213,0.16);
+  --text: #fff1f2; --muted: #bd8f9b;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -54,7 +53,6 @@ body::before {
 .logo { font-size: 20px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px; }
 .logo-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px var(--accent); display: inline-block; }
 .date-nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.theme-select { width: auto; min-width: 96px; padding: 6px 10px; font-size: 12px; border-radius:8px; border:1px solid var(--border2); background:var(--surface2); color:var(--text); }
 .date-nav button { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border2); background: var(--surface2); color: var(--text); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .15s, border-color .15s; }
 .date-nav button:hover { background: var(--surface3); border-color: var(--accent); }
 #date-label { font-size: 14px; font-weight: 500; color: var(--text); background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px; padding: 6px 14px; min-width: 160px; text-align: center; }
@@ -68,7 +66,7 @@ body::before {
 .card:last-child { margin-bottom: 0; }
 .card-title { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 16px; }
 
-/* Forms & Inputs (دقیقا استایل شما) */
+/* Forms & Inputs */
 .form-group { margin-bottom: 12px; }
 .form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
 input[type=text], select { width: 100%; background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px; color: var(--text); font-family: 'Vazirmatn', sans-serif; font-size: 14px; padding: 8px 12px; outline: none; transition: border-color .15s, box-shadow .15s; -webkit-appearance: none; appearance: none; }
@@ -79,13 +77,21 @@ input[type=text]:focus, select:focus { border-color: var(--accent); box-shadow: 
 .time-field .now-btn { position: absolute; left: 4px; top: 50%; transform: translateY(-50%); background: var(--surface3); border: none; color: var(--muted); font-size: 10px; padding: 2px 5px; border-radius: 4px; cursor: pointer; }
 .cat-row { display: flex; gap: 6px; }
 .btn-icon { width: 36px; height: 36px; flex-shrink: 0; background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px; color: var(--muted); font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+/* مدیریت و هاله‌ی درخشان زیبای دسته‌بندی انتخابی */
 .cat-manager { margin-top: 10px; display: grid; gap: 6px; }
-.cat-item { display: grid; grid-template-columns: 24px 1fr 34px 34px; align-items: center; gap: 7px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 6px; }
+.cat-item { display: grid; grid-template-columns: 24px 1fr 34px 34px; align-items: center; gap: 7px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 6px; cursor: pointer; transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; }
+.cat-item:hover { border-color: var(--cat-color); }
+.cat-item.selected {
+  border-color: var(--cat-color) !important;
+  background: var(--surface3) !important;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--cat-color) 45%, transparent);
+  transform: translateY(-1px);
+}
 .cat-swatch { width: 16px; height: 16px; border-radius: 50%; background: var(--cat-color, var(--accent)); justify-self: center; }
 .cat-name { font-size: 12px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cat-color-edit { width: 32px; height: 32px; border:none; background:transparent; cursor:pointer;}
 .cat-delete { width: 32px; height: 32px; border: 1px solid var(--border2); border-radius: 8px; background: var(--surface3); color: var(--muted); cursor: pointer; }
-.cat-item.selected { border-color: var(--cat-color) !important; background: var(--surface3) !important; }
 
 /* Buttons */
 .btn-primary { width: 100%; padding: 10px; border-radius: 10px; border: none; background: linear-gradient(135deg, var(--accent), #5c3fcc); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 6px; box-shadow: 0 4px 20px var(--accent-glow); }
@@ -116,7 +122,7 @@ input[type=text]:focus, select:focus { border-color: var(--accent); box-shadow: 
 .map-dot { width: var(--dot-size, 6px); height: var(--dot-size, 6px); border-radius: 50%; background: var(--dot-color, var(--accent)); }
 .map-day-num { position: absolute; top: 4px; inset-inline-start: 5px; font-size: 9px; }
 
-/* استایل‌های اختصاصی ویژگی‌های جدید */
+/* Todo & Habits */
 .todo-item, .habit-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--surface2); border-radius: 8px; border: 1px solid var(--border); margin-bottom: 8px;}
 .todo-checkbox { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; margin-left: 10px;}
 .todo-title { font-size: 13px; flex: 1; }
