@@ -1,5 +1,6 @@
+// js/render.js
 import { state, save, saveCloud } from "./storage.js";
-import { fmtDateLabel, fmtTime, fmtDur, escHtml, pad, getNow, parseTime } from "./helpers.js";
+import { fmtDateLabel, fmtTime, fmtDur, escHtml, getWeekDates, pad, getNow, parseTime } from "./helpers.js";
 
 let liveStopwatchInterval = null;
 let reportChartInstance = null;
@@ -11,8 +12,8 @@ export function applyTheme(){
   document.documentElement.style.setProperty('--accent', state.accentColor);
   document.documentElement.style.setProperty('--accent-glow', `color-mix(in srgb, ${state.accentColor} 25%, transparent)`);
   
-  if(document.getElementById('theme-select')) document.getElementById('theme-select').value = state.theme;
-  if(document.getElementById('accent-color-picker')) document.getElementById('accent-color-picker').value = state.accentColor;
+  if(document.getElementById('setting-theme-select')) document.getElementById('setting-theme-select').value = state.theme;
+  if(document.getElementById('setting-accent-picker')) document.getElementById('setting-accent-picker').value = state.accentColor;
 }
 
 export function renderCats(){
@@ -21,6 +22,7 @@ export function renderCats(){
   const manager=document.getElementById('cat-manager');
   if(!sel || !mapSel || !manager) return;
 
+  const currentVal = sel.value;
   sel.innerHTML=''; mapSel.innerHTML=''; manager.innerHTML='';
   if(!state.cats.length){
     sel.innerHTML='<option disabled selected>اول موضوع بسازید</option>';
@@ -33,22 +35,43 @@ export function renderCats(){
     sel.appendChild(o); mapSel.appendChild(o.cloneNode(true));
 
     const item=document.createElement('div');
-    item.className='cat-item'; item.style.setProperty('--cat-color', c.color);
+    item.className='cat-item'; 
+    item.style.setProperty('--cat-color', c.color);
+    
+    // اگر موضوع جاری انتخاب شده بود، هاله درخشندگی روی آن قرار گیرد
+    if (c.id === currentVal) {
+      item.classList.add('selected');
+    }
+
     item.innerHTML=`
       <span class="cat-swatch"></span><span class="cat-name">${escHtml(c.name)}</span>
       <input class="cat-color-edit" type="color" value="${c.color}">
       <button class="cat-delete" type="button">✕</button>
     `;
+    
     item.querySelector('.cat-color-edit').onchange=(e)=>{
       c.color=e.target.value; save('planner_cats', state.cats); saveCloud(); render();
     };
     item.querySelector('.cat-delete').onclick=(e)=>{ e.stopPropagation(); window.delCat(c.id); };
-    item.onclick=(e)=>{ if(e.target.tagName!=='INPUT' && e.target.tagName!=='BUTTON'){ sel.value=c.id; mapSel.value=c.id; }};
+    
+    // هاله رنگی درخشان در جا به محض کلیک اعمال شود
+    item.onclick=(e)=>{ 
+      if(e.target.tagName!=='INPUT' && e.target.tagName!=='BUTTON'){ 
+        sel.value=c.id; 
+        mapSel.value=c.id; 
+        document.querySelectorAll('.cat-item').forEach(el => el.classList.remove('selected'));
+        item.classList.add('selected');
+        saveCloud();
+      }
+    };
     manager.appendChild(item);
   });
+  
+  if (currentVal && state.cats.some(c => c.id === currentVal)) {
+    sel.value = currentVal;
+  }
 }
 
-// ساختار دقیق تایم‌لاین قبلی شما
 export function renderTimeline(){
   const tl=document.getElementById('timeline');
   const em=document.getElementById('empty-msg');
@@ -113,7 +136,6 @@ export function renderReport(){
     labels.push(cat.name); data.push(mins); bgColors.push(cat.color);
     const pct=total>0?Math.round((mins/total)*100):0;
     
-    // استایل گزارش قبلی شما
     grid.innerHTML += `
       <div style="margin-bottom:10px;">
         <div class="report-header">
@@ -132,10 +154,9 @@ export function renderReport(){
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels:{color: '#999'} } } }
     });
   }
-  document.getElementById('total-line').innerHTML=`مجموع: <span>${fmtDur(total)}</span>`;
+  document.getElementById('total-line').innerHTML=`مجموع گزارش: <span>${fmtDur(total)}</span>`;
 }
 
-// ساختار دقیق نقشه فعالیت اورجینال شما
 export function renderActivityMap(){
   const map=document.getElementById('activity-map');
   const sel=document.getElementById('map-cat-select');
@@ -270,6 +291,13 @@ export function updateLiveButton(){
   }
 }
 
+// همگام‌سازی المان‌های تب تنظیمات
+export function syncSettingsForm() {
+  if (document.getElementById('setting-calendar')) document.getElementById('setting-calendar').value = state.calendarPref;
+  if (document.getElementById('setting-duration-format')) document.getElementById('setting-duration-format').value = state.timeFormatPref;
+  if (document.getElementById('setting-week-start')) document.getElementById('setting-week-start').value = state.weekStartPref;
+}
+
 export function render(){
   applyTheme();
   renderCats();
@@ -279,4 +307,5 @@ export function render(){
   renderHabitsAndTodos();
   renderMood();
   updateLiveButton();
+  syncSettingsForm();
 }
