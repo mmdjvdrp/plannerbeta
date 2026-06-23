@@ -36,7 +36,9 @@ export const state = {
   chartTypePref: load('planner_chart_type_pref', 'doughnut'), 
   groupTimelinePref: load('planner_group_timeline_pref', true), 
   
-  // متغیرهای ذخیره‌سازی پیش‌فرض زمان پومودورو شخصی‌سازی شده
+  // اضافه شدن وضعیت انتخاب موضوعات در بخش گزارش
+  selectedReportCats: load('planner_selected_report_cats', []),
+  
   pomodoroWorkPref: load('planner_pomo_work_pref', 25),
   pomodoroBreakPref: load('planner_pomo_break_pref', 5),
   
@@ -70,7 +72,8 @@ export async function saveCloud(){
         calendarPref: state.calendarPref, timeFormatPref: state.timeFormatPref, 
         weekStartPref: state.weekStartPref, chartTypePref: state.chartTypePref,
         groupTimelinePref: state.groupTimelinePref, moodPresets: state.moodPresets,
-        pomodoroWorkPref: state.pomodoroWorkPref, pomodoroBreakPref: state.pomodoroBreakPref
+        pomodoroWorkPref: state.pomodoroWorkPref, pomodoroBreakPref: state.pomodoroBreakPref,
+        selectedReportCats: state.selectedReportCats
       }
     }, { onConflict: 'user_id' });
   } catch (err) { console.error("Error saving to cloud", err); }
@@ -102,6 +105,7 @@ export async function loadCloud(){
       state.chartTypePref  = cd.chartTypePref || "doughnut";
       state.moodPresets    = cd.moodPresets || state.moodPresets;
       state.groupTimelinePref = cd.groupTimelinePref !== undefined ? cd.groupTimelinePref : true;
+      state.selectedReportCats = cd.selectedReportCats || [];
       
       state.pomodoroWorkPref  = cd.pomodoroWorkPref || 25;
       state.pomodoroBreakPref = cd.pomodoroBreakPref || 5;
@@ -124,6 +128,7 @@ export async function loadCloud(){
       save('planner_group_timeline_pref', state.groupTimelinePref);
       save('planner_pomo_work_pref', state.pomodoroWorkPref);
       save('planner_pomo_break_pref', state.pomodoroBreakPref);
+      save('planner_selected_report_cats', state.selectedReportCats);
     }
   } catch (err) { console.error("Error loading cloud data", err); }
 }
