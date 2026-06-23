@@ -74,6 +74,12 @@
     
     <!-- ================= تب 1: تایم‌لاین ================= -->
     <div id="tab-timeline" class="tab-section active">
+      <!-- سوییچ تعاملی گروه‌بندی کارهای هم‌موضوع -->
+      <div style="display:flex; align-items:center; gap:10px; background:var(--surface2); padding:10px 14px; border-radius:12px; border:1px solid var(--border2); margin-bottom:16px;">
+        <input type="checkbox" id="timeline-group-toggle" style="width:18px; height:18px; accent-color:var(--accent); cursor:pointer;">
+        <label for="timeline-group-toggle" style="margin:0; font-size:12px; color:var(--text); cursor:pointer; font-weight:700; user-select:none;">یکپارچه‌سازی و گروه‌بندی خودکار کارهای هم‌موضوع</label>
+      </div>
+
       <div class="card" style="margin-bottom:0">
         <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
           <div>تایم‌لاین &mdash; <span id="tl-date" style="color:var(--accent2)"></span></div>
@@ -109,9 +115,7 @@
       <div class="card">
         <div class="card-title">حال و هوای امروز من</div>
         <div class="mood-container" style="display:flex; gap:12px; align-items:center; justify-content: center;">
-          <div id="mood-emojis" style="display:flex; gap:16px; align-items: center; justify-content: center;">
-            <!-- ایموجی‌ها یا فایل‌های WebM به صورت خودکار از render.js بارگذاری می‌شوند -->
-          </div>
+          <div id="mood-emojis" style="display:flex; gap:16px; align-items: center; justify-content: center;"></div>
         </div>
       </div>
 
@@ -211,7 +215,6 @@
         </div>
       </div>
 
-      <!-- پنل اختصاصی شخصی‌سازی انیمیشن‌های WebM و ایموجی‌ها -->
       <div class="card">
         <div class="card-title">شخصی‌سازی شکلک‌های حال و هوا (خلق‌وخو)</div>
         <p style="font-size: 11px; color: var(--muted); margin-bottom: 12px;">شما می‌توانید برای هر یک از ۵ حالت روحی، یک اموجی متنی یا آدرس یک فایل انیمیشنی WebM لوکال یا وب وارد کنید:</p>
