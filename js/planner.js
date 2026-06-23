@@ -30,7 +30,7 @@ state.galleryPage = 0;
 state.galleryPageSize = 30;
 state.currentSelectingPresetIdx = null;
 
-// باز کردن گالری اموجی‌های متحرک سوپابیس
+// باز کردن گالری اموجی‌های متحرک
 window.openEmojiGallery = function(idx) {
   state.currentSelectingPresetIdx = idx;
   state.galleryPage = 0;
@@ -528,8 +528,18 @@ safeBindEvent("save-custom-emojis-btn", "onclick", () => {
   if (labels.length === state.moodPresets.length) {
     labels.forEach((inp, idx) => {
       state.moodPresets[idx].label = inp.value.trim();
-      state.moodPresets[idx].type = types[idx].value;
-      state.moodPresets[idx].value = values[idx].value.trim();
+      const type = types[idx].value;
+      state.moodPresets[idx].type = type;
+      
+      let val = values[idx].value.trim();
+      // تبدیل فرمت آیدی عددی ساده (مثلا 137) به لینک کامل
+      if (type === 'webm') {
+        if (/^\d+$/.test(val)) {
+          const numStr = String(val).padStart(3, '0');
+          val = `https://ipureiqnhgatigewbggj.supabase.co/storage/v1/object/public/emojis/${numStr}.webm`;
+        }
+      }
+      state.moodPresets[idx].value = val;
     });
     
     save("planner_mood_presets", state.moodPresets);
@@ -636,6 +646,14 @@ safeBindEvent("add-goal-btn", "onclick", () => {
   alert('هدف با موفقیت ثبت شد!');
 });
 
+window.deleteGoal = function(id) {
+  if(!confirm('آیا مایل به حذف این هدف هستید؟')) return;
+  state.goals = state.goals.filter(g => g.id !== id);
+  save('planner_goals', state.goals);
+  saveCloud();
+  render();
+};
+
 // مدیریت، درخواست مجوز و فعال‌سازی سیستم اعلان‌های سیستمی
 const notifyBtn = document.getElementById("notify-enable-btn");
 if (notifyBtn) {
@@ -682,9 +700,30 @@ async function handleUserSession(session) {
   }
 
   let displayName = user.user_metadata?.display_name || "";
+  
+  try {
+    // دریافت نام کاربر از جدول دیتابیس به عنوان اولویت اول جهت جلوگیری از نمایش آیدی خام یا سیستم در زمان شروع برنامه
+    const { data: profData } = await supabase
+      .from("profiles")
+      .select("name")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (profData && profData.name) {
+      displayName = profData.name;
+    }
+  } catch (e) {
+    console.error("Error fetching profile name:", e);
+  }
+
   if (!displayName && user.email) displayName = user.email.split("@")[0];
   const msg = document.getElementById("welcome-msg");
   if (msg) msg.textContent = displayName ? "خوش آمدی، " + displayName + " 👋" : "خوش آمدی 👋";
+
+  // پیش‌فرش کردن مقدار اینپوت تغییر نام نمایشی در تب تنظیمات
+  const settingDisplayName = document.getElementById("setting-display-name");
+  if (settingDisplayName) {
+    settingDisplayName.value = displayName;
+  }
 
   const dateLabel = document.getElementById("date-label");
   if (dateLabel) dateLabel.textContent = fmtDateLabel(state.curDate);
