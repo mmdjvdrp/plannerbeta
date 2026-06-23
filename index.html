@@ -109,12 +109,8 @@
       <div class="card">
         <div class="card-title">حال و هوای امروز من</div>
         <div class="mood-container" style="display:flex; gap:12px; align-items:center; justify-content: center;">
-          <div id="mood-emojis" style="display:flex; gap:16px;">
-            <span class="mood-emoji" data-mood="🤩">🤩</span>
-            <span class="mood-emoji" data-mood="😊">😊</span>
-            <span class="mood-emoji" data-mood="😐">😐</span>
-            <span class="mood-emoji" data-mood="😔">😔</span>
-            <span class="mood-emoji" data-mood="😡">😡</span>
+          <div id="mood-emojis" style="display:flex; gap:16px; align-items: center; justify-content: center;">
+            <!-- ایموجی‌ها یا فایل‌های WebM به صورت خودکار از render.js بارگذاری می‌شوند -->
           </div>
         </div>
       </div>
@@ -174,7 +170,6 @@
         <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap: wrap; gap:8px;">
           <span>گزارش دوره‌ای موضوعات</span>
           <div style="display:flex; gap:6px; align-items:center;">
-            <!-- منوی سوئیچ ساختار چارت (اضافه شدن چارت خطی) -->
             <select id="report-chart-type" style="width: auto; padding: 4px; font-size: 11px; height: 28px; border-radius: 6px; background:var(--surface2); color:var(--text); border:1px solid var(--border2);">
               <option value="doughnut">دایره‌ای (Doughnut)</option>
               <option value="bar">ستونی (Bar)</option>
@@ -216,9 +211,16 @@
         </div>
       </div>
 
+      <!-- پنل اختصاصی شخصی‌سازی انیمیشن‌های WebM و ایموجی‌ها -->
+      <div class="card">
+        <div class="card-title">شخصی‌سازی شکلک‌های حال و هوا (خلق‌وخو)</div>
+        <p style="font-size: 11px; color: var(--muted); margin-bottom: 12px;">شما می‌توانید برای هر یک از ۵ حالت روحی، یک اموجی متنی یا آدرس یک فایل انیمیشنی WebM لوکال یا وب وارد کنید:</p>
+        <div id="custom-emojis-container" style="display:flex; flex-direction:column; gap:10px;"></div>
+        <button id="save-custom-emojis-btn" class="btn-primary" style="margin-top:14px;">💾 ذخیره چیدمان شکلک‌ها</button>
+      </div>
+
       <div class="card">
         <div class="card-title">شخصی‌سازی ظاهر</div>
-        
         <div class="form-group" style="margin-bottom: 20px;">
           <label>پوسته برنامه (تم)</label>
           <select id="setting-theme-select">
