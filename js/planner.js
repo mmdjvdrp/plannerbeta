@@ -57,6 +57,14 @@ safeBindEvent("map-next", "onclick", () => {
 
 safeBindEvent("map-cat-select", "onchange", () => { render(); });
 
+// رویداد سوییچ روشن/خاموش یکپارچه‌سازی و گروه‌بندی کارهای هم‌موضوع در تایم‌لاین
+safeBindEvent("timeline-group-toggle", "onchange", (e) => {
+  state.groupTimelinePref = e.target.checked;
+  save("planner_group_timeline_pref", state.groupTimelinePref);
+  saveCloud();
+  render();
+});
+
 // رویدادهای تغییر تم و تغییر رنگ دلخواه از تب تنظیمات
 safeBindEvent("setting-theme-select", "onchange", (e) => {
   state.theme = e.target.value; 
@@ -156,7 +164,7 @@ safeBindEvent("add-btn", "onclick", () => {
   if(sMins === null || eMins === null) return alert("فرمت زمان وارد شده صحیح نیست");
 
   let durMins = eMins - sMins; if(durMins < 0) durMins += 24 * 60;
-  const tags = tagsRaw ? tagsRaw.split(' ').filter(t => t.startsWith('#')) : [];
+  const tags = tagsRaw ? tagsRaw.split(" ").filter(t => t.startsWith("#")) : [];
 
   state.events.push({ id: Date.now().toString(), date: state.curDate, title, catId, sMins, eMins, durMins, tags });
   save("planner_ev", state.events); saveCloud(); render(); switchTab("tab-timeline");
