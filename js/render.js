@@ -23,7 +23,7 @@ export function renderCats(){
   if(!sel || !mapSel || !manager) return;
 
   const currentVal = sel.value;
-  const currentMapVal = mapSel.value; // ۱. ذخیره انتخاب فعلی نقشه ماهانه جهت جلوگیری از ریست شدن
+  const currentMapVal = mapSel.value; // ذخیره انتخاب فعلی نقشه ماهانه جهت جلوگیری از ریست شدن
   sel.innerHTML=''; mapSel.innerHTML=''; manager.innerHTML='';
   
   // افزودن گزینه پیش‌فرض خلق و خو به نقشه ماهانه موضوعات
@@ -75,7 +75,7 @@ export function renderCats(){
     sel.value = currentVal;
   }
 
-  // ۲. بازیابی انتخاب نقشه ماهانه در صورتی که هنوز معتبر باشد
+  // بازیابی انتخاب نقشه ماهانه در صورتی که هنوز معتبر باشد
   if (currentMapVal && (currentMapVal === 'mood_tracker' || state.cats.some(c => c.id === currentMapVal))) {
     mapSel.value = currentMapVal;
   } else {
@@ -264,6 +264,22 @@ export function renderReport(){
     }
   });
 
+  // بروزرسانی کارت آمار پیشرفته زیر نمودار برای موبایل
+  const detailCard = document.getElementById('report-detail-card');
+  if (detailCard) {
+    if (state.selectedReportCats.length === state.cats.length || state.selectedReportCats.length === 0 && state.cats.length > 0) {
+      detailCard.innerHTML = `📊 در حال نمایش آمار کلی <b>همه موضوعات فعال</b> برای این دوره ${daysRange} روزه (مجموع زمان فعالیت: <b>${fmtDur(total)}</b>)`;
+    } else if (state.selectedReportCats.length === 0) {
+      detailCard.innerHTML = `⚠️ هیچ موضوعی برای نمایش انتخاب نشده است. برای فعال‌سازی مجدد روی چک‌باکس موضوعات پایین ضربه بزنید.`;
+    } else {
+      const names = state.cats
+        .filter(c => state.selectedReportCats.includes(c.id))
+        .map(c => c.name)
+        .join('، ');
+      detailCard.innerHTML = `🎯 آمار فیلتر شده نمودار: <b style="color:var(--accent);">${escHtml(names)}</b> (مجموع زمان این موضوعات: <b>${fmtDur(activeTotal)}</b>)`;
+    }
+  }
+
   const chartType = state.chartTypePref || 'doughnut';
 
   // تولید چارت بر اساس دسته‌های تیک‌خورده
@@ -360,7 +376,7 @@ export function renderReport(){
     }
   }
 
-  // رندر گرید زیر نمودار با قابلیت انتخاب چندگانه و افکت هاله انتخابی
+  // رندر گرید زیر نمودار با ساختار چک‌باکس لمسی زیبا و واکنش‌گرای موبایل
   const recordedCatIds = Object.keys(sums);
   if (recordedCatIds.length === 0) {
     grid.innerHTML = '<div style="color:var(--muted); font-size:12px; text-align:center; padding:10px;">داده‌ای برای دوره‌ی انتخاب شده وجود ندارد.</div>';
@@ -375,12 +391,18 @@ export function renderReport(){
       itemDiv.className = `report-item-interactive ${isSelected ? 'selected' : ''}`;
       itemDiv.style.setProperty('--cat-color', cat.color);
       
+      // ساخت یک چک‌باکس داخلی فیزیکی با آیکون تیک متحرک
       itemDiv.innerHTML = `
-        <div class="report-header">
-          <span style="color:${cat.color}; font-weight:700;">${escHtml(cat.name)}</span>
-          <span>${fmtDur(mins)} (${pct}٪)</span>
+        <div class="report-header" style="display:flex; justify-content:space-between; align-items:center;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="display:inline-block; width:16px; height:16px; border-radius:5px; border:2px solid ${cat.color}; background:${isSelected ? cat.color : 'transparent'}; transition: background 0.2s, transform 0.15s; position:relative; flex-shrink:0;">
+              ${isSelected ? '<span style="position:absolute; left:3px; top:-1px; color:#fff; font-size:9px; font-weight:bold; line-height:1;">✓</span>' : ''}
+            </span>
+            <span style="color:${cat.color}; font-weight:700; font-size:13px;">${escHtml(cat.name)}</span>
+          </div>
+          <span style="font-size:12px; color:var(--text); font-weight:500;">${fmtDur(mins)} (${pct}٪)</span>
         </div>
-        <div class="prog-bg">
+        <div class="prog-bg" style="margin-top:8px;">
           <div class="prog-fill" style="background:${cat.color}; width:${pct}%"></div>
         </div>
       `;
@@ -549,278 +571,4 @@ export function renderHabitsAndTodos() {
   if(!todoList || !habitList) return;
 
   const todaysTodos = state.todos.filter(t => t.date === state.curDate);
-  todoList.innerHTML = todaysTodos.length ? '' : '<div style="color:var(--muted); font-size:12px;">کاری ثبت نشده</div>';
-  todaysTodos.forEach(t => {
-    todoList.innerHTML += `
-      <div class="todo-item">
-        <div style="display:flex; align-items:center; flex:1;">
-          <input type="checkbox" class="todo-checkbox" ${t.done?'checked':''} onchange="toggleTodo('${t.id}')">
-          <span class="todo-title ${t.done?'done':''}">${escHtml(t.title)}</span>
-        </div>
-        <button class="btn-del" onclick="deleteTodo('${t.id}')">✕</button>
-      </div>`;
-  });
-
-  habitList.innerHTML = state.habits.length ? '' : '<div style="color:var(--muted); font-size:12px;">عادتی ثبت نشده</div>';
-  const last7Days = [];
-  const [y,m,d] = state.curDate.split('-').map(Number);
-  for(let i=6; i>=0; i--) {
-    let dt = new Date(y, m-1, d - i);
-    last7Days.push(dt.getFullYear() + '-' + pad(dt.getMonth() + 1) + '-' + pad(dt.getDate()));
-  }
-
-  state.habits.forEach(h => {
-    let daysHtml = last7Days.map(dateStr => {
-      const isDone = state.habitLogs[h.id] && state.habitLogs[h.id][dateStr];
-      const dNum = dateStr.slice(-2);
-      return `<button class="habit-day-btn ${isDone?'done':''}" onclick="toggleHabit('${h.id}', '${dateStr}')">${dNum}</button>`;
-    }).join('');
-
-    habitList.innerHTML += `
-      <div class="habit-item" style="flex-direction:column; align-items:flex-start; gap:10px;">
-        <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
-          <strong style="font-size:13px; color:var(--text);">${escHtml(h.title)}</strong>
-          <button class="btn-del" style="width:24px; height:24px; font-size:12px;" onclick="deleteHabit('${h.id}')">✕</button>
-        </div>
-        <div class="habit-days">${daysHtml}</div>
-      </div>`;
-  });
-}
-
-export function renderMood() {
-  const noteInp = document.getElementById('journal-textarea');
-  const emojiContainer = document.getElementById('mood-emojis');
-  if(!noteInp || !emojiContainer) return;
-
-  const todayMood = state.moods[state.curDate] || { mood: null, note: '' };
-  noteInp.value = todayMood.note;
-
-  emojiContainer.innerHTML = state.moodPresets.map(preset => {
-    const isActive = (String(todayMood.mood) === String(preset.level));
-    const activeStyle = isActive 
-      ? 'opacity: 1; transform: scale(1.15); filter: drop-shadow(0 0 10px var(--accent)); border: 2px solid var(--accent);' 
-      : 'opacity: 0.45; border: 2px solid transparent;';
-      
-    if (preset.type === 'webm' || preset.type === 'video') {
-      return `
-        <div class="mood-emoji" data-mood="${preset.level}" style="cursor:pointer; display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:50%; overflow:hidden; transition: all 0.2s; ${activeStyle}">
-          <video src="${preset.value}" autoplay loop muted playsinline style="width:100%; height:100%; object-fit:cover; pointer-events:none;"></video>
-        </div>`;
-    } else {
-      return `
-        <span class="mood-emoji" data-mood="${preset.level}" style="cursor:pointer; font-size:32px; display:inline-block; transition: all 0.2s; ${activeStyle}">${preset.value}</span>`;
-    }
-  }).join('');
-
-  document.querySelectorAll('.mood-emoji').forEach(sp => {
-    sp.onclick = () => {
-      const val = sp.getAttribute('data-mood');
-      if(!state.moods[state.curDate]) state.moods[state.curDate] = { note: noteInp.value };
-      state.moods[state.curDate].mood = String(val);
-      save('planner_moods', state.moods); 
-      saveCloud(); 
-      renderMood();
-      renderActivityMap();
-    };
-  });
-}
-
-function startLiveStopwatch() {
-  if(liveStopwatchInterval) clearInterval(liveStopwatchInterval);
-  const isPom = state.liveSession.isPomodoro;
-  let notified = false;
-
-  const updateElapsed = () => {
-    const el = document.getElementById('live-elapsed-time');
-    if(el && state.liveSession) {
-      const nowMins = parseTime(getNow());
-      let diff = nowMins - state.liveSession.sMins; 
-      if(diff<0) diff+=24*60;
-      
-      let netMins = diff - (state.liveSession.pauseMins || 0);
-      if (state.liveSession.pauseStartMins !== null && state.liveSession.pauseStartMins !== undefined) {
-        let pauseDiff = nowMins - state.liveSession.pauseStartMins;
-        if (pauseDiff < 0) pauseDiff += 24 * 60;
-        netMins -= pauseDiff;
-      }
-
-      if (netMins < 0) netMins = 0;
-
-      const pomoLimit = state.pomodoroWorkPref || 25;
-
-      if(isPom && netMins>=pomoLimit && !notified) { 
-        notified=true; 
-        new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(()=>{});
-        
-        // ارسال اعلان سیستمی در صورت داشتن مجوز معتبر
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification("پومودورو 🍅", {
-            body: `زمان کار پومودورو با موفقیت به پایان رسید! (${pomoLimit} دقیقه)`,
-            icon: "./icons/icon-192.png"
-          });
-        }
-        
-        alert(`🍅 زمان کار پومودورو با موفقیت به پایان رسید! (${pomoLimit} دقیقه)`); 
-      }
-      el.innerHTML = `زمان خالص: <b>${fmtDur(netMins)}</b> ${isPom?'(پومودورو) 🍅':''}`;
-    }
-  };
-
-  updateElapsed();
-  liveStopwatchInterval = setInterval(updateElapsed, 1000);
-}
-
-export function toggleLivePause() {
-  if (!state.liveSession) return;
-  const nowMins = parseTime(getNow());
-
-  if (state.liveSession.pauseStartMins === null || state.liveSession.pauseStartMins === undefined) {
-    state.liveSession.pauseStartMins = nowMins;
-  } else {
-    let diff = nowMins - state.liveSession.pauseStartMins;
-    if (diff < 0) diff += 24 * 60;
-    state.liveSession.pauseMins = (state.liveSession.pauseMins || 0) + diff;
-    state.liveSession.pauseStartMins = null;
-  }
-  save('planner_live', state.liveSession);
-  saveCloud();
-  updateLiveButton();
-}
-
-export function updateLiveButton(){
-  const btn = document.getElementById('live-btn');
-  const status = document.getElementById('live-status');
-  if(!btn || !status) return;
-
-  if(state.liveSession){
-    btn.classList.add('is-running');
-    btn.textContent = 'پایان و ثبت فعالیت';
-    
-    const cat = state.cats.find(c => c.id === state.liveSession.catId) || {name: 'موضوع', color: '#999'};
-    const isPaused = state.liveSession.pauseStartMins !== null && state.liveSession.pauseStartMins !== undefined;
-    const pauseMinsTotal = state.liveSession.pauseMins || 0;
-
-    status.innerHTML = `
-      <div style="margin-bottom: 4px;">ثبت زنده: ${escHtml(state.liveSession.title || cat.name)} (${escHtml(cat.name)})</div>
-      <div id="live-elapsed-time" style="color:var(--accent2); font-weight:700; margin-bottom:4px;">در حال محاسبه...</div>
-      ${pauseMinsTotal ? `<div style="color:var(--accent2); font-size:11px;">کل زمان وقفه: ${pauseMinsTotal} دقیقه</div>` : ''}
-      ${isPaused ? `<div style="color:#f87171; font-size:11px; margin-bottom:4px;">⏳ اکنون در حالت پاز موقت</div>` : ''}
-      <div style="display:flex; gap:6px; justify-content:center; margin-top:6px;">
-        <button id="live-pause-btn" class="action-btn" style="background:var(--surface3); color:var(--text); border:1px solid var(--border2);">${isPaused ? '▶ ادامه فعالیت' : '⏸ پاز موقت'}</button>
-        <button id="live-cancel-btn" class="action-btn" style="background:#f8717122; border:1px solid rgba(248,113,113,0.3); color:#fecaca;">🚫 لغو و انصراف</button>
-      </div>
-    `;
-
-    document.getElementById('live-pause-btn').onclick = (e) => {
-      e.stopPropagation();
-      toggleLivePause();
-    };
-
-    document.getElementById('live-cancel-btn').onclick = (e) => {
-      e.stopPropagation();
-      window.cancelLiveSession();
-    };
-
-    startLiveStopwatch();
-  } else {
-    btn.classList.remove('is-running');
-    btn.textContent = 'شروع فعالیت زنده';
-    status.textContent = '';
-    if(liveStopwatchInterval) {
-      clearInterval(liveStopwatchInterval);
-      liveStopwatchInterval = null;
-    }
-  }
-}
-
-export function renderRoutines() {
-  const list = document.getElementById('rt-list');
-  if(!list) return;
-  list.innerHTML = '';
-  
-  if (state.routines.length === 0) {
-    list.innerHTML = `<div style="font-size:11px; color:var(--muted); text-align:center;">هیچ روتینی تعریف نشده است</div>`;
-    return;
-  }
-  
-  const daysName = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
-  state.routines.forEach(rt => {
-    const cat = state.cats.find(c => c.id === rt.catId) || {name: 'حذف شده', color: '#999'};
-    const daysStr = rt.days.map(d => daysName[d]).join('، ');
-    
-    list.innerHTML += `
-      <div style="display:flex; align-items:center; justify-content:space-between; background:var(--surface2); border:1px solid var(--border); border-right:3px solid ${cat.color}; border-radius:8px; padding:6px 10px;">
-        <div>
-          <div style="font-size:12px; font-weight:700;">${escHtml(rt.title)} (${cat.name})</div>
-          <div style="font-size:10px; color:var(--muted)">ساعت ${rt.startTime} تا ${rt.endTime} | روزهای: ${daysStr}</div>
-        </div>
-        <button class="btn-del" style="width:24px; height:24px; font-size:11px;" onclick="delRoutine('${rt.id}')">✕</button>
-      </div>`;
-  });
-}
-
-// ساخت ویرایشگر پیشرفته و کاملاً شخصی‌سازی شده اموجی‌ها با دکمه اضافه و حذف
-export function renderCustomEmojisEditor() {
-  const container = document.getElementById('custom-emojis-container');
-  if (!container) return;
-  
-  container.innerHTML = state.moodPresets.map((preset, idx) => {
-    return `
-      <div style="display:flex; align-items:center; gap:8px; background:var(--surface2); padding:10px; border-radius:8px; border:1px solid var(--border); flex-wrap:wrap;">
-        <input type="text" class="emoji-label-input" data-idx="${idx}" value="${escHtml(preset.label)}" style="width:110px; padding:6px; font-size:12px; height:32px; border-radius:6px;" placeholder="عنوان مثلاً: عالی">
-        <select class="emoji-type-select" data-idx="${idx}" style="width:100px; padding:6px; font-size:12px; height:32px; border-radius:6px; background:var(--surface); color:var(--text); border:1px solid var(--border2);">
-          <option value="text" ${preset.type === 'text' ? 'selected' : ''}>شکلک متنی</option>
-          <option value="webm" ${preset.type === 'webm' ? 'selected' : ''}>انیمیشن (WebM)</option>
-        </select>
-        <input type="text" class="emoji-value-input" data-idx="${idx}" value="${escHtml(preset.value)}" style="flex:1; min-width:80px; padding:6px; font-size:12px; height:32px; border-radius:6px;" placeholder="${preset.type === 'text' ? 'مثلاً: 😊' : 'آدرس وب فایل .webm'}">
-        <button class="btn-del" type="button" onclick="deleteMoodPreset(${idx})" style="width:32px; height:32px; font-size:12px; flex-shrink:0;">✕</button>
-      </div>`;
-  }).join('');
-}
-
-export function syncSettingsForm() {
-  if (document.getElementById('setting-calendar')) document.getElementById('setting-calendar').value = state.calendarPref;
-  if (document.getElementById('setting-duration-format')) document.getElementById('setting-duration-format').value = state.timeFormatPref;
-  if (document.getElementById('setting-week-start')) document.getElementById('setting-week-start').value = state.weekStartPref;
-  if (document.getElementById('setting-pomodoro-work')) document.getElementById('setting-pomodoro-work').value = state.pomodoroWorkPref;
-  if (document.getElementById('setting-pomodoro-break')) document.getElementById('setting-pomodoro-break').value = state.pomodoroBreakPref;
-}
-
-export function render(){
-  applyTheme();
-  
-  const dateLabel = document.getElementById('date-label');
-  if (dateLabel) dateLabel.textContent = fmtDateLabel(state.curDate);
-  
-  const groupToggle = document.getElementById('timeline-group-toggle');
-  if (groupToggle) groupToggle.checked = state.groupTimelinePref;
-
-  // فیکس دکمه ادیت / افزودن
-  const addBtn = document.getElementById("add-btn");
-  const cancelEditBtn = document.getElementById("cancel-edit-btn");
-  const titleHeader = document.getElementById("manage-card-title");
-  if (addBtn && cancelEditBtn && titleHeader) {
-    if (state.editingEventId) {
-      addBtn.textContent = "💾 ذخیره تغییرات ویرایش";
-      addBtn.style.background = "linear-gradient(135deg, #10b981, #059669)";
-      cancelEditBtn.style.display = "block";
-      titleHeader.textContent = "ویرایش فعالیت انتخاب شده";
-    } else {
-      addBtn.textContent = "+ افزودن به تایم‌لاین";
-      addBtn.style.background = "";
-      cancelEditBtn.style.display = "none";
-      titleHeader.textContent = "ثبت فعالیت جدید";
-    }
-  }
-  
-  renderCats();
-  renderTimeline();
-  renderReport();
-  renderActivityMap();
-  renderHabitsAndTodos();
-  renderMood();
-  renderRoutines();
-  updateLiveButton();
-  syncSettingsForm();
-  renderCustomEmojisEditor(); 
-}
+  todoList.innerHTML = todaysTodos.length ? '' : '<div style="color:var(--muted); font-si
