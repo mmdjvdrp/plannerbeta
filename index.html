@@ -1,115 +1,17 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-  <!-- آیکون برنامه در بالای مرورگر و وب مانیفست -->
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon.png">
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
   <meta name="theme-color" content="#111827">
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>تقویم روزانه</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./css/style.css">
-
-<!-- استایل واکنش‌گرا و جدول هفتگی مدارس منحصراً برای دستگاه‌های موبایل و دسکتاپ -->
-<style>
-@media(max-width: 768px) {
-  body {
-    padding: 12px 8px;
-  }
-  .header {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 14px;
-  }
-  .logo {
-    font-size: 22px;
-  }
-  .date-nav {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    width: 100%;
-    gap: 12px;
-  }
-  .date-nav > div:first-of-type {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    order: -1;
-  }
-  #date-label {
-    flex: 1;
-    min-width: 0;
-    font-size: 13px;
-    padding: 6px 4px;
-  }
-  .card {
-    padding: 14px;
-    border-radius: 12px;
-  }
-  .card-title {
-    font-size: 10px;
-    margin-bottom: 12px;
-  }
-  .activity-map {
-    gap: 4px;
-  }
-  .map-day {
-    border-radius: 6px;
-    font-size: 8px;
-  }
-  .map-day-num {
-    top: 2px;
-    inset-inline-start: 3px;
-    font-size: 7px;
-  }
-  .tl-wrap {
-    padding-right: 12px;
-    margin-right: 4px;
-  }
-  .tl-item {
-    padding: 8px 10px;
-    gap: 8px;
-  }
-  .tl-title {
-    font-size: 13px;
-  }
-  .tl-meta {
-    gap: 4px;
-    flex-wrap: wrap;
-  }
-  .tl-badge {
-    font-size: 9px;
-    padding: 1px 5px;
-  }
-  .tl-time {
-    font-size: 10px;
-    padding: 1px 5px;
-  }
-  .tl-dur {
-    font-size: 10px;
-  }
-  .btn-del {
-    width: 26px;
-    height: 26px;
-    font-size: 11px;
-    border-radius: 6px;
-  }
-  /* ریسپانسیو کردن جدول برنامه هفتگی کلاس درس */
-  .timetable-grid {
-    grid-template-columns: 1fr !important;
-    gap: 12px !important;
-  }
-  .timetable-day-col {
-    min-height: 100px !important;
-  }
-}
-</style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -122,41 +24,118 @@
       تقویم روزانه
     </div>
     <div class="date-nav">
-      <div style="display:flex; align-items:center; gap:10px">
+      <div style="display:flex; align-items:center; gap:8px">
         <span id="welcome-msg" style="font-size:13px; color:var(--muted)"></span>
-        <button id="logout-btn" style="
-          padding:6px 14px;
-          border-radius:8px;
-          border:1px solid var(--border2);
-          background:var(--surface2);
-          color:var(--muted);
-          cursor:pointer;
-          font-family:Vazirmatn,sans-serif;
-          font-size:12px;
-        ">خروج</button>
+        <button id="notify-enable-btn" class="header-btn">🔔 اعلان‌ها</button>
+        <button id="logout-btn" class="header-btn">خروج</button>
       </div>
       <button id="prev-day" title="روز قبل">&#8249;</button>
       <div id="date-label"></div>
       <button id="next-day" title="روز بعد">&#8250;</button>
       <button class="btn-today" id="btn-today">امروز</button>
-      <select id="theme-select" class="theme-select" title="تم">
-        <option value="dark">دارک</option>
-        <option value="light">لایت</option>
-        <option value="forest">سبز</option>
-        <option value="sunset">غروب</option>
-      </select>
+      
+      <!-- منوی تم و رنگ -->
+      <div style="display: flex; gap: 4px; align-items: center;">
+        <input type="color" id="accent-color-picker" title="رنگ دلخواه خود را انتخاب کنید" style="width: 32px; height: 32px; border:none; background:transparent; cursor:pointer;">
+        <select id="theme-select" class="theme-select" title="تم">
+          <option value="auto">خودکار (سیستم)</option>
+          <option value="dark">دارک</option>
+          <option value="light">لایت</option>
+          <option value="amoled">مشکی مطلق (AMOLED)</option>
+          <option value="pastel">پاستلی</option>
+          <option value="forest">سبز</option>
+          <option value="sunset">غروب</option>
+        </select>
+      </div>
     </div>
   </div>
 
-  <div class="grid">
-    <!-- Left column -->
-    <div>
-      <!-- Add Event -->
+  <!-- App Navigation -->
+  <nav class="app-nav">
+    <button class="nav-btn active" data-tab="tab-timeline">
+      <span class="nav-icon">📅</span> تایم‌لاین
+    </button>
+    <button class="nav-btn" data-tab="tab-habits">
+      <span class="nav-icon">✔️</span> کارها و عادت‌ها
+    </button>
+    <button class="nav-btn" data-tab="tab-add">
+      <span class="nav-icon">⚙️</span> ثبت فعالیت
+    </button>
+    <button class="nav-btn" data-tab="tab-reports">
+      <span class="nav-icon">📊</span> گزارش‌ها
+    </button>
+  </nav>
+
+  <div class="tab-container">
+    
+    <!-- ================= تب 1: تایم‌لاین ================= -->
+    <div id="tab-timeline" class="tab-section active">
+      <!-- بخش ردیاب حال و هوا (Mood Tracker) -->
+      <div class="card" style="margin-bottom: 16px;">
+        <div class="card-title">حال و هوای امروز من</div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <div id="mood-emojis" style="display:flex; gap:8px; font-size:24px; cursor:pointer;">
+            <span data-mood="🤩">🤩</span>
+            <span data-mood="😊">😊</span>
+            <span data-mood="😐">😐</span>
+            <span data-mood="😔">😔</span>
+            <span data-mood="😡">😡</span>
+          </div>
+          <input type="text" id="mood-note" placeholder="یک یادداشت کوتاه درباره امروز بنویس..." style="flex:1;">
+          <button id="save-mood-btn" class="header-btn" style="background:var(--accent); color:white;">ثبت</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:0">
+        <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <div>تایم‌لاین &mdash; <span id="tl-date" style="color:var(--accent2)"></span></div>
+          <div style="display:flex; gap:4px;">
+            <button id="view-daily-btn" class="view-tab-btn active-view">روزانه</button>
+            <button id="view-weekly-btn" class="view-tab-btn">هفتگی</button>
+          </div>
+        </div>
+        <div id="empty-msg" class="empty-msg">
+          <div class="empty-icon">📅</div>
+          هنوز فعالیتی برای این روز ثبت نکرده‌اید
+        </div>
+        <div class="tl-wrap" id="timeline" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- ================= تب 2: کارها و عادت‌ها (تودو لیست و ردیاب عادت) ================= -->
+    <div id="tab-habits" class="tab-section">
+      <!-- لیست کارها (To-Do) -->
+      <div class="card">
+        <div class="card-title">کارهای بدون زمان (To-Do)</div>
+        <div style="display:flex; gap:8px; margin-bottom: 12px;">
+          <input type="text" id="todo-input" placeholder="مثلاً: تماس با پزشک یا خرید نان">
+          <button id="add-todo-btn" class="header-btn" style="background:var(--accent); color:white;">افزودن</button>
+        </div>
+        <div id="todo-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+
+      <!-- ردیاب عادت‌ها -->
+      <div class="card">
+        <div class="card-title">ردیاب عادت‌ها (Habits)</div>
+        <div style="display:flex; gap:8px; margin-bottom: 12px;">
+          <input type="text" id="habit-input" placeholder="عادت جدید... (مثلاً: 8 لیوان آب)">
+          <button id="add-habit-btn" class="header-btn" style="background:var(--accent); color:white;">افزودن</button>
+        </div>
+        <div id="habit-list" style="display:flex; flex-direction:column; gap:12px;"></div>
+      </div>
+    </div>
+
+    <!-- ================= تب 3: ثبت و مدیریت ================= -->
+    <div id="tab-add" class="tab-section">
       <div class="card">
         <div class="card-title">ثبت فعالیت جدید</div>
         <div class="form-group">
           <label>عنوان فعالیت</label>
-          <input type="text" id="act-title" placeholder="عنوان فعالیت (اختیاری - پیش‌فرض: نام موضوع)">
+          <input type="text" id="act-title" placeholder="عنوان فعالیت (اختیاری)">
+        </div>
+        <div class="form-group">
+          <label>تگ‌ها / پروژه (اختیاری)</label>
+          <input type="text" id="act-tags" placeholder="مثلاً: #پروژه_الف #طراحی">
         </div>
         <div class="form-group">
           <label>دسته‌بندی</label>
@@ -177,29 +156,42 @@
           <label>زمان شروع و پایان</label>
           <div class="time-row">
             <div class="time-field">
-              <input type="text" id="start-time" placeholder="08:30" maxlength="5" autocomplete="off">
+              <input type="text" id="start-time" inputmode="numeric" placeholder="08:30" maxlength="5" autocomplete="off">
               <button class="now-btn" id="btn-now-s">الان</button>
             </div>
             <div class="time-field">
-              <input type="text" id="end-time" placeholder="10:00" maxlength="5" autocomplete="off">
+              <input type="text" id="end-time" inputmode="numeric" placeholder="10:00" maxlength="5" autocomplete="off">
               <button class="now-btn" id="btn-now-e">الان</button>
             </div>
           </div>
-          <div class="err-msg" id="time-err">⚠ فرمت صحیح: HH:MM مثلاً ۱۴:۳۰</div>
+          <div class="err-msg" id="time-err">⚠ فرمت صحیح: HH:MM</div>
         </div>
-        <!-- فیلد وقفه/پاز زمان دستی (بدون تکرار) -->
         <div class="form-group">
           <label>مدت زمان وقفه / پاز (دقیقه - اختیاری)</label>
-          <input type="text" id="pause-time" placeholder="مثلاً: ۳۰ (دقیقه)" maxlength="4" autocomplete="off">
+          <input type="text" id="pause-time" inputmode="numeric" placeholder="مثلاً: ۳۰">
         </div>
+        
+        <!-- سوئیچ حالت پومودورو -->
+        <div class="form-group" style="display:flex; align-items:center; gap:8px; margin-bottom: 12px; background:var(--surface2); padding:10px; border-radius:8px;">
+          <input type="checkbox" id="pomodoro-toggle" style="width:18px; height:18px;">
+          <label for="pomodoro-toggle" style="margin:0; font-size:13px; color:var(--text);">فعال‌سازی حالت پومودورو در زمان‌سنج زنده (۲۵ دقیقه کار / ۵ دقیقه استراحت)</label>
+        </div>
+
         <button class="btn-primary" id="add-btn">+ افزودن به تایم‌لاین</button>
         <button class="btn-primary" id="edit-cancel-btn" style="display:none; background:var(--surface3); color:var(--text); border:1px solid var(--border2); margin-top:8px;">انصراف از ویرایش</button>
         <button class="btn-live" id="live-btn">شروع / پایان با ساعت سیستم</button>
         <div class="live-status" id="live-status"></div>
       </div>
 
-      <!-- کارت: روتین‌های ثابت روزانه -->
-      <div class="card">
+      <!-- دکمه‌های باز کردن پنل روتین و هدف -->
+      <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+        <button id="toggle-rt-form-btn" class="btn-live" style="margin-top:0; flex:1;">⏰ تعریف روتین ثابت</button>
+        <button id="toggle-goal-form-btn" class="btn-live" style="margin-top:0; flex:1;">🎯 تعریف هدف ماهانه</button>
+      </div>
+
+      <!-- پنل روتین‌ها -->
+      <div class="card" id="rt-card-panel" style="display: none; position: relative;">
+        <button type="button" class="close-panel-btn" id="close-rt-panel">✕</button>
         <div class="card-title">تعریف روتین‌های ثابت</div>
         <div class="form-group">
           <label>عنوان روتین</label>
@@ -208,53 +200,68 @@
         <div class="form-group">
           <label>زمان شروع و پایان</label>
           <div class="time-row">
-            <input type="text" id="rt-start" placeholder="17:00" maxlength="5" autocomplete="off">
-            <input type="text" id="rt-end" placeholder="18:30" maxlength="5" autocomplete="off">
+            <input type="text" id="rt-start" inputmode="numeric" placeholder="17:00" maxlength="5">
+            <input type="text" id="rt-end" inputmode="numeric" placeholder="18:30" maxlength="5">
           </div>
         </div>
         <div class="form-group">
           <label>روزهای تکرار روتین</label>
           <div id="rt-days-selector" style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px;">
-            <button type="button" class="rt-day-btn" data-day="0" style="padding:4px 8px; font-size:11px; border-radius:6px; cursor:pointer; background:var(--surface2); border:1px solid var(--border2); color:var(--text);">ش</button>
-            <button type="button" class="rt-day-btn" data-day="1" style="padding:4px 8px; font-size:11px; border-radius:6px; cursor:pointer; background:var(--surface2); border:1px solid var(--border2); color:var(--text);">ی</button>
-            <button type="button" class="rt-day-btn" data-day="2" style="padding:4px 8px; font-size:11px; border-radius:6px; cursor:pointer; background:var(--surface2); border:1px solid var(--border2); color:var(--text);">د</button>
-            <button type="button" class="rt-day-btn" data-day="3" style="padding:4px 8px; font-size:11px; border-radius:6px; cursor:pointer; background:var(--surface2); border:1px solid var(--border2); color:var(--text);">س</button>
-            <button type="button" class="rt-day-btn" data-day="4" style="padding:4px 8px; font-size:11px; border-radius:6px; cursor:pointer; background:var(--surface2); border:1px solid var(--border2); color:var(--text);">چ</button>
-            <button type="button" class="rt-day-btn" data-day="5" style="padding:4px 8px; font-size:11px; border-radius:6px; cursor:pointer; background:var(--surface2); border:1px solid var(--border2); color:var(--text);">پ</button>
-            <button type="button" class="rt-day-btn" data-day="6" style="padding:4px 8px; font-size:11px; border-radius:6px; cursor:pointer; background:var(--surface2); border:1px solid var(--border2); color:var(--text);">ج</button>
+            <button type="button" class="rt-day-btn" data-day="0">ش</button>
+            <button type="button" class="rt-day-btn" data-day="1">ی</button>
+            <button type="button" class="rt-day-btn" data-day="2">د</button>
+            <button type="button" class="rt-day-btn" data-day="3">س</button>
+            <button type="button" class="rt-day-btn" data-day="4">چ</button>
+            <button type="button" class="rt-day-btn" data-day="5">پ</button>
+            <button type="button" class="rt-day-btn" data-day="6">ج</button>
           </div>
         </div>
         <button class="btn-primary" id="add-rt-btn">+ ذخیره روتین</button>
         <div id="rt-list" style="margin-top: 15px; display: flex; flex-direction: column; gap: 6px;"></div>
       </div>
 
-      <!-- Report (داینامیک همراه با دکمه تایید بازه) -->
+      <!-- پنل هدف ماهانه -->
+      <div class="card" id="goal-card-panel" style="display: none; position: relative;">
+        <button type="button" class="close-panel-btn" id="close-goal-panel">✕</button>
+        <div class="card-title">تعریف هدف ماهانه جدید</div>
+        <div class="form-group">
+          <label>عنوان تمرین / فعالیت (اختیاری)</label>
+          <input type="text" id="goal-title" placeholder="مثلاً: وال سیت">
+        </div>
+        <div class="form-group">
+          <label>موضوع (دسته‌بندی)</label>
+          <select id="goal-cat-select"></select>
+        </div>
+        <div class="form-group">
+          <label>مدت زمان هدف (دقیقه)</label>
+          <input type="text" id="goal-target" inputmode="numeric" placeholder="مثلاً: ۳۰">
+        </div>
+        <button class="btn-primary" id="add-goal-btn">+ ثبت هدف</button>
+      </div>
+    </div>
+
+    <!-- ================= تب 4: گزارش‌ها ================= -->
+    <div id="tab-reports" class="tab-section">
       <div class="card">
         <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
           <span>گزارش دوره‌ای موضوعات</span>
           <div style="display:flex; align-items:center; gap:6px;">
             <span style="font-size:11px;">بازه:</span>
-            <input type="text" id="report-days" value="7" style="width: 36px; text-align: center; padding: 4px; font-size: 11px; background: var(--surface2); border: 1px solid var(--border2); color: var(--text); border-radius: 6px;">
-            <span style="font-size:11px;">روزه</span>
-            <!-- دکمه تایید جدید -->
-            <button id="report-confirm-btn" style="
-              padding: 4px 10px;
-              background: var(--accent);
-              color: white;
-              border: none;
-              border-radius: 6px;
-              font-size: 11px;
-              cursor: pointer;
-              font-family: inherit;
-              transition: opacity 0.15s;
-            " onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">تایید</button>
+            <input type="text" id="report-days" inputmode="numeric" value="7" style="width: 36px; text-align: center; padding: 4px; font-size: 11px; background: var(--surface2); border: 1px solid var(--border2); color: var(--text); border-radius: 6px;">
+            <button id="report-confirm-btn" class="header-btn" style="background:var(--accent); color:white;">تایید</button>
           </div>
         </div>
-        <!-- هشدار خطا برای اعداد فارسی و حروف نامعتبر -->
-        <div id="report-err" class="err-msg" style="margin-bottom: 10px; display: none; color: #f87171; font-size: 11px;">⚠ این مقدار غلطه و باید از اعداد انگلیسی استفاده کنی</div>
+        <!-- نمودار گرافیکی دایره‌ای -->
+        <div style="position: relative; height: 200px; margin-bottom: 20px;">
+          <canvas id="report-chart"></canvas>
+        </div>
         <div id="report-grid"></div>
         <div class="total-line" id="total-line">مجموع گزارش: <span>۰ ساعت</span></div>
+        
+        <!-- دکمه خروجی داده‌ها -->
+        <button id="export-btn" class="btn-live" style="margin-top: 20px;">💾 خروجی گرفتن از اطلاعات (Backup)</button>
       </div>
+      
       <!-- Activity Map -->
       <div class="card">
         <div class="card-title">نقشه ماهانه موضوع</div>
@@ -269,28 +276,17 @@
         <div id="activity-map" class="activity-map"></div>
         <div class="map-summary" id="map-summary"></div>
       </div>
-    </div>
 
-    <!-- Timeline & Weekly Timetable -->
-    <div class="card" style="margin-bottom:0">
-      <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-        <div>تایم‌لاین &mdash; <span id="tl-date" style="color:var(--accent2)"></span></div>
-        <div style="display:flex; gap:4px;">
-          <button id="view-daily-btn" style="padding:4px 10px; font-size:11px; font-family:inherit; border-radius:6px; cursor:pointer; background:var(--surface2); border:1px solid var(--border2); color:var(--text);">روزانه</button>
-          <button id="view-weekly-btn" style="padding:4px 10px; background:var(--surface3); border:1px solid var(--border2); color:var(--muted); border-radius:6px; font-size:11px; cursor:pointer; font-family: inherit;">هفتگی</button>
-        </div>
+      <!-- اهداف -->
+      <div class="card" style="margin-top: 15px;">
+        <div class="card-title">پیشرفت اهداف این ماه (<span id="goal-month-lbl" style="color:var(--accent2)"></span>)</div>
+        <div id="goals-list" style="display:flex; flex-direction:column; gap:12px;"></div>
       </div>
-      <div id="empty-msg" class="empty-msg">
-        <div class="empty-icon">📅</div>
-        هنوز فعالیتی برای این روز ثبت نکرده‌اید
-      </div>
-      <div class="tl-wrap" id="timeline" style="display:none"></div>
     </div>
   </div>
 
 </div>
 
-<!-- اتصال به اسکریپت ماژولار و بازسازی شده برنامه -->
 <script type="module" src="./js/planner.js"></script>
 </body>
 </html>
