@@ -12,6 +12,30 @@
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- استایل واکنش‌گرا (همان استایل دقیق خودتان) -->
+<style>
+@media(max-width: 768px) {
+  body { padding: 12px 8px; padding-bottom: 90px; }
+  .header { flex-direction: column; align-items: center; text-align: center; gap: 14px; }
+  .logo { font-size: 22px; }
+  .date-nav { display: flex; flex-wrap: wrap; justify-content: center; width: 100%; gap: 12px; }
+  .date-nav > div:first-of-type { width: 100%; display: flex; justify-content: space-between; align-items: center; order: -1; }
+  #date-label { flex: 1; min-width: 0; font-size: 13px; padding: 6px 4px; }
+  .card { padding: 14px; border-radius: 12px; }
+  .app-nav { position: fixed; bottom: 0; left: 0; right: 0; margin-bottom: 0; border-radius: 20px 20px 0 0; padding: 10px 15px 20px 15px; z-index: 1000; box-shadow: 0 -5px 20px rgba(0,0,0,0.4); border: none; background: var(--surface); display: flex; gap: 10px; }
+  .nav-btn { flex-direction: column; gap: 4px; font-size: 11px; padding: 8px; }
+  .nav-icon { font-size: 22px; }
+  .mood-container { flex-direction: column; align-items: stretch; } /* فیکس موبایل برای مود */
+}
+.tab-section { display: none; animation: fadeIn 0.3s ease; }
+.tab-section.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@media(min-width: 769px) { .app-nav { display: flex; gap: 10px; margin-bottom: 20px; background: var(--surface); padding: 10px; border-radius: 16px; border: 1px solid var(--border); } }
+.nav-btn { flex: 1; padding: 12px; background: transparent; border: none; border-radius: 10px; color: var(--muted); font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; }
+.nav-btn:hover { background: var(--surface2); color: var(--text); }
+.nav-btn.active { background: var(--accent-glow); color: var(--accent); font-weight: 700; }
+</style>
 </head>
 <body>
 
@@ -26,22 +50,22 @@
     <div class="date-nav">
       <div style="display:flex; align-items:center; gap:8px">
         <span id="welcome-msg" style="font-size:13px; color:var(--muted)"></span>
-        <button id="notify-enable-btn" class="header-btn">🔔 اعلان‌ها</button>
-        <button id="logout-btn" class="header-btn">خروج</button>
+        <button id="notify-enable-btn" style="padding:6px 12px; border-radius:8px; border:1px solid var(--border2); background:var(--surface2); color:var(--muted); cursor:pointer; font-size:11px;">🔔 اعلان‌ها</button>
+        <button id="logout-btn" style="padding:6px 14px; border-radius:8px; border:1px solid var(--border2); background:var(--surface2); color:var(--muted); cursor:pointer; font-size:12px;">خروج</button>
       </div>
       <button id="prev-day" title="روز قبل">&#8249;</button>
       <div id="date-label"></div>
       <button id="next-day" title="روز بعد">&#8250;</button>
       <button class="btn-today" id="btn-today">امروز</button>
       
-      <!-- منوی تم و رنگ -->
-      <div style="display: flex; gap: 4px; align-items: center;">
-        <input type="color" id="accent-color-picker" title="رنگ دلخواه خود را انتخاب کنید" style="width: 32px; height: 32px; border:none; background:transparent; cursor:pointer;">
+      <!-- منوی رنگ و تم -->
+      <div style="display:flex; gap:6px; align-items:center;">
+        <input type="color" id="accent-color-picker" title="رنگ دلخواه" style="width:28px; height:28px; border:none; background:transparent; cursor:pointer;">
         <select id="theme-select" class="theme-select" title="تم">
-          <option value="auto">خودکار (سیستم)</option>
+          <option value="auto">خودکار</option>
           <option value="dark">دارک</option>
+          <option value="amoled">مشکی مطلق</option>
           <option value="light">لایت</option>
-          <option value="amoled">مشکی مطلق (AMOLED)</option>
           <option value="pastel">پاستلی</option>
           <option value="forest">سبز</option>
           <option value="sunset">غروب</option>
@@ -52,76 +76,59 @@
 
   <!-- App Navigation -->
   <nav class="app-nav">
-    <button class="nav-btn active" data-tab="tab-timeline">
-      <span class="nav-icon">📅</span> تایم‌لاین
-    </button>
-    <button class="nav-btn" data-tab="tab-habits">
-      <span class="nav-icon">✔️</span> کارها و عادت‌ها
-    </button>
-    <button class="nav-btn" data-tab="tab-add">
-      <span class="nav-icon">⚙️</span> ثبت فعالیت
-    </button>
-    <button class="nav-btn" data-tab="tab-reports">
-      <span class="nav-icon">📊</span> گزارش‌ها
-    </button>
+    <button class="nav-btn active" data-tab="tab-timeline"><span class="nav-icon">📅</span> تایم‌لاین</button>
+    <button class="nav-btn" data-tab="tab-habits"><span class="nav-icon">✔️</span> کار و عادت</button>
+    <button class="nav-btn" data-tab="tab-add"><span class="nav-icon">⚙️</span> مدیریت</button>
+    <button class="nav-btn" data-tab="tab-reports"><span class="nav-icon">📊</span> گزارش‌ها</button>
   </nav>
 
   <div class="tab-container">
     
     <!-- ================= تب 1: تایم‌لاین ================= -->
     <div id="tab-timeline" class="tab-section active">
-      <!-- بخش ردیاب حال و هوا (Mood Tracker) -->
-      <div class="card" style="margin-bottom: 16px;">
+      <!-- حال و هوای امروز (منطبق با موبایل) -->
+      <div class="card">
         <div class="card-title">حال و هوای امروز من</div>
-        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-          <div id="mood-emojis" style="display:flex; gap:8px; font-size:24px; cursor:pointer;">
-            <span data-mood="🤩">🤩</span>
-            <span data-mood="😊">😊</span>
-            <span data-mood="😐">😐</span>
-            <span data-mood="😔">😔</span>
-            <span data-mood="😡">😡</span>
+        <div class="mood-container" style="display:flex; gap:12px; align-items:center;">
+          <div id="mood-emojis" style="display:flex; gap:12px;">
+            <span class="mood-emoji" data-mood="🤩">🤩</span>
+            <span class="mood-emoji" data-mood="😊">😊</span>
+            <span class="mood-emoji" data-mood="😐">😐</span>
+            <span class="mood-emoji" data-mood="😔">😔</span>
+            <span class="mood-emoji" data-mood="😡">😡</span>
           </div>
-          <input type="text" id="mood-note" placeholder="یک یادداشت کوتاه درباره امروز بنویس..." style="flex:1;">
-          <button id="save-mood-btn" class="header-btn" style="background:var(--accent); color:white;">ثبت</button>
+          <input type="text" id="mood-note" placeholder="یادداشت کوتاه..." style="flex:1;">
+          <button id="save-mood-btn" class="action-btn">ثبت مود</button>
         </div>
       </div>
 
       <div class="card" style="margin-bottom:0">
         <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
           <div>تایم‌لاین &mdash; <span id="tl-date" style="color:var(--accent2)"></span></div>
-          <div style="display:flex; gap:4px;">
-            <button id="view-daily-btn" class="view-tab-btn active-view">روزانه</button>
-            <button id="view-weekly-btn" class="view-tab-btn">هفتگی</button>
-          </div>
         </div>
-        <div id="empty-msg" class="empty-msg">
-          <div class="empty-icon">📅</div>
-          هنوز فعالیتی برای این روز ثبت نکرده‌اید
-        </div>
+        <div id="empty-msg" class="empty-msg"><div class="empty-icon">📅</div>هنوز فعالیتی ثبت نکرده‌اید</div>
         <div class="tl-wrap" id="timeline" style="display:none"></div>
       </div>
     </div>
 
-    <!-- ================= تب 2: کارها و عادت‌ها (تودو لیست و ردیاب عادت) ================= -->
+    <!-- ================= تب 2: کارها و عادت‌ها ================= -->
     <div id="tab-habits" class="tab-section">
-      <!-- لیست کارها (To-Do) -->
       <div class="card">
-        <div class="card-title">کارهای بدون زمان (To-Do)</div>
-        <div style="display:flex; gap:8px; margin-bottom: 12px;">
-          <input type="text" id="todo-input" placeholder="مثلاً: تماس با پزشک یا خرید نان">
-          <button id="add-todo-btn" class="header-btn" style="background:var(--accent); color:white;">افزودن</button>
+        <div class="card-title">کارهای روزانه (To-Do)</div>
+        <div style="display:flex; gap:8px; margin-bottom: 15px;">
+          <input type="text" id="todo-input" placeholder="مثلاً: خرید کتاب...">
+          <button id="add-todo-btn" class="action-btn">افزودن</button>
         </div>
-        <div id="todo-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+        <div id="todo-list"></div>
       </div>
 
-      <!-- ردیاب عادت‌ها -->
       <div class="card">
-        <div class="card-title">ردیاب عادت‌ها (Habits)</div>
-        <div style="display:flex; gap:8px; margin-bottom: 12px;">
-          <input type="text" id="habit-input" placeholder="عادت جدید... (مثلاً: 8 لیوان آب)">
-          <button id="add-habit-btn" class="header-btn" style="background:var(--accent); color:white;">افزودن</button>
+        <div class="card-title">عادت‌ها (Habit Tracker)</div>
+        <div style="display:flex; gap:8px; margin-bottom: 15px;">
+          <input type="text" id="habit-input" placeholder="عادت جدید (مثلاً: ورزش صبحگاهی)">
+          <button id="add-habit-btn" class="action-btn">افزودن</button>
         </div>
-        <div id="habit-list" style="display:flex; flex-direction:column; gap:12px;"></div>
+        <div id="habit-list"></div>
       </div>
     </div>
 
@@ -129,114 +136,29 @@
     <div id="tab-add" class="tab-section">
       <div class="card">
         <div class="card-title">ثبت فعالیت جدید</div>
-        <div class="form-group">
-          <label>عنوان فعالیت</label>
-          <input type="text" id="act-title" placeholder="عنوان فعالیت (اختیاری)">
-        </div>
-        <div class="form-group">
-          <label>تگ‌ها / پروژه (اختیاری)</label>
-          <input type="text" id="act-tags" placeholder="مثلاً: #پروژه_الف #طراحی">
-        </div>
+        <div class="form-group"><label>عنوان فعالیت</label><input type="text" id="act-title"></div>
+        <div class="form-group"><label>تگ‌ها (اختیاری)</label><input type="text" id="act-tags" placeholder="#طراحی #پروژه"></div>
         <div class="form-group">
           <label>دسته‌بندی</label>
-          <div class="cat-row">
-            <select id="cat-select"></select>
-            <button class="btn-icon" id="toggle-cat" title="دسته جدید">+</button>
-          </div>
-          <div class="new-cat-box" id="new-cat-box">
-            <div class="new-cat-inner">
-              <input type="text" id="new-cat-name" placeholder="نام دسته">
-              <input type="color" id="new-cat-color" value="#7c5cfc">
-              <button class="btn-save-cat" id="save-cat">ذخیره</button>
-            </div>
-          </div>
+          <div class="cat-row"><select id="cat-select"></select><button class="btn-icon" id="toggle-cat">+</button></div>
           <div class="cat-manager" id="cat-manager"></div>
         </div>
         <div class="form-group">
-          <label>زمان شروع و پایان</label>
+          <label>زمان</label>
           <div class="time-row">
-            <div class="time-field">
-              <input type="text" id="start-time" inputmode="numeric" placeholder="08:30" maxlength="5" autocomplete="off">
-              <button class="now-btn" id="btn-now-s">الان</button>
-            </div>
-            <div class="time-field">
-              <input type="text" id="end-time" inputmode="numeric" placeholder="10:00" maxlength="5" autocomplete="off">
-              <button class="now-btn" id="btn-now-e">الان</button>
-            </div>
+            <div class="time-field"><input type="text" id="start-time" placeholder="08:30"><button class="now-btn" id="btn-now-s">الان</button></div>
+            <div class="time-field"><input type="text" id="end-time" placeholder="10:00"><button class="now-btn" id="btn-now-e">الان</button></div>
           </div>
-          <div class="err-msg" id="time-err">⚠ فرمت صحیح: HH:MM</div>
         </div>
         <div class="form-group">
-          <label>مدت زمان وقفه / پاز (دقیقه - اختیاری)</label>
-          <input type="text" id="pause-time" inputmode="numeric" placeholder="مثلاً: ۳۰">
+          <div style="display:flex; align-items:center; gap:8px; background:var(--surface2); padding:10px; border-radius:8px; border:1px solid var(--border2);">
+            <input type="checkbox" id="pomodoro-toggle" style="width:16px; height:16px; accent-color:var(--accent);">
+            <label for="pomodoro-toggle" style="margin:0; font-size:12px; color:var(--text);">فعال‌سازی آلارم پومودورو (۲۵ دقیقه کار)</label>
+          </div>
         </div>
-        
-        <!-- سوئیچ حالت پومودورو -->
-        <div class="form-group" style="display:flex; align-items:center; gap:8px; margin-bottom: 12px; background:var(--surface2); padding:10px; border-radius:8px;">
-          <input type="checkbox" id="pomodoro-toggle" style="width:18px; height:18px;">
-          <label for="pomodoro-toggle" style="margin:0; font-size:13px; color:var(--text);">فعال‌سازی حالت پومودورو در زمان‌سنج زنده (۲۵ دقیقه کار / ۵ دقیقه استراحت)</label>
-        </div>
-
         <button class="btn-primary" id="add-btn">+ افزودن به تایم‌لاین</button>
-        <button class="btn-primary" id="edit-cancel-btn" style="display:none; background:var(--surface3); color:var(--text); border:1px solid var(--border2); margin-top:8px;">انصراف از ویرایش</button>
-        <button class="btn-live" id="live-btn">شروع / پایان با ساعت سیستم</button>
+        <button class="btn-live" id="live-btn">شروع فعالیت زنده</button>
         <div class="live-status" id="live-status"></div>
-      </div>
-
-      <!-- دکمه‌های باز کردن پنل روتین و هدف -->
-      <div style="display: flex; gap: 10px; margin-bottom: 16px;">
-        <button id="toggle-rt-form-btn" class="btn-live" style="margin-top:0; flex:1;">⏰ تعریف روتین ثابت</button>
-        <button id="toggle-goal-form-btn" class="btn-live" style="margin-top:0; flex:1;">🎯 تعریف هدف ماهانه</button>
-      </div>
-
-      <!-- پنل روتین‌ها -->
-      <div class="card" id="rt-card-panel" style="display: none; position: relative;">
-        <button type="button" class="close-panel-btn" id="close-rt-panel">✕</button>
-        <div class="card-title">تعریف روتین‌های ثابت</div>
-        <div class="form-group">
-          <label>عنوان روتین</label>
-          <input type="text" id="rt-title" placeholder="مثلاً: کلاس زبان">
-        </div>
-        <div class="form-group">
-          <label>زمان شروع و پایان</label>
-          <div class="time-row">
-            <input type="text" id="rt-start" inputmode="numeric" placeholder="17:00" maxlength="5">
-            <input type="text" id="rt-end" inputmode="numeric" placeholder="18:30" maxlength="5">
-          </div>
-        </div>
-        <div class="form-group">
-          <label>روزهای تکرار روتین</label>
-          <div id="rt-days-selector" style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px;">
-            <button type="button" class="rt-day-btn" data-day="0">ش</button>
-            <button type="button" class="rt-day-btn" data-day="1">ی</button>
-            <button type="button" class="rt-day-btn" data-day="2">د</button>
-            <button type="button" class="rt-day-btn" data-day="3">س</button>
-            <button type="button" class="rt-day-btn" data-day="4">چ</button>
-            <button type="button" class="rt-day-btn" data-day="5">پ</button>
-            <button type="button" class="rt-day-btn" data-day="6">ج</button>
-          </div>
-        </div>
-        <button class="btn-primary" id="add-rt-btn">+ ذخیره روتین</button>
-        <div id="rt-list" style="margin-top: 15px; display: flex; flex-direction: column; gap: 6px;"></div>
-      </div>
-
-      <!-- پنل هدف ماهانه -->
-      <div class="card" id="goal-card-panel" style="display: none; position: relative;">
-        <button type="button" class="close-panel-btn" id="close-goal-panel">✕</button>
-        <div class="card-title">تعریف هدف ماهانه جدید</div>
-        <div class="form-group">
-          <label>عنوان تمرین / فعالیت (اختیاری)</label>
-          <input type="text" id="goal-title" placeholder="مثلاً: وال سیت">
-        </div>
-        <div class="form-group">
-          <label>موضوع (دسته‌بندی)</label>
-          <select id="goal-cat-select"></select>
-        </div>
-        <div class="form-group">
-          <label>مدت زمان هدف (دقیقه)</label>
-          <input type="text" id="goal-target" inputmode="numeric" placeholder="مثلاً: ۳۰">
-        </div>
-        <button class="btn-primary" id="add-goal-btn">+ ثبت هدف</button>
       </div>
     </div>
 
@@ -245,46 +167,32 @@
       <div class="card">
         <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
           <span>گزارش دوره‌ای موضوعات</span>
-          <div style="display:flex; align-items:center; gap:6px;">
-            <span style="font-size:11px;">بازه:</span>
-            <input type="text" id="report-days" inputmode="numeric" value="7" style="width: 36px; text-align: center; padding: 4px; font-size: 11px; background: var(--surface2); border: 1px solid var(--border2); color: var(--text); border-radius: 6px;">
-            <button id="report-confirm-btn" class="header-btn" style="background:var(--accent); color:white;">تایید</button>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <input type="text" id="report-days" value="7" style="width:36px; padding:4px; text-align:center; font-size:11px;">
+            <button id="report-confirm-btn" class="action-btn">تایید</button>
           </div>
         </div>
-        <!-- نمودار گرافیکی دایره‌ای -->
-        <div style="position: relative; height: 200px; margin-bottom: 20px;">
-          <canvas id="report-chart"></canvas>
-        </div>
+        <div style="position:relative; height:200px; margin-bottom:20px;"><canvas id="report-chart"></canvas></div>
         <div id="report-grid"></div>
-        <div class="total-line" id="total-line">مجموع گزارش: <span>۰ ساعت</span></div>
-        
-        <!-- دکمه خروجی داده‌ها -->
-        <button id="export-btn" class="btn-live" style="margin-top: 20px;">💾 خروجی گرفتن از اطلاعات (Backup)</button>
+        <div class="total-line" id="total-line"></div>
+        <button id="export-btn" class="btn-live" style="margin-top:20px;">💾 دانلود اطلاعات (Backup)</button>
       </div>
-      
-      <!-- Activity Map -->
+
       <div class="card">
         <div class="card-title">نقشه ماهانه موضوع</div>
         <div class="map-controls">
           <select id="map-cat-select"></select>
-          <div class="map-month-nav">
-            <button id="map-prev" title="ماه قبل">&#8249;</button>
-            <div id="map-month-label"></div>
-            <button id="map-next" title="ماه بعد">&#8250;</button>
+          <div style="display:flex; gap:6px;">
+            <button id="map-prev" class="btn-icon" style="width:30px;height:30px;">&#8249;</button>
+            <div id="map-month-label" style="font-size:12px; color:var(--muted); line-height:30px; min-width:70px; text-align:center;"></div>
+            <button id="map-next" class="btn-icon" style="width:30px;height:30px;">&#8250;</button>
           </div>
         </div>
         <div id="activity-map" class="activity-map"></div>
-        <div class="map-summary" id="map-summary"></div>
-      </div>
-
-      <!-- اهداف -->
-      <div class="card" style="margin-top: 15px;">
-        <div class="card-title">پیشرفت اهداف این ماه (<span id="goal-month-lbl" style="color:var(--accent2)"></span>)</div>
-        <div id="goals-list" style="display:flex; flex-direction:column; gap:12px;"></div>
       </div>
     </div>
-  </div>
 
+  </div>
 </div>
 
 <script type="module" src="./js/planner.js"></script>
