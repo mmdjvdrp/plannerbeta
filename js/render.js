@@ -1,6 +1,6 @@
 // js/render.js
 import { state, save, saveCloud } from "./storage.js";
-import { fmtDateLabel, fmtTime, fmtDur, escHtml, getWeekDates, pad, getNow, parseTime } from "./helpers.js";
+import { fmtDateLabel, fmtTime, fmtDur, escHtml, pad, getNow, parseTime } from "./helpers.js";
 
 let liveStopwatchInterval = null;
 let reportChartInstance = null;
@@ -148,9 +148,40 @@ export function renderReport(){
   });
 
   if(ctx && data.length > 0) {
+    const chartType = state.chartTypePref || 'doughnut';
+    
+    // تعریف استایل متناسب برای نمودار ستونی
+    const chartOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: chartType === 'doughnut' ? 'right' : 'top',
+          labels: { color: '#999', font: { family: 'Vazirmatn' } }
+        }
+      }
+    };
+
+    if (chartType === 'bar') {
+      chartOptions.scales = {
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#999', font: { family: 'Vazirmatn' } } },
+        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#999', font: { family: 'Vazirmatn' } } }
+      };
+    }
+
     reportChartInstance = new Chart(ctx, {
-      type: 'doughnut', data: { labels, datasets: [{ data, backgroundColor: bgColors, borderWidth: 0 }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels:{color: '#999'} } } }
+      type: chartType,
+      data: {
+        labels,
+        datasets: [{
+          label: 'مدت زمان به دقیقه',
+          data,
+          backgroundColor: bgColors,
+          borderWidth: 0,
+          borderRadius: chartType === 'bar' ? 6 : 0
+        }]
+      },
+      options: chartOptions
     });
   }
   document.getElementById('total-line').innerHTML=`مجموع گزارش: <span>${fmtDur(total)}</span>`;
@@ -246,8 +277,9 @@ export function renderHabitsAndTodos() {
   });
 }
 
+// نمایش خلق‌وخو و دفترچه خاطرات روزانه
 export function renderMood() {
-  const noteInp = document.getElementById('mood-note');
+  const noteInp = document.getElementById('journal-textarea');
   const emojiSpans = document.querySelectorAll('.mood-emoji');
   if(!noteInp || !emojiSpans.length) return;
 
@@ -272,10 +304,7 @@ function startLiveStopwatch() {
       let diff = nowMins - state.liveSession.sMins; 
       if(diff<0) diff+=24*60;
       
-      // کم کردن زمان‌های وقفه (پاز شده) از کل زمان رویداد زنده
       let netMins = diff - (state.liveSession.pauseMins || 0);
-      
-      // اگر در همین لحظه پاز شده است، زمان سپری شده از لحظه شروع وقفه تا الان نیز کسر شود
       if (state.liveSession.pauseStartMins !== null && state.liveSession.pauseStartMins !== undefined) {
         let pauseDiff = nowMins - state.liveSession.pauseStartMins;
         if (pauseDiff < 0) pauseDiff += 24 * 60;
@@ -294,18 +323,16 @@ function startLiveStopwatch() {
   };
 
   updateElapsed();
-  liveStopwatchInterval = setInterval(updateElapsed, 1000); // به‌روزرسانی زنده هر ثانیه
+  liveStopwatchInterval = setInterval(updateElapsed, 1000);
 }
 
-// تابع تغییر وضعیت پاز موقت
 export function toggleLivePause() {
   if (!state.liveSession) return;
   const nowMins = parseTime(getNow());
 
   if (state.liveSession.pauseStartMins === null || state.liveSession.pauseStartMins === undefined) {
-    state.liveSession.pauseStartMins = nowMins; // شروع پاز
+    state.liveSession.pauseStartMins = nowMins;
   } else {
-    // خروج از پاز و ذخیره کردن زمان سپری شده در وقفه
     let diff = nowMins - state.liveSession.pauseStartMins;
     if (diff < 0) diff += 24 * 60;
     state.liveSession.pauseMins = (state.liveSession.pauseMins || 0) + diff;
@@ -316,7 +343,6 @@ export function toggleLivePause() {
   updateLiveButton();
 }
 
-// به‌روزرسانی المان‌های فعال در شروع/پایان زمان زنده
 export function updateLiveButton(){
   const btn = document.getElementById('live-btn');
   const status = document.getElementById('live-status');
@@ -367,10 +393,16 @@ export function syncSettingsForm() {
   if (document.getElementById('setting-calendar')) document.getElementById('setting-calendar').value = state.calendarPref;
   if (document.getElementById('setting-duration-format')) document.getElementById('setting-duration-format').value = state.timeFormatPref;
   if (document.getElementById('setting-week-start')) document.getElementById('setting-week-start').value = state.weekStartPref;
+  if (document.getElementById('report-chart-type')) document.getElementById('report-chart-type').value = state.chartTypePref;
 }
 
 export function render(){
   applyTheme();
+  
+  // فیکس اول: رندر کردن تاریخ در بالاترین نقطه جهت لود بلادرنگ پس از ورود
+  const dateLabel = document.getElementById('date-label');
+  if (dateLabel) dateLabel.textContent = fmtDateLabel(state.curDate);
+
   renderCats();
   renderTimeline();
   renderReport();
