@@ -20,10 +20,15 @@ export function renderCats(){
   const sel=document.getElementById('cat-select');
   const mapSel=document.getElementById('map-cat-select');
   const manager=document.getElementById('cat-manager');
+  const goalSel=document.getElementById('goal-cat-select');
   if(!sel || !mapSel || !manager) return;
 
   const currentVal = sel.value;
+  const currentMapVal = mapSel.value;
+  
   sel.innerHTML=''; mapSel.innerHTML=''; manager.innerHTML='';
+  if (goalSel) goalSel.innerHTML = '';
+  
   if(!state.cats.length){
     sel.innerHTML='<option disabled selected>اول موضوع بسازید</option>';
     manager.innerHTML='<div style="color:var(--muted); font-size:12px;">هنوز موضوعی ندارید.</div>';
@@ -32,7 +37,9 @@ export function renderCats(){
   
   state.cats.forEach(c=>{
     const o=document.createElement('option'); o.value=c.id; o.textContent=c.name;
-    sel.appendChild(o); mapSel.appendChild(o.cloneNode(true));
+    sel.appendChild(o); 
+    mapSel.appendChild(o.cloneNode(true));
+    if (goalSel) goalSel.appendChild(o.cloneNode(true));
 
     const item=document.createElement('div');
     item.className='cat-item'; item.style.setProperty('--cat-color', c.color);
@@ -63,8 +70,17 @@ export function renderCats(){
     manager.appendChild(item);
   });
   
+  // افزودن موضوع پیش‌فرض "وضعیت خلق و خو" به نقشه ماهانه
+  const moodOption = document.createElement('option');
+  moodOption.value = 'mood_tracker';
+  moodOption.textContent = '📊 وضعیت خلق و خو (حالت روزانه)';
+  mapSel.appendChild(moodOption);
+  
   if (currentVal && state.cats.some(c => c.id === currentVal)) {
     sel.value = currentVal;
+  }
+  if (currentMapVal) {
+    mapSel.value = currentMapVal;
   }
 }
 
@@ -157,7 +173,8 @@ export function renderTimeline(){
                   </div>
                   ${tagsHtml ? `<div style="margin-top:4px;">${tagsHtml}</div>` : ''}
                 </div>
-                <div style="display:flex; gap:4px">
+                <div style="display:flex; gap:6px">
+                  <button class="btn-edit" onclick="editEv('${ev.id}')" style="background:var(--surface2); border:1px solid var(--border); border-radius:7px; cursor:pointer; width:28px; height:28px; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:12px;">✏️</button>
                   <button class="btn-del" onclick="delEv('${ev.id}')">✕</button>
                 </div>
               </div>
@@ -168,7 +185,7 @@ export function renderTimeline(){
       tl.appendChild(details);
     });
   } 
-  // حالت دوم: نمایش سنتی و ترتیبی خام (Off)
+  // حالت دوم: نمایش ترتیبی خام (Off)
   else {
     dayEvents.sort((a,b) => a.sMins - b.sMins).forEach(ev => {
       const cat = state.cats.find(c => c.id === ev.catId) || {name: 'حذف شده', color: '#999'};
@@ -188,6 +205,7 @@ export function renderTimeline(){
             ${tagsHtml ? `<div style="margin-top:6px;">${tagsHtml}</div>` : ''}
           </div>
           <div style="display:flex; flex-direction:column; gap:4px;">
+            <button class="btn-edit" onclick="editEv('${ev.id}')" style="background:var(--surface2); border:1px solid var(--border); border-radius:7px; cursor:pointer; width:28px; height:28px; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:12px;">✏️</button>
             <button class="btn-del" onclick="delEv('${ev.id}')">✕</button>
           </div>
         </div>`;
@@ -198,16 +216,31 @@ export function renderTimeline(){
 export function renderReport(){
   const grid = document.getElementById('report-grid');
   const ctx = document.getElementById('report-chart');
+  const selectAllChk = document.getElementById('report-select-all');
   if(!grid || !ctx) return;
+
+  const allCatIds = state.cats.map(c => c.id);
+  
+  // تنظیم مقداردهی پیش‌فرض در اولین بارگذاری برای انتخاب تمام موضوعات
+  if (!localStorage.getItem('planner_selected_report_cats') && state.selectedReportCats.length === 0) {
+    state.selectedReportCats = [...allCatIds];
+  }
+
+  // بروزرسانی وضعیت تیک سلکت آل بر اساس فیلترها
+  if (selectAllChk) {
+    selectAllChk.checked = (state.selectedReportCats.length === state.cats.length && state.cats.length > 0);
+  }
 
   const daysRange = parseInt(document.getElementById('report-days').value) || 7;
   const [y,mo,d]=state.curDate.split('-').map(Number);
   const ref=new Date(y,mo-1,d);
   const from=new Date(ref); from.setDate(from.getDate() - (daysRange - 1));
 
+  // فیلتر کردن رویدادها فقط بر اساس موضوعاتی که انتخاب شده‌اند
   const week = state.events.filter(e => {
     const [ey,em,ed] = e.date.split('-').map(Number);
-    const dt = new Date(ey,em-1,ed); return dt >= from && dt <= ref;
+    const dt = new Date(ey,em-1,ed); 
+    return dt >= from && dt <= ref && state.selectedReportCats.includes(e.catId);
   });
 
   const sums={}; let total=0;
@@ -218,22 +251,56 @@ export function renderReport(){
   const labels = []; const data = []; const bgColors = [];
   grid.innerHTML='';
 
-  Object.keys(sums).forEach(catId=>{
-    const cat = state.cats.find(c=>c.id===catId) || {name:'حذف شده', color:'#999'};
-    const mins = sums[catId];
-    labels.push(cat.name); data.push(mins); bgColors.push(cat.color);
-    const pct=total>0?Math.round((mins/total)*100):0;
-    
-    grid.innerHTML += `
-      <div style="margin-bottom:10px;">
-        <div class="report-header">
-          <span style="color:${cat.color}">${escHtml(cat.name)}</span>
-          <span>${fmtDur(mins)} (${pct}٪)</span>
-        </div>
-        <div class="prog-bg">
-          <div class="prog-fill" style="background:${cat.color};width:${pct}%"></div>
-        </div>
-      </div>`;
+  // ساخت لیست تمام موضوعات (رندر همه برای تغییر وضعیت تیک زدن در گزارش، با هاله نوری و مات کردن موارد غیرفعال)
+  state.cats.forEach(cat => {
+    const isSelected = state.selectedReportCats.includes(cat.id);
+    const mins = sums[cat.id] || 0;
+    const pct = total > 0 ? Math.round((mins / total) * 100) : 0;
+
+    if (isSelected && mins > 0) {
+      labels.push(cat.name); 
+      data.push(mins); 
+      bgColors.push(cat.color);
+    }
+
+    const haloStyle = isSelected 
+      ? `border-color: ${cat.color}; background: var(--surface2); box-shadow: 0 0 12px color-mix(in srgb, ${cat.color} 30%, transparent); opacity: 1;` 
+      : `border-color: var(--border); opacity: 0.45; background: var(--surface);`;
+
+    const item = document.createElement('div');
+    item.style.cssText = `
+      margin-bottom: 10px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+      ${haloStyle}
+    `;
+
+    item.innerHTML = `
+      <div class="report-header" style="margin-bottom: 5px;">
+        <span style="color:${cat.color}; font-weight:700;">${escHtml(cat.name)} ${isSelected ? '✓' : ''}</span>
+        <span>${fmtDur(mins)} (${pct}٪)</span>
+      </div>
+      <div class="prog-bg">
+        <div class="prog-fill" style="background:${cat.color}; width:${pct}%"></div>
+      </div>
+    `;
+
+    // رویداد تپ تعاملی برای حذف/اضافه موضوعات روی نمودار گزارش‌ها
+    item.onclick = () => {
+      if (state.selectedReportCats.includes(cat.id)) {
+        state.selectedReportCats = state.selectedReportCats.filter(id => id !== cat.id);
+      } else {
+        state.selectedReportCats.push(cat.id);
+      }
+      save('planner_selected_report_cats', state.selectedReportCats);
+      saveCloud();
+      render();
+    };
+
+    grid.appendChild(item);
   });
 
   const chartType = state.chartTypePref || 'doughnut';
@@ -252,22 +319,24 @@ export function renderReport(){
       return new Intl.DateTimeFormat(isJalali ? 'fa-IR' : 'en-US', { month: 'numeric', day: 'numeric' }).format(dt);
     });
 
-    const lineDatasets = state.cats.map(cat => {
-      const dataPoints = dates.map(dateStr => {
-        const dayEvs = state.events.filter(e => e.date === dateStr && e.catId === cat.id);
-        return dayEvs.reduce((sum, e) => sum + e.durMins, 0);
+    const lineDatasets = state.cats
+      .filter(cat => state.selectedReportCats.includes(cat.id))
+      .map(cat => {
+        const dataPoints = dates.map(dateStr => {
+          const dayEvs = state.events.filter(e => e.date === dateStr && e.catId === cat.id);
+          return dayEvs.reduce((sum, e) => sum + e.durMins, 0);
+        });
+        return {
+          label: cat.name,
+          data: dataPoints,
+          borderColor: cat.color,
+          backgroundColor: cat.color + '18',
+          fill: true,
+          tension: 0.3,
+          borderWidth: 2.5,
+          pointRadius: 3
+        };
       });
-      return {
-        label: cat.name,
-        data: dataPoints,
-        borderColor: cat.color,
-        backgroundColor: cat.color + '18',
-        fill: true,
-        tension: 0.3,
-        borderWidth: 2.5,
-        pointRadius: 3
-      };
-    });
 
     reportChartInstance = new Chart(ctx, {
       type: 'line',
@@ -342,30 +411,71 @@ export function renderActivityMap(){
     map.innerHTML='<div style="grid-column:1/-1; color:var(--muted); font-size:12px; text-align:center;">داده‌ای نیست</div>'; return;
   }
 
-  const cat=state.cats.find(c=>c.id===sel.value);
   const daysInMonth=new Date(y, mo, 0).getDate();
   const firstDay=new Date(y, mo-1, 1).getDay();
   const startOffset=(firstDay+1)%7; 
-  const sums={};
 
-  state.events.forEach(e=>{
-    if(!e.date || e.catId!==sel.value || !e.date.startsWith(state.mapMonth)) return;
-    const day=Number(e.date.slice(8,10));
-    sums[day]=(sums[day]||0)+e.durMins;
-  });
-
-  const max=Math.max(0, ...Object.values(sums));
   for(let i=0; i<startOffset; i++) map.innerHTML += `<div class="map-day" style="background:transparent; border:none;"></div>`;
 
-  for(let day=1; day<=daysInMonth; day++){
-    const mins=sums[day]||0;
-    const ratio=max ? mins/max : 0;
-    const size=mins ? Math.round(6 + ratio*14) : 4;
-    map.innerHTML += `
-      <div class="map-day">
-        <span class="map-day-num">${day}</span>
-        <span class="map-dot" style="width:${size}px; height:${size}px; background:${mins?cat.color:'var(--surface3)'}"></span>
-      </div>`;
+  // بررسی انتخاب حالت خلق‌و‌خو پیش‌فرض در نقشه ماهانه
+  if (sel.value === 'mood_tracker') {
+    for(let day=1; day<=daysInMonth; day++){
+      const dateStr = `${y}-${pad(mo)}-${pad(day)}`;
+      const dayMood = state.moods[dateStr];
+      
+      let moodVisual = `<span class="map-dot" style="width:4px; height:4px; background:var(--surface3)"></span>`;
+      let noteTooltip = `روز ${day}: یادداشتی ثبت نشده`;
+      
+      if (dayMood && dayMood.mood) {
+        const preset = state.moodPresets.find(p => p.level === String(dayMood.mood));
+        if (preset) {
+          const noteText = dayMood.note ? `\nیادداشت: "${dayMood.note}"` : '\nبدون یادداشت متنی';
+          noteTooltip = `روز ${day} - وضعیت: ${preset.label}${noteText}`;
+          
+          if (preset.type === 'webm' || preset.type === 'video') {
+            moodVisual = `<video src="${preset.value}" autoplay loop muted playsinline style="width:22px; height:22px; border-radius:50%; object-fit:cover; pointer-events:none;"></video>`;
+          } else {
+            moodVisual = `<span style="font-size:15px; line-height:1;">${preset.value}</span>`;
+          }
+        }
+      }
+      
+      map.innerHTML += `
+        <div class="map-day" data-tooltip="${escHtml(noteTooltip)}" title="${escHtml(noteTooltip)}" style="cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; height:100%;">
+          <span class="map-day-num">${day}</span>
+          <div style="display:flex; align-items:center; justify-content:center; width:22px; height:22px; margin-top:6px;">
+            ${moodVisual}
+          </div>
+        </div>`;
+    }
+  } 
+  // حالت عادی: واکشی فعالیت‌های دسته‌بندی با تولتیپ و فرمت دلخواه
+  else {
+    const cat=state.cats.find(c=>c.id===sel.value);
+    const sums={};
+
+    state.events.forEach(e=>{
+      if(!e.date || e.catId!==sel.value || !e.date.startsWith(state.mapMonth)) return;
+      const day=Number(e.date.slice(8,10));
+      sums[day]=(sums[day]||0)+e.durMins;
+    });
+
+    const max=Math.max(0, ...Object.values(sums));
+
+    for(let day=1; day<=daysInMonth; day++){
+      const mins=sums[day]||0;
+      const ratio=max ? mins/max : 0;
+      const size=mins ? Math.round(6 + ratio*14) : 4;
+      
+      const durText = mins ? fmtDur(mins) : 'بدون فعالیت ثبت شده';
+      const tooltipText = `روز ${day} ${monthNames[mo-1]} \nمجموع زمان: ${durText}`;
+
+      map.innerHTML += `
+        <div class="map-day" data-tooltip="${tooltipText}" title="${tooltipText}">
+          <span class="map-day-num">${day}</span>
+          <span class="map-dot" style="width:${size}px; height:${size}px; background:${mins?cat.color:'var(--surface3)'}"></span>
+        </div>`;
+    }
   }
 }
 
@@ -547,7 +657,6 @@ export function updateLiveButton(){
   }
 }
 
-// ساخت و نمایش لیست روتین‌های ثابت درون پنل افزودن
 export function renderRoutines() {
   const list = document.getElementById('rt-list');
   if(!list) return;
@@ -574,21 +683,30 @@ export function renderRoutines() {
   });
 }
 
+// رندر ویرایشگر اموجی و خلق و خوی پویای جدید (شخصی‌سازی نام و تعداد به صورت شناور)
 export function renderCustomEmojisEditor() {
   const container = document.getElementById('custom-emojis-container');
   if (!container) return;
   
-  container.innerHTML = state.moodPresets.map((preset, idx) => {
-    return `
-      <div style="display:flex; align-items:center; gap:8px; background:var(--surface2); padding:10px; border-radius:8px; border:1px solid var(--border); flex-wrap:wrap;">
-        <span style="font-size:12px; min-width:80px; color:var(--text); font-weight:700;">${escHtml(preset.label)}:</span>
-        <select class="emoji-type-select" data-idx="${idx}" style="width:120px; padding:6px; font-size:12px; height:32px; border-radius:6px;">
-          <option value="text" ${preset.type === 'text' ? 'selected' : ''}>شکلک متنی</option>
-          <option value="webm" ${preset.type === 'webm' ? 'selected' : ''}>انیمیشن (WebM)</option>
+  let html = '';
+  state.moodPresets.forEach((preset, idx) => {
+    html += `
+      <div style="display:flex; align-items:center; gap:8px; background:var(--surface2); padding:10px; border-radius:8px; border:1px solid var(--border); flex-wrap:wrap; margin-bottom:8px;">
+        <span style="font-size:11px; min-width:80px; color:var(--text); font-weight:700;">سطح ${preset.level} :</span>
+        <input type="text" class="emoji-label-input" data-idx="${idx}" value="${escHtml(preset.label)}" style="width:110px; padding:6px; font-size:12px; height:32px; border-radius:6px; background:var(--surface3); border:1px solid var(--border2); color:var(--text);" placeholder="نام حالت">
+        <select class="emoji-type-select" data-idx="${idx}" style="width:100px; padding:6px; font-size:12px; height:32px; border-radius:6px; background:var(--surface3); border:1px solid var(--border2); color:var(--text);">
+          <option value="text" ${preset.type === 'text' ? 'selected' : ''}>متنی</option>
+          <option value="webm" ${preset.type === 'webm' ? 'selected' : ''}>انیمیشن WebM</option>
         </select>
-        <input type="text" class="emoji-value-input" data-idx="${idx}" value="${escHtml(preset.value)}" style="flex:1; padding:6px; font-size:12px; height:32px; border-radius:6px;" placeholder="${preset.type === 'text' ? 'مثلاً: 😊' : 'آدرس فایل مثل: ./emojis/happy.webm'}">
+        <input type="text" class="emoji-value-input" data-idx="${idx}" value="${escHtml(preset.value)}" style="flex:1; min-width:140px; padding:6px; font-size:12px; height:32px; border-radius:6px; background:var(--surface3); border:1px solid var(--border2); color:var(--text);" placeholder="${preset.type === 'text' ? '😊' : 'آدرس فایل'}">
+        <button type="button" class="btn-del" onclick="deleteMoodPreset(${idx})" style="width:32px; height:32px;">✕</button>
       </div>`;
-  }).join('');
+  });
+  
+  html += `
+    <button type="button" class="btn-live" onclick="addMoodPreset()" style="margin-top:10px; border-color:var(--accent); color:var(--accent); padding:6px;">➕ افزودن سطح احساسات جدید</button>
+  `;
+  container.innerHTML = html;
 }
 
 export function syncSettingsForm() {
@@ -614,7 +732,7 @@ export function render(){
   renderActivityMap();
   renderHabitsAndTodos();
   renderMood();
-  renderRoutines(); // رندر روتین‌های احیا شده
+  renderRoutines();
   updateLiveButton();
   syncSettingsForm();
   renderCustomEmojisEditor(); 
