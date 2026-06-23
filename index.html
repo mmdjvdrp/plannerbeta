@@ -184,6 +184,12 @@
         </div>
         <div id="habit-list"></div>
       </div>
+
+      <!-- کادر جدید: نمایش و پایش اهداف ماه جاری -->
+      <div class="card">
+        <div class="card-title">🎯 اهداف و پیشرفت ماه جاری</div>
+        <div id="goals-list"></div>
+      </div>
     </div>
 
     <!-- ================= تب 3: دفترچه روزانه و یادداشت ================= -->
@@ -453,15 +459,15 @@
   </div>
 </div>
 
-<!-- مدال گالری اموجی‌های متحرک سوپابیس -->
+<!-- مدال گالری اموجی‌های متحرک -->
 <div id="emoji-gallery-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:2000; align-items:center; justify-content:center; padding:16px; backdrop-filter:blur(6px);">
   <div class="card" style="width:100%; max-width:500px; background:var(--surface); border:1px solid var(--border2); max-height:85vh; display:flex; flex-direction:column; padding:20px; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--border); padding-bottom:10px;">
-      <strong style="font-size:15px; color:var(--text);">🖼️ گالری شکلک‌های متحرک سوپابیس</strong>
+      <strong style="font-size:15px; color:var(--text);">🖼️ گالری شکلک‌های متحرک</strong>
       <button id="close-gallery-modal" style="background:transparent; border:none; color:var(--muted); font-size:20px; cursor:pointer;">✕</button>
     </div>
     
-    <p style="font-size:11px; color:var(--muted); margin-bottom:14px; line-height:1.6;">لیست فایل‌های متحرک WebM موجود در باکت پروژه شما. یکی را انتخاب کنید تا به عنوان حالت روحی امروز یا دیگر پریست‌ها تنظیم شود:</p>
+    <p style="font-size:11px; color:var(--muted); margin-bottom:14px; line-height:1.6;">لیست فایل‌های متحرک WebM موجود. یکی را انتخاب کنید تا به عنوان حالت روحی امروز یا دیگر پریست‌ها تنظیم شود:</p>
     
     <!-- کانتینر ابزارهای بالای گالری -->
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px;">
