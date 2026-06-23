@@ -1,7 +1,6 @@
 // js/storage.js
 import { supabase } from "./supabase.js";
 
-// پیاده‌سازی مستقیم توابع کمکی جهت شکستن چرخه ایمپورت‌ها با helpers.js
 function pad(n){ return String(n).padStart(2,'0'); }
 function getLocalDateStr() {
   const d = new Date();
@@ -43,7 +42,9 @@ export const state = {
   groupTimelinePref: load('planner_group_timeline_pref', true), 
   selectedReportCats: load('planner_selected_report_cats', []), 
   
-  // متغیرهای ذخیره‌سازی پیش‌فرض زمان پومودورو شخصی‌سازی شده
+  // متغیر سبک منوی ناوبری موبایل (با مقدار پیش‌فرض شبکه دوردیفه)
+  mobileNavStyle: load('planner_mobile_nav_style', 'grid'),
+  
   pomodoroWorkPref: load('planner_pomo_work_pref', 25),
   pomodoroBreakPref: load('planner_pomo_break_pref', 5),
   
@@ -78,7 +79,7 @@ export async function saveCloud(){
         weekStartPref: state.weekStartPref, chartTypePref: state.chartTypePref,
         groupTimelinePref: state.groupTimelinePref, moodPresets: state.moodPresets,
         pomodoroWorkPref: state.pomodoroWorkPref, pomodoroBreakPref: state.pomodoroBreakPref,
-        selectedReportCats: state.selectedReportCats
+        selectedReportCats: state.selectedReportCats, mobileNavStyle: state.mobileNavStyle
       }
     }, { onConflict: 'user_id' });
   } catch (err) { console.error("Error saving to cloud", err); }
@@ -111,6 +112,7 @@ export async function loadCloud(){
       state.moodPresets    = cd.moodPresets || state.moodPresets;
       state.groupTimelinePref = cd.groupTimelinePref !== undefined ? cd.groupTimelinePref : true;
       state.selectedReportCats = cd.selectedReportCats || [];
+      state.mobileNavStyle = cd.mobileNavStyle || "grid";
       
       state.pomodoroWorkPref  = cd.pomodoroWorkPref || 25;
       state.pomodoroBreakPref = cd.pomodoroBreakPref || 5;
@@ -134,6 +136,7 @@ export async function loadCloud(){
       save('planner_pomo_work_pref', state.pomodoroWorkPref);
       save('planner_pomo_break_pref', state.pomodoroBreakPref);
       save('planner_selected_report_cats', state.selectedReportCats);
+      save('planner_mobile_nav_style', state.mobileNavStyle);
     }
   } catch (err) { console.error("Error loading cloud data", err); }
 }
