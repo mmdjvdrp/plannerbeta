@@ -35,8 +35,7 @@ export function renderCats(){
     sel.appendChild(o); mapSel.appendChild(o.cloneNode(true));
 
     const item=document.createElement('div');
-    item.className='cat-item'; 
-    item.style.setProperty('--cat-color', c.color);
+    item.className='cat-item'; item.style.setProperty('--cat-color', c.color);
     
     if (c.id === currentVal) {
       item.classList.add('selected');
@@ -55,8 +54,7 @@ export function renderCats(){
     
     item.onclick=(e)=>{ 
       if(e.target.tagName!=='INPUT' && e.target.tagName!=='BUTTON'){ 
-        sel.value=c.id; 
-        mapSel.value=c.id; 
+        sel.value=c.id; mapSel.value=c.id; 
         document.querySelectorAll('.cat-item').forEach(el => el.classList.remove('selected'));
         item.classList.add('selected');
         saveCloud();
@@ -70,7 +68,6 @@ export function renderCats(){
   }
 }
 
-// ساختار هوشمند و تعاملی تایم‌لاین با قابلیت پشتیبانی از هر دو حالت ادغام کارهای مشابه یا نمایش خام خطی
 export function renderTimeline(){
   const tl=document.getElementById('timeline');
   const em=document.getElementById('empty-msg');
@@ -416,7 +413,6 @@ export function renderHabitsAndTodos() {
   });
 }
 
-// نمایش خلق‌وخو و دفترچه خاطرات روزانه
 export function renderMood() {
   const noteInp = document.getElementById('journal-textarea');
   const emojiContainer = document.getElementById('mood-emojis');
@@ -473,10 +469,12 @@ function startLiveStopwatch() {
 
       if (netMins < 0) netMins = 0;
 
-      if(isPom && netMins>=25 && !notified) { 
+      const pomoLimit = state.pomodoroWorkPref || 25;
+
+      if(isPom && netMins>=pomoLimit && !notified) { 
         notified=true; 
         new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(()=>{});
-        alert("🍅 ۲۵ دقیقه گذشت! استراحت کنید."); 
+        alert(`🍅 زمان کار پومودورو با موفقیت به پایان رسید! (${pomoLimit} دقیقه)`); 
       }
       el.innerHTML = `زمان خالص: <b>${fmtDur(netMins)}</b> ${isPom?'(پومودورو) 🍅':''}`;
     }
@@ -549,10 +547,56 @@ export function updateLiveButton(){
   }
 }
 
+// ساخت و نمایش لیست روتین‌های ثابت درون پنل افزودن
+export function renderRoutines() {
+  const list = document.getElementById('rt-list');
+  if(!list) return;
+  list.innerHTML = '';
+  
+  if (state.routines.length === 0) {
+    list.innerHTML = `<div style="font-size:11px; color:var(--muted); text-align:center;">هیچ روتینی تعریف نشده است</div>`;
+    return;
+  }
+  
+  const daysName = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
+  state.routines.forEach(rt => {
+    const cat = state.cats.find(c => c.id === rt.catId) || {name: 'حذف شده', color: '#999'};
+    const daysStr = rt.days.map(d => daysName[d]).join('، ');
+    
+    list.innerHTML += `
+      <div style="display:flex; align-items:center; justify-content:space-between; background:var(--surface2); border:1px solid var(--border); border-right:3px solid ${cat.color}; border-radius:8px; padding:6px 10px;">
+        <div>
+          <div style="font-size:12px; font-weight:700;">${escHtml(rt.title)} (${cat.name})</div>
+          <div style="font-size:10px; color:var(--muted)">ساعت ${rt.startTime} تا ${rt.endTime} | روزهای: ${daysStr}</div>
+        </div>
+        <button class="btn-del" style="width:24px; height:24px; font-size:11px;" onclick="delRoutine('${rt.id}')">✕</button>
+      </div>`;
+  });
+}
+
+export function renderCustomEmojisEditor() {
+  const container = document.getElementById('custom-emojis-container');
+  if (!container) return;
+  
+  container.innerHTML = state.moodPresets.map((preset, idx) => {
+    return `
+      <div style="display:flex; align-items:center; gap:8px; background:var(--surface2); padding:10px; border-radius:8px; border:1px solid var(--border); flex-wrap:wrap;">
+        <span style="font-size:12px; min-width:80px; color:var(--text); font-weight:700;">${escHtml(preset.label)}:</span>
+        <select class="emoji-type-select" data-idx="${idx}" style="width:120px; padding:6px; font-size:12px; height:32px; border-radius:6px;">
+          <option value="text" ${preset.type === 'text' ? 'selected' : ''}>شکلک متنی</option>
+          <option value="webm" ${preset.type === 'webm' ? 'selected' : ''}>انیمیشن (WebM)</option>
+        </select>
+        <input type="text" class="emoji-value-input" data-idx="${idx}" value="${escHtml(preset.value)}" style="flex:1; padding:6px; font-size:12px; height:32px; border-radius:6px;" placeholder="${preset.type === 'text' ? 'مثلاً: 😊' : 'آدرس فایل مثل: ./emojis/happy.webm'}">
+      </div>`;
+  }).join('');
+}
+
 export function syncSettingsForm() {
   if (document.getElementById('setting-calendar')) document.getElementById('setting-calendar').value = state.calendarPref;
   if (document.getElementById('setting-duration-format')) document.getElementById('setting-duration-format').value = state.timeFormatPref;
   if (document.getElementById('setting-week-start')) document.getElementById('setting-week-start').value = state.weekStartPref;
+  if (document.getElementById('setting-pomodoro-work')) document.getElementById('setting-pomodoro-work').value = state.pomodoroWorkPref;
+  if (document.getElementById('setting-pomodoro-break')) document.getElementById('setting-pomodoro-break').value = state.pomodoroBreakPref;
 }
 
 export function render(){
@@ -561,7 +605,6 @@ export function render(){
   const dateLabel = document.getElementById('date-label');
   if (dateLabel) dateLabel.textContent = fmtDateLabel(state.curDate);
   
-  // سینک مقدار تودو-سوییچ اتوماتیک تایم‌لاین با وضعیت استیت برنامه
   const groupToggle = document.getElementById('timeline-group-toggle');
   if (groupToggle) groupToggle.checked = state.groupTimelinePref;
   
@@ -571,6 +614,7 @@ export function render(){
   renderActivityMap();
   renderHabitsAndTodos();
   renderMood();
+  renderRoutines(); // رندر روتین‌های احیا شده
   updateLiveButton();
   syncSettingsForm();
   renderCustomEmojisEditor(); 
