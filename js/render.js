@@ -20,15 +20,17 @@ export function renderCats(){
   const sel=document.getElementById('cat-select');
   const mapSel=document.getElementById('map-cat-select');
   const manager=document.getElementById('cat-manager');
-  const goalSel=document.getElementById('goal-cat-select');
   if(!sel || !mapSel || !manager) return;
 
   const currentVal = sel.value;
-  const currentMapVal = mapSel.value;
-  
   sel.innerHTML=''; mapSel.innerHTML=''; manager.innerHTML='';
-  if (goalSel) goalSel.innerHTML = '';
   
+  // افزودن گزینه پیش‌فرض خلق و خو به نقشه ماهانه موضوعات
+  const moodOpt = document.createElement('option');
+  moodOpt.value = 'mood_tracker';
+  moodOpt.textContent = 'حالت روحی روزانه (خلق‌و‌خو) 🤩';
+  mapSel.appendChild(moodOpt);
+
   if(!state.cats.length){
     sel.innerHTML='<option disabled selected>اول موضوع بسازید</option>';
     manager.innerHTML='<div style="color:var(--muted); font-size:12px;">هنوز موضوعی ندارید.</div>';
@@ -37,9 +39,7 @@ export function renderCats(){
   
   state.cats.forEach(c=>{
     const o=document.createElement('option'); o.value=c.id; o.textContent=c.name;
-    sel.appendChild(o); 
-    mapSel.appendChild(o.cloneNode(true));
-    if (goalSel) goalSel.appendChild(o.cloneNode(true));
+    sel.appendChild(o); mapSel.appendChild(o.cloneNode(true));
 
     const item=document.createElement('div');
     item.className='cat-item'; item.style.setProperty('--cat-color', c.color);
@@ -70,17 +70,8 @@ export function renderCats(){
     manager.appendChild(item);
   });
   
-  // افزودن موضوع پیش‌فرض "وضعیت خلق و خو" به نقشه ماهانه
-  const moodOption = document.createElement('option');
-  moodOption.value = 'mood_tracker';
-  moodOption.textContent = '📊 وضعیت خلق و خو (حالت روزانه)';
-  mapSel.appendChild(moodOption);
-  
   if (currentVal && state.cats.some(c => c.id === currentVal)) {
     sel.value = currentVal;
-  }
-  if (currentMapVal) {
-    mapSel.value = currentMapVal;
   }
 }
 
@@ -174,7 +165,7 @@ export function renderTimeline(){
                   ${tagsHtml ? `<div style="margin-top:4px;">${tagsHtml}</div>` : ''}
                 </div>
                 <div style="display:flex; gap:6px">
-                  <button class="btn-edit" onclick="editEv('${ev.id}')" style="background:var(--surface2); border:1px solid var(--border); border-radius:7px; cursor:pointer; width:28px; height:28px; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:12px;">✏️</button>
+                  <button class="btn-del" onclick="editEv('${ev.id}')" style="background:var(--surface2); border:1px solid var(--border); font-size:11px; padding:0 6px;">✏️</button>
                   <button class="btn-del" onclick="delEv('${ev.id}')">✕</button>
                 </div>
               </div>
@@ -185,7 +176,7 @@ export function renderTimeline(){
       tl.appendChild(details);
     });
   } 
-  // حالت دوم: نمایش ترتیبی خام (Off)
+  // حالت دوم: نمایش سنتی و ترتیبی خام (Off)
   else {
     dayEvents.sort((a,b) => a.sMins - b.sMins).forEach(ev => {
       const cat = state.cats.find(c => c.id === ev.catId) || {name: 'حذف شده', color: '#999'};
@@ -204,8 +195,8 @@ export function renderTimeline(){
             </div>
             ${tagsHtml ? `<div style="margin-top:6px;">${tagsHtml}</div>` : ''}
           </div>
-          <div style="display:flex; flex-direction:column; gap:4px;">
-            <button class="btn-edit" onclick="editEv('${ev.id}')" style="background:var(--surface2); border:1px solid var(--border); border-radius:7px; cursor:pointer; width:28px; height:28px; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:12px;">✏️</button>
+          <div style="display:flex; flex-direction:row; gap:6px;">
+            <button class="btn-del" onclick="editEv('${ev.id}')" style="font-size:11px; padding:0 6px;">✏️</button>
             <button class="btn-del" onclick="delEv('${ev.id}')">✕</button>
           </div>
         </div>`;
@@ -216,95 +207,58 @@ export function renderTimeline(){
 export function renderReport(){
   const grid = document.getElementById('report-grid');
   const ctx = document.getElementById('report-chart');
-  const selectAllChk = document.getElementById('report-select-all');
   if(!grid || !ctx) return;
-
-  const allCatIds = state.cats.map(c => c.id);
-  
-  // تنظیم مقداردهی پیش‌فرض در اولین بارگذاری برای انتخاب تمام موضوعات
-  if (!localStorage.getItem('planner_selected_report_cats') && state.selectedReportCats.length === 0) {
-    state.selectedReportCats = [...allCatIds];
-  }
-
-  // بروزرسانی وضعیت تیک سلکت آل بر اساس فیلترها
-  if (selectAllChk) {
-    selectAllChk.checked = (state.selectedReportCats.length === state.cats.length && state.cats.length > 0);
-  }
 
   const daysRange = parseInt(document.getElementById('report-days').value) || 7;
   const [y,mo,d]=state.curDate.split('-').map(Number);
   const ref=new Date(y,mo-1,d);
   const from=new Date(ref); from.setDate(from.getDate() - (daysRange - 1));
 
-  // فیلتر کردن رویدادها فقط بر اساس موضوعاتی که انتخاب شده‌اند
   const week = state.events.filter(e => {
     const [ey,em,ed] = e.date.split('-').map(Number);
-    const dt = new Date(ey,em-1,ed); 
-    return dt >= from && dt <= ref && state.selectedReportCats.includes(e.catId);
+    const dt = new Date(ey,em-1,ed); return dt >= from && dt <= ref;
   });
 
-  const sums={}; let total=0;
-  week.forEach(e=>{ sums[e.catId]=(sums[e.catId]||0)+e.durMins; total+=e.durMins; });
+  const sums={}; 
+  let total=0;
+  week.forEach(e=>{ 
+    sums[e.catId]=(sums[e.catId]||0)+e.durMins; 
+    total+=e.durMins; 
+  });
+
+  // اگر فیلتر فیلدها خالی باشد، همه دسته‌بندی‌ها به طور پیش‌فرض ست می‌شوند
+  if (!state.selectedReportCats || state.selectedReportCats.length === 0) {
+    state.selectedReportCats = state.cats.map(c => c.id);
+  }
+
+  // بروزرسانی تیک دکمه Select All
+  const selectAllCheckbox = document.getElementById('report-select-all');
+  if (selectAllCheckbox) {
+    const uniqueWeekCatIds = Object.keys(sums);
+    const isAllSelected = uniqueWeekCatIds.length > 0 && uniqueWeekCatIds.every(id => state.selectedReportCats.includes(id));
+    selectAllCheckbox.checked = isAllSelected;
+  }
 
   if (reportChartInstance) reportChartInstance.destroy();
 
-  const labels = []; const data = []; const bgColors = [];
+  const labels = []; 
+  const data = []; 
+  const bgColors = [];
   grid.innerHTML='';
 
-  // ساخت لیست تمام موضوعات (رندر همه برای تغییر وضعیت تیک زدن در گزارش، با هاله نوری و مات کردن موارد غیرفعال)
-  state.cats.forEach(cat => {
-    const isSelected = state.selectedReportCats.includes(cat.id);
-    const mins = sums[cat.id] || 0;
-    const pct = total > 0 ? Math.round((mins / total) * 100) : 0;
-
-    if (isSelected && mins > 0) {
-      labels.push(cat.name); 
-      data.push(mins); 
-      bgColors.push(cat.color);
+  // محاسبه فقط دسته‌های انتخاب شده فعال در نمودار
+  const activeSums = {};
+  let activeTotal = 0;
+  Object.keys(sums).forEach(catId => {
+    if (state.selectedReportCats.includes(catId)) {
+      activeSums[catId] = sums[catId];
+      activeTotal += sums[catId];
     }
-
-    const haloStyle = isSelected 
-      ? `border-color: ${cat.color}; background: var(--surface2); box-shadow: 0 0 12px color-mix(in srgb, ${cat.color} 30%, transparent); opacity: 1;` 
-      : `border-color: var(--border); opacity: 0.45; background: var(--surface);`;
-
-    const item = document.createElement('div');
-    item.style.cssText = `
-      margin-bottom: 10px;
-      padding: 10px 14px;
-      border-radius: 10px;
-      border: 1px solid transparent;
-      cursor: pointer;
-      transition: all 0.2s;
-      ${haloStyle}
-    `;
-
-    item.innerHTML = `
-      <div class="report-header" style="margin-bottom: 5px;">
-        <span style="color:${cat.color}; font-weight:700;">${escHtml(cat.name)} ${isSelected ? '✓' : ''}</span>
-        <span>${fmtDur(mins)} (${pct}٪)</span>
-      </div>
-      <div class="prog-bg">
-        <div class="prog-fill" style="background:${cat.color}; width:${pct}%"></div>
-      </div>
-    `;
-
-    // رویداد تپ تعاملی برای حذف/اضافه موضوعات روی نمودار گزارش‌ها
-    item.onclick = () => {
-      if (state.selectedReportCats.includes(cat.id)) {
-        state.selectedReportCats = state.selectedReportCats.filter(id => id !== cat.id);
-      } else {
-        state.selectedReportCats.push(cat.id);
-      }
-      save('planner_selected_report_cats', state.selectedReportCats);
-      saveCloud();
-      render();
-    };
-
-    grid.appendChild(item);
   });
 
   const chartType = state.chartTypePref || 'doughnut';
 
+  // تولید چارت بر اساس دسته‌های تیک‌خورده
   if (chartType === 'line') {
     const dates = [];
     for (let i = daysRange - 1; i >= 0; i--) {
@@ -354,108 +308,192 @@ export function renderReport(){
       }
     });
   } 
-  else if (data.length > 0) {
-    const chartOptions = {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: chartType === 'doughnut' ? 'right' : 'top',
-          labels: { color: '#999', font: { family: 'Vazirmatn' } }
+  else {
+    Object.keys(activeSums).forEach(catId => {
+      const cat = state.cats.find(c => c.id === catId) || {name: 'حذف شده', color: '#999'};
+      labels.push(cat.name);
+      data.push(activeSums[catId]);
+      bgColors.push(cat.color);
+    });
+
+    if (data.length > 0) {
+      const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: chartType === 'doughnut' ? 'right' : 'top',
+            labels: { color: '#999', font: { family: 'Vazirmatn' } }
+          }
         }
-      }
-    };
-
-    if (chartType === 'bar') {
-      chartOptions.scales = {
-        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#999', font: { family: 'Vazirmatn' } } },
-        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#999', font: { family: 'Vazirmatn' } } }
       };
-    }
 
-    reportChartInstance = new Chart(ctx, {
-      type: chartType,
-      data: {
-        labels,
-        datasets: [{
-          label: 'مدت زمان به دقیقه',
-          data,
-          backgroundColor: bgColors,
-          borderWidth: 0,
-          borderRadius: chartType === 'bar' ? 6 : 0
-        }]
-      },
-      options: chartOptions
+      if (chartType === 'bar') {
+        chartOptions.scales = {
+          y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#999', font: { family: 'Vazirmatn' } } },
+          x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#999', font: { family: 'Vazirmatn' } } }
+        };
+      }
+
+      reportChartInstance = new Chart(ctx, {
+        type: chartType,
+        data: {
+          labels,
+          datasets: [{
+            label: 'مدت زمان به دقیقه',
+            data,
+            backgroundColor: bgColors,
+            borderWidth: 0,
+            borderRadius: chartType === 'bar' ? 6 : 0
+          }]
+        },
+        options: chartOptions
+      });
+    }
+  }
+
+  // رندر گرید زیر نمودار با قابلیت انتخاب چندگانه و افکت هاله انتخابی
+  const recordedCatIds = Object.keys(sums);
+  if (recordedCatIds.length === 0) {
+    grid.innerHTML = '<div style="color:var(--muted); font-size:12px; text-align:center; padding:10px;">داده‌ای برای دوره‌ی انتخاب شده وجود ندارد.</div>';
+  } else {
+    recordedCatIds.forEach(catId => {
+      const cat = state.cats.find(c => c.id === catId) || {name: 'حذف شده', color: '#999'};
+      const mins = sums[catId];
+      const isSelected = state.selectedReportCats.includes(catId);
+      const pct = total > 0 ? Math.round((mins / total) * 100) : 0;
+      
+      const itemDiv = document.createElement('div');
+      itemDiv.className = `report-item-interactive ${isSelected ? 'selected' : ''}`;
+      itemDiv.style.setProperty('--cat-color', cat.color);
+      
+      itemDiv.innerHTML = `
+        <div class="report-header">
+          <span style="color:${cat.color}; font-weight:700;">${escHtml(cat.name)}</span>
+          <span>${fmtDur(mins)} (${pct}٪)</span>
+        </div>
+        <div class="prog-bg">
+          <div class="prog-fill" style="background:${cat.color}; width:${pct}%"></div>
+        </div>
+      `;
+      
+      itemDiv.onclick = () => {
+        if (state.selectedReportCats.includes(catId)) {
+          state.selectedReportCats = state.selectedReportCats.filter(id => id !== catId);
+        } else {
+          state.selectedReportCats.push(catId);
+        }
+        save("planner_selected_report_cats", state.selectedReportCats);
+        saveCloud();
+        render();
+      };
+      grid.appendChild(itemDiv);
     });
   }
   
-  document.getElementById('total-line').innerHTML=`مجموع گزارش: <span>${fmtDur(total)}</span>`;
+  document.getElementById('total-line').innerHTML=`مجموع گزارش فعال: <span>${fmtDur(activeTotal)}</span>`;
 }
 
 export function renderActivityMap(){
   const map=document.getElementById('activity-map');
   const sel=document.getElementById('map-cat-select');
   const label=document.getElementById('map-month-label');
+  const tooltipDetail = document.getElementById('map-tooltip-detail');
   if(!map || !sel || !label) return;
 
   const [y,mo]=state.mapMonth.split('-').map(Number);
   const monthNames=['ژانویه','فوریه','مارس','آوریل','مه','ژوئن','ژوئیه','اوت','سپتامبر','اکتبر','نوامبر','دسامبر'];
-  label.textContent=monthNames[mo-1]+' '+y;
+  
+  const isJalali = (state.calendarPref === 'jalali');
+  if (isJalali) {
+    const dtSample = new Date(y, mo - 1, 1);
+    const labelParts = new Intl.DateTimeFormat('fa-IR', { year: 'numeric', month: 'long' }).format(dtSample);
+    label.textContent = labelParts;
+  } else {
+    label.textContent=monthNames[mo-1]+' '+y;
+  }
+  
   map.innerHTML='';
 
   ['ش','ی','د','س','چ','پ','ج'].forEach(day=>{
     map.innerHTML += `<div class="map-weekday">${day}</div>`;
   });
 
-  if(!state.cats.length || !sel.value){
-    map.innerHTML='<div style="grid-column:1/-1; color:var(--muted); font-size:12px; text-align:center;">داده‌ای نیست</div>'; return;
+  const selectedValue = sel.value;
+  if(!selectedValue){
+    map.innerHTML='<div style="grid-column:1/-1; color:var(--muted); font-size:12px; text-align:center;">موضوعی انتخاب نشده است</div>'; 
+    return;
   }
 
   const daysInMonth=new Date(y, mo, 0).getDate();
   const firstDay=new Date(y, mo-1, 1).getDay();
   const startOffset=(firstDay+1)%7; 
+  
+  for(let i=0; i<startOffset; i++) {
+    map.innerHTML += `<div class="map-day" style="background:transparent; border:none;"></div>`;
+  }
 
-  for(let i=0; i<startOffset; i++) map.innerHTML += `<div class="map-day" style="background:transparent; border:none;"></div>`;
-
-  // بررسی انتخاب حالت خلق‌و‌خو پیش‌فرض در نقشه ماهانه
-  if (sel.value === 'mood_tracker') {
+  // اگر حالت روحی به عنوان موضوع پیش‌فرض انتخاب شده باشد
+  if (selectedValue === 'mood_tracker') {
     for(let day=1; day<=daysInMonth; day++){
       const dateStr = `${y}-${pad(mo)}-${pad(day)}`;
       const dayMood = state.moods[dateStr];
+      let displayContent = '';
+      let tooltipText = '';
       
-      let moodVisual = `<span class="map-dot" style="width:4px; height:4px; background:var(--surface3)"></span>`;
-      let noteTooltip = `روز ${day}: یادداشتی ثبت نشده`;
-      
+      const formattedDate = fmtDateLabel(dateStr);
+
       if (dayMood && dayMood.mood) {
-        const preset = state.moodPresets.find(p => p.level === String(dayMood.mood));
+        const preset = state.moodPresets.find(p => String(p.level) === String(dayMood.mood));
         if (preset) {
-          const noteText = dayMood.note ? `\nیادداشت: "${dayMood.note}"` : '\nبدون یادداشت متنی';
-          noteTooltip = `روز ${day} - وضعیت: ${preset.label}${noteText}`;
-          
           if (preset.type === 'webm' || preset.type === 'video') {
-            moodVisual = `<video src="${preset.value}" autoplay loop muted playsinline style="width:22px; height:22px; border-radius:50%; object-fit:cover; pointer-events:none;"></video>`;
+            displayContent = `<video src="${preset.value}" autoplay loop muted playsinline style="width:24px; height:24px; object-fit:cover; border-radius:50%; pointer-events:none;"></video>`;
           } else {
-            moodVisual = `<span style="font-size:15px; line-height:1;">${preset.value}</span>`;
+            displayContent = `<span style="font-size: 16px;">${preset.value}</span>`;
           }
+          tooltipText = `${formattedDate} | حال‌و‌هوا: ${preset.label} ${dayMood.note ? `\nیادداشت: ${dayMood.note}` : ''}`;
         }
+      } else {
+        displayContent = `<span class="map-dot" style="width:4px; height:4px; background:var(--border2)"></span>`;
+        tooltipText = `${formattedDate} | وضعیتی ثبت نشده است`;
       }
-      
-      map.innerHTML += `
-        <div class="map-day" data-tooltip="${escHtml(noteTooltip)}" title="${escHtml(noteTooltip)}" style="cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; height:100%;">
-          <span class="map-day-num">${day}</span>
-          <div style="display:flex; align-items:center; justify-content:center; width:22px; height:22px; margin-top:6px;">
-            ${moodVisual}
-          </div>
-        </div>`;
+
+      const dayCell = document.createElement('div');
+      dayCell.className = 'map-day';
+      dayCell.setAttribute('title', tooltipText.replace(/\n/g, ' - '));
+      dayCell.style.cursor = 'pointer';
+      dayCell.innerHTML = `
+        <span class="map-day-num">${day}</span>
+        <div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; padding-top:6px;">${displayContent}</div>
+      `;
+
+      dayCell.onclick = () => {
+        if (tooltipDetail) {
+          let noteHtml = dayMood && dayMood.note ? `<div style="margin-top:6px; padding:6px; background:var(--surface3); border-radius:6px; border:1px solid var(--border); color:var(--text); font-style:italic;">"${escHtml(dayMood.note)}"</div>` : '<span style="color:var(--muted)"> (خاطره‌ای نوشته نشده است)</span>';
+          const presetName = dayMood && dayMood.mood ? (state.moodPresets.find(p => String(p.level) === String(dayMood.mood))?.label || '') : '';
+          const emojiSym = dayMood && dayMood.mood ? (state.moodPresets.find(p => String(p.level) === String(dayMood.mood))?.value || '') : '';
+          
+          tooltipDetail.innerHTML = `
+            <div style="width:100%; text-align:right;">
+              <strong>📅 ${formattedDate}</strong>
+              <div style="margin-top:4px;">وضعیت خلق‌وخو: <span style="color:var(--accent); font-weight:bold;">${presetName} ${emojiSym}</span></div>
+              ${noteHtml}
+            </div>
+          `;
+        }
+      };
+
+      map.appendChild(dayCell);
     }
   } 
-  // حالت عادی: واکشی فعالیت‌های دسته‌بندی با تولتیپ و فرمت دلخواه
+  // حالت معمولی: دسته‌بندی موضوعی خاص
   else {
-    const cat=state.cats.find(c=>c.id===sel.value);
+    const cat=state.cats.find(c=>c.id===selectedValue);
+    if (!cat) return;
+    
     const sums={};
-
     state.events.forEach(e=>{
-      if(!e.date || e.catId!==sel.value || !e.date.startsWith(state.mapMonth)) return;
+      if(!e.date || e.catId!==selectedValue || !e.date.startsWith(state.mapMonth)) return;
       const day=Number(e.date.slice(8,10));
       sums[day]=(sums[day]||0)+e.durMins;
     });
@@ -466,15 +504,33 @@ export function renderActivityMap(){
       const mins=sums[day]||0;
       const ratio=max ? mins/max : 0;
       const size=mins ? Math.round(6 + ratio*14) : 4;
+      const dateStr = `${y}-${pad(mo)}-${pad(day)}`;
       
-      const durText = mins ? fmtDur(mins) : 'بدون فعالیت ثبت شده';
-      const tooltipText = `روز ${day} ${monthNames[mo-1]} \nمجموع زمان: ${durText}`;
+      const formattedDate = fmtDateLabel(dateStr);
+      const formattedDur = fmtDur(mins);
+      const tooltipText = `${formattedDate} | زمان: ${mins > 0 ? formattedDur : 'بدون فعالیت'}`;
 
-      map.innerHTML += `
-        <div class="map-day" data-tooltip="${tooltipText}" title="${tooltipText}">
-          <span class="map-day-num">${day}</span>
-          <span class="map-dot" style="width:${size}px; height:${size}px; background:${mins?cat.color:'var(--surface3)'}"></span>
-        </div>`;
+      const dayCell = document.createElement('div');
+      dayCell.className = 'map-day';
+      dayCell.setAttribute('title', tooltipText);
+      dayCell.style.cursor = 'pointer';
+      dayCell.innerHTML = `
+        <span class="map-day-num">${day}</span>
+        <span class="map-dot" style="width:${size}px; height:${size}px; background:${mins?cat.color:'var(--surface3)'}"></span>
+      `;
+
+      dayCell.onclick = () => {
+        if (tooltipDetail) {
+          tooltipDetail.innerHTML = `
+            <div style="width:100%; text-align:right;">
+              <strong>📅 ${formattedDate}</strong>
+              <div style="margin-top:4px;">مدت زمان فعالیت موضوع <span style="color:${cat.color}; font-weight:bold;">"${escHtml(cat.name)}"</span>: <b>${formattedDur}</b></div>
+            </div>
+          `;
+        }
+      };
+
+      map.appendChild(dayCell);
     }
   }
 }
@@ -532,7 +588,7 @@ export function renderMood() {
   noteInp.value = todayMood.note;
 
   emojiContainer.innerHTML = state.moodPresets.map(preset => {
-    const isActive = (todayMood.mood === String(preset.level));
+    const isActive = (String(todayMood.mood) === String(preset.level));
     const activeStyle = isActive 
       ? 'opacity: 1; transform: scale(1.15); filter: drop-shadow(0 0 10px var(--accent)); border: 2px solid var(--accent);' 
       : 'opacity: 0.45; border: 2px solid transparent;';
@@ -553,7 +609,10 @@ export function renderMood() {
       const val = sp.getAttribute('data-mood');
       if(!state.moods[state.curDate]) state.moods[state.curDate] = { note: noteInp.value };
       state.moods[state.curDate].mood = String(val);
-      save('planner_moods', state.moods); saveCloud(); renderMood();
+      save('planner_moods', state.moods); 
+      saveCloud(); 
+      renderMood();
+      renderActivityMap();
     };
   });
 }
@@ -683,30 +742,23 @@ export function renderRoutines() {
   });
 }
 
-// رندر ویرایشگر اموجی و خلق و خوی پویای جدید (شخصی‌سازی نام و تعداد به صورت شناور)
+// ساخت ویرایشگر پیشرفته و کاملاً شخصی‌سازی شده اموجی‌ها با دکمه اضافه و حذف
 export function renderCustomEmojisEditor() {
   const container = document.getElementById('custom-emojis-container');
   if (!container) return;
   
-  let html = '';
-  state.moodPresets.forEach((preset, idx) => {
-    html += `
-      <div style="display:flex; align-items:center; gap:8px; background:var(--surface2); padding:10px; border-radius:8px; border:1px solid var(--border); flex-wrap:wrap; margin-bottom:8px;">
-        <span style="font-size:11px; min-width:80px; color:var(--text); font-weight:700;">سطح ${preset.level} :</span>
-        <input type="text" class="emoji-label-input" data-idx="${idx}" value="${escHtml(preset.label)}" style="width:110px; padding:6px; font-size:12px; height:32px; border-radius:6px; background:var(--surface3); border:1px solid var(--border2); color:var(--text);" placeholder="نام حالت">
-        <select class="emoji-type-select" data-idx="${idx}" style="width:100px; padding:6px; font-size:12px; height:32px; border-radius:6px; background:var(--surface3); border:1px solid var(--border2); color:var(--text);">
-          <option value="text" ${preset.type === 'text' ? 'selected' : ''}>متنی</option>
-          <option value="webm" ${preset.type === 'webm' ? 'selected' : ''}>انیمیشن WebM</option>
+  container.innerHTML = state.moodPresets.map((preset, idx) => {
+    return `
+      <div style="display:flex; align-items:center; gap:8px; background:var(--surface2); padding:10px; border-radius:8px; border:1px solid var(--border); flex-wrap:wrap;">
+        <input type="text" class="emoji-label-input" data-idx="${idx}" value="${escHtml(preset.label)}" style="width:110px; padding:6px; font-size:12px; height:32px; border-radius:6px;" placeholder="عنوان مثلاً: عالی">
+        <select class="emoji-type-select" data-idx="${idx}" style="width:100px; padding:6px; font-size:12px; height:32px; border-radius:6px; background:var(--surface); color:var(--text); border:1px solid var(--border2);">
+          <option value="text" ${preset.type === 'text' ? 'selected' : ''}>شکلک متنی</option>
+          <option value="webm" ${preset.type === 'webm' ? 'selected' : ''}>انیمیشن (WebM)</option>
         </select>
-        <input type="text" class="emoji-value-input" data-idx="${idx}" value="${escHtml(preset.value)}" style="flex:1; min-width:140px; padding:6px; font-size:12px; height:32px; border-radius:6px; background:var(--surface3); border:1px solid var(--border2); color:var(--text);" placeholder="${preset.type === 'text' ? '😊' : 'آدرس فایل'}">
-        <button type="button" class="btn-del" onclick="deleteMoodPreset(${idx})" style="width:32px; height:32px;">✕</button>
+        <input type="text" class="emoji-value-input" data-idx="${idx}" value="${escHtml(preset.value)}" style="flex:1; min-width:80px; padding:6px; font-size:12px; height:32px; border-radius:6px;" placeholder="${preset.type === 'text' ? 'مثلاً: 😊' : 'آدرس وب فایل .webm'}">
+        <button class="btn-del" type="button" onclick="deleteMoodPreset(${idx})" style="width:32px; height:32px; font-size:12px; flex-shrink:0;">✕</button>
       </div>`;
-  });
-  
-  html += `
-    <button type="button" class="btn-live" onclick="addMoodPreset()" style="margin-top:10px; border-color:var(--accent); color:var(--accent); padding:6px;">➕ افزودن سطح احساسات جدید</button>
-  `;
-  container.innerHTML = html;
+  }).join('');
 }
 
 export function syncSettingsForm() {
@@ -725,6 +777,24 @@ export function render(){
   
   const groupToggle = document.getElementById('timeline-group-toggle');
   if (groupToggle) groupToggle.checked = state.groupTimelinePref;
+
+  // فیکس دکمه ادیت / افزودن
+  const addBtn = document.getElementById("add-btn");
+  const cancelEditBtn = document.getElementById("cancel-edit-btn");
+  const titleHeader = document.getElementById("manage-card-title");
+  if (addBtn && cancelEditBtn && titleHeader) {
+    if (state.editingEventId) {
+      addBtn.textContent = "💾 ذخیره تغییرات ویرایش";
+      addBtn.style.background = "linear-gradient(135deg, #10b981, #059669)";
+      cancelEditBtn.style.display = "block";
+      titleHeader.textContent = "ویرایش فعالیت انتخاب شده";
+    } else {
+      addBtn.textContent = "+ افزودن به تایم‌لاین";
+      addBtn.style.background = "";
+      cancelEditBtn.style.display = "none";
+      titleHeader.textContent = "ثبت فعالیت جدید";
+    }
+  }
   
   renderCats();
   renderTimeline();
