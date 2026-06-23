@@ -4,7 +4,6 @@ import { state, save, saveCloud, loadCloud } from "./storage.js";
 import { getNow, parseTime, pad, getLocalDateStr, fmtDateLabel } from "./helpers.js";
 import { render, applyTheme, updateLiveButton } from "./render.js";
 
-// تابع کمکی محافظت در برابر خطاهای اتصال به متدهای DOM (فیکس کامل باگ کرش در صورت تداخل کدهای قدیمی)
 function safeBindEvent(id, event, callback) {
   const el = document.getElementById(id);
   if (el) {
@@ -100,6 +99,17 @@ safeBindEvent("setting-week-start", "onchange", (e) => {
   save("planner_week_start_pref", state.weekStartPref); 
   saveCloud(); 
   render();
+});
+
+// ذخیره زمان شخصی‌سازی شده پومودورو از بخش تنظیمات
+safeBindEvent("setting-pomodoro-work", "onchange", (e) => {
+  state.pomodoroWorkPref = parseInt(e.target.value) || 25;
+  save("planner_pomo_work_pref", state.pomodoroWorkPref); saveCloud(); render();
+});
+
+safeBindEvent("setting-pomodoro-break", "onchange", (e) => {
+  state.pomodoroBreakPref = parseInt(e.target.value) || 5;
+  save("planner_pomo_break_pref", state.pomodoroBreakPref); saveCloud(); render();
 });
 
 // تغییر نوع چارت از منوی گزارش‌ها
@@ -321,6 +331,94 @@ safeBindEvent("export-btn", "onclick", () => {
 });
 
 safeBindEvent("report-confirm-btn", "onclick", () => render());
+
+
+// ================= مدیریت و احیای روتین‌ها و اهداف زنده =================
+
+// دکمه‌های بازکننده پنل روتین و اهداف
+safeBindEvent("toggle-rt-form-btn", "onclick", () => {
+  const p = document.getElementById("rt-card-panel");
+  if(p) { p.style.display = p.style.display === 'block' ? 'none' : 'block'; p.scrollIntoView({ behavior: 'smooth' }); }
+});
+safeBindEvent("close-rt-panel", "onclick", () => {
+  const p = document.getElementById("rt-card-panel"); if(p) p.style.display = 'none';
+});
+
+safeBindEvent("toggle-goal-form-btn", "onclick", () => {
+  const p = document.getElementById("goal-card-panel");
+  if(p) { p.style.display = p.style.display === 'block' ? 'none' : 'block'; p.scrollIntoView({ behavior: 'smooth' }); }
+});
+safeBindEvent("close-goal-panel", "onclick", () => {
+  const p = document.getElementById("goal-card-panel"); if(p) p.style.display = 'none';
+});
+
+// انتخاب روزها در روتین
+const dayBtns = document.querySelectorAll('.rt-day-btn');
+dayBtns.forEach(btn => {
+  btn.onclick = function() {
+    const day = parseInt(this.getAttribute('data-day'), 10);
+    if (state.selectedRtDays.includes(day)) {
+      state.selectedRtDays = state.selectedRtDays.filter(d => d !== day);
+      this.style.background = 'var(--surface2)'; this.style.color = 'var(--text)';
+    } else {
+      state.selectedRtDays.push(day);
+      this.style.background = 'var(--accent)'; this.style.color = '#fff';
+    }
+  };
+});
+
+// افزودن روتین ثابت جدید
+safeBindEvent("add-rt-btn", "onclick", () => {
+  const title = document.getElementById('rt-title').value.trim();
+  const start = document.getElementById('rt-start').value.trim();
+  const end = document.getElementById('rt-end').value.trim();
+  const catId = document.getElementById('cat-select').value;
+
+  if (!title || !start || !end || !catId) return alert('لطفاً تمامی فیلدهای روتین را تکمیل کنید');
+  if (state.selectedRtDays.length === 0) return alert('حداقل یک روز را انتخاب کنید');
+  if (parseTime(start) === null || parseTime(end) === null) return alert('فرمت زمان روتین نامعتبر است');
+
+  state.routines.push({
+    id: Date.now().toString(), title, catId, days: [...state.selectedRtDays], startTime: start, endTime: end
+  });
+  save('planner_routines', state.routines); saveCloud();
+
+  // ریست فرم
+  document.getElementById('rt-title').value = '';
+  document.getElementById('rt-start').value = '';
+  document.getElementById('rt-end').value = '';
+  state.selectedRtDays = [];
+  dayBtns.forEach(b => { b.style.background = 'var(--surface2)'; b.style.color = 'var(--text)'; });
+  const p = document.getElementById("rt-card-panel"); if(p) p.style.display = 'none';
+  render();
+});
+
+window.delRoutine = function(id) {
+  if(!confirm('روتین حذف شود؟')) return;
+  state.routines = state.routines.filter(r => r.id !== id);
+  save('planner_routines', state.routines); saveCloud(); render();
+};
+
+// ثبت هدف جدید ماهانه
+safeBindEvent("add-goal-btn", "onclick", () => {
+  const title = document.getElementById('goal-title').value.trim();
+  const catId = document.getElementById('goal-cat-select').value;
+  const targetRaw = document.getElementById('goal-target').value.trim();
+
+  if (!catId) return alert('موضوع را انتخاب کنید');
+  const targetMins = parseInt(targetRaw, 10);
+  if (isNaN(targetMins) || targetMins <= 0) return alert('مدت زمان هدف نامعتبر است');
+
+  state.goals.push({
+    id: Date.now().toString(), title, catId, targetMins, month: state.mapMonth
+  });
+  save('planner_goals', state.goals); saveCloud();
+  document.getElementById('goal-title').value = '';
+  document.getElementById('goal-target').value = '';
+  const p = document.getElementById("goal-card-panel"); if(p) p.style.display = 'none';
+  render();
+  alert('هدف با موفقیت ثبت شد!');
+});
 
 // احراز هویت و بارگذاری اطلاعات کاربری
 async function handleUserSession(session) {
