@@ -35,10 +35,9 @@ export const state = {
   weekStartPref: load('planner_week_start_pref', 'sat'), 
   chartTypePref: load('planner_chart_type_pref', 'doughnut'), 
   groupTimelinePref: load('planner_group_timeline_pref', true), 
+  selectedReportCats: load('planner_selected_report_cats', []), // آرایه جدید فیلتر نمودار گزارش‌ها
   
-  // اضافه شدن وضعیت انتخاب موضوعات در بخش گزارش
-  selectedReportCats: load('planner_selected_report_cats', []),
-  
+  // متغیرهای ذخیره‌سازی پیش‌فرض زمان پومودورو شخصی‌سازی شده
   pomodoroWorkPref: load('planner_pomo_work_pref', 25),
   pomodoroBreakPref: load('planner_pomo_break_pref', 5),
   
