@@ -808,6 +808,14 @@ export function renderCustomEmojisEditor() {
   if (!container) return;
   
   container.innerHTML = state.moodPresets.map((preset, idx) => {
+    let displayVal = preset.value;
+    if (preset.type === 'webm') {
+      const match = preset.value.match(/emojis\/(\d{3})\.webm$/);
+      if (match) {
+        displayVal = match[1]; // نمایش فقط آیدی ۳ رقمی برای تمیزی ظاهر
+      }
+    }
+
     return `
       <div style="display:flex; align-items:center; gap:8px; background:var(--surface2); padding:10px; border-radius:8px; border:1px solid var(--border); flex-wrap:wrap;">
         <input type="text" class="emoji-label-input" data-idx="${idx}" value="${escHtml(preset.label)}" style="width:110px; padding:6px; font-size:12px; height:32px; border-radius:6px;" placeholder="عنوان مثلاً: عالی">
@@ -815,11 +823,65 @@ export function renderCustomEmojisEditor() {
           <option value="text" ${preset.type === 'text' ? 'selected' : ''}>شکلک متنی</option>
           <option value="webm" ${preset.type === 'webm' ? 'selected' : ''}>انیمیشن (WebM)</option>
         </select>
-        <input type="text" class="emoji-value-input" data-idx="${idx}" id="preset-val-input-${idx}" value="${escHtml(preset.value)}" style="flex:1; min-width:80px; padding:6px; font-size:12px; height:32px; border-radius:6px;" placeholder="${preset.type === 'text' ? 'مثلاً: 😊' : 'آدرس وب فایل .webm'}">
-        <button class="action-btn" type="button" onclick="openEmojiGallery(${idx})" style="padding: 0 10px; height:32px; font-size:11px; background:var(--surface3); border:1px solid var(--border2); color:var(--text);">🖼️ گالری سوپابیس</button>
+        <input type="text" class="emoji-value-input" data-idx="${idx}" id="preset-val-input-${idx}" value="${escHtml(displayVal)}" style="flex:1; min-width:80px; padding:6px; font-size:12px; height:32px; border-radius:6px;" placeholder="${preset.type === 'text' ? 'مثلاً: 😊' : 'آیدی شکلک (مثلاً ۱۳۷)'}">
+        <button class="action-btn" type="button" onclick="openEmojiGallery(${idx})" style="padding: 0 10px; height:32px; font-size:11px; background:var(--surface3); border:1px solid var(--border2); color:var(--text);">🖼️ گالری</button>
         <button class="btn-del" type="button" onclick="deleteMoodPreset(${idx})" style="width:32px; height:32px; font-size:12px; flex-shrink:0;">✕</button>
       </div>`;
   }).join('');
+}
+
+// تابع رندر وضعیت و درصد پیشرفت اهداف ماه جاری بر اساس فعالیت‌های واقعی ثبت شده
+export function renderGoals() {
+  const list = document.getElementById('goals-list');
+  if (!list) return;
+  list.innerHTML = '';
+
+  const currentMonthGoals = state.goals.filter(g => g.month === state.mapMonth);
+
+  if (currentMonthGoals.length === 0) {
+    list.innerHTML = `<div style="color:var(--muted); font-size:12px; text-align:center; padding: 10px 0;">هدفی برای ماه جاری (${state.mapMonth}) تعریف نشده است.</div>`;
+    return;
+  }
+
+  currentMonthGoals.forEach(g => {
+    const cat = state.cats.find(c => c.id === g.catId) || {name: 'حذف شده', color: '#999', emoji: '📅'};
+    const catEmoji = cat.emoji || '📅';
+
+    // محاسبه دقایق ثبت شده در این ماه برای این دسته‌بندی
+    const completedMins = state.events
+      .filter(e => e.catId === g.catId && e.date.startsWith(g.month))
+      .reduce((sum, e) => sum + e.durMins, 0);
+
+    const pct = g.targetMins > 0 ? Math.min(100, Math.round((completedMins / g.targetMins) * 100)) : 0;
+
+    const itemDiv = document.createElement('div');
+    itemDiv.style.cssText = `
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 8px;
+      border-right: 4px solid ${cat.color};
+    `;
+
+    itemDiv.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <div>
+          <span style="font-size:13px; font-weight:700; color:var(--text);">${escHtml(g.title || cat.name)}</span>
+          <span style="font-size:10px; background:${cat.color}15; color:${cat.color}; padding:2px 6px; border-radius:4px; margin-right:6px; font-weight:bold;">${catEmoji} ${escHtml(cat.name)}</span>
+        </div>
+        <button class="btn-del" style="width:24px; height:24px; font-size:11px;" onclick="deleteGoal('${g.id}')">✕</button>
+      </div>
+      <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-bottom:4px;">
+        <span>پیشرفت: <b>${fmtDur(completedMins)}</b> از <b>${fmtDur(g.targetMins)}</b></span>
+        <span>${pct}%</span>
+      </div>
+      <div class="prog-bg" style="height:6px; background:var(--surface3);">
+        <div class="prog-fill" style="background:${cat.color}; width:${pct}%;"></div>
+      </div>
+    `;
+    list.appendChild(itemDiv);
+  });
 }
 
 export function syncSettingsForm() {
@@ -846,6 +908,7 @@ export function render(){
   renderHabitsAndTodos();
   renderMood();
   renderRoutines();
+  renderGoals(); // رندر بخش وضعیت اهداف ماهانه
   updateLiveButton();
   syncSettingsForm();
   renderCustomEmojisEditor(); 
