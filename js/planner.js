@@ -4,6 +4,12 @@ import { state, save, saveCloud, loadCloud } from "./storage.js";
 import { getNow, parseTime, pad, getLocalDateStr, fmtDateLabel } from "./helpers.js";
 import { render, applyTheme, updateLiveButton } from "./render.js";
 
+// ساختار ایمن برای اتصال رویدادها (Safe Binding) جهت جلوگیری از ارورهای Null در لود اولیه
+function safeBindEvent(id, event, callback) {
+  const el = document.getElementById(id);
+  if (el) el[event] = callback;
+}
+
 // مدیریت تغییر تب‌ها
 window.switchTab = function(tabId) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -15,10 +21,10 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.getAttribute('data-tab')));
 });
 
-// مدیریت روز و ماه
-document.getElementById('prev-day').onclick = () => shiftDay(-1);
-document.getElementById('next-day').onclick = () => shiftDay(1);
-document.getElementById('btn-today').onclick = () => { state.curDate = getLocalDateStr(); render(); };
+// مدیریت تاریخ روزانه
+safeBindEvent('prev-day', 'onclick', () => shiftDay(-1));
+safeBindEvent('next-day', 'onclick', () => shiftDay(1));
+safeBindEvent('btn-today', 'onclick', () => { state.curDate = getLocalDateStr(); render(); });
 
 function shiftDay(n){
   const [y,mo,d]=state.curDate.split('-').map(Number);
@@ -27,48 +33,48 @@ function shiftDay(n){
   render();
 }
 
-document.getElementById('map-prev').onclick = () => {
+safeBindEvent('map-prev', 'onclick', () => {
   const [y,mo]=state.mapMonth.split('-').map(Number);
   const dt=new Date(y, mo-2, 1); state.mapMonth=dt.getFullYear()+'-'+pad(dt.getMonth()+1); render();
-};
-document.getElementById('map-next').onclick = () => {
+});
+safeBindEvent('map-next', 'onclick', () => {
   const [y,mo]=state.mapMonth.split('-').map(Number);
   const dt=new Date(y, mo, 1); state.mapMonth=dt.getFullYear()+'-'+pad(dt.getMonth()+1); render();
-};
-document.getElementById('map-cat-select').onchange = () => render();
+});
+safeBindEvent('map-cat-select', 'onchange', () => render());
 
 // رویدادهای تغییر تم و تغییر رنگ دلخواه از تب تنظیمات
-document.getElementById('setting-theme-select').onchange = (e) => {
+safeBindEvent('setting-theme-select', 'onchange', (e) => {
   state.theme = e.target.value; save('planner_theme', state.theme); saveCloud(); applyTheme();
-};
-document.getElementById('setting-accent-picker').onchange = (e) => {
+});
+safeBindEvent('setting-accent-picker', 'onchange', (e) => {
   state.accentColor = e.target.value; save('planner_accent', state.accentColor); saveCloud(); applyTheme();
-};
+});
 
 // رویدادهای جدید تنظیمات تقویم و قالب‌ها
-document.getElementById('setting-calendar').onchange = (e) => {
+safeBindEvent('setting-calendar', 'onchange', (e) => {
   state.calendarPref = e.target.value; save('planner_calendar_pref', state.calendarPref); saveCloud(); render();
-};
-document.getElementById('setting-duration-format').onchange = (e) => {
+});
+safeBindEvent('setting-duration-format', 'onchange', (e) => {
   state.timeFormatPref = e.target.value; save('planner_time_format_pref', state.timeFormatPref); saveCloud(); render();
-};
-document.getElementById('setting-week-start').onchange = (e) => {
+});
+safeBindEvent('setting-week-start', 'onchange', (e) => {
   state.weekStartPref = e.target.value; save('planner_week_start_pref', state.weekStartPref); saveCloud(); render();
-};
+});
 
 // تغییر نوع چارت از منوی گزارش‌ها
-document.getElementById('report-chart-type').onchange = (e) => {
+safeBindEvent('report-chart-type', 'onchange', (e) => {
   state.chartTypePref = e.target.value; save('planner_chart_type_pref', state.chartTypePref); saveCloud(); render();
-};
+});
 
 // باز و بسته کردن باکس افزودن دسته‌بندی
-document.getElementById('toggle-cat').onclick = () => {
+safeBindEvent('toggle-cat', 'onclick', () => {
   const box = document.getElementById('new-cat-box');
-  box.style.display = box.style.display === 'block' ? 'none' : 'block';
-};
+  if (box) box.style.display = box.style.display === 'block' ? 'none' : 'block';
+});
 
 // ذخیره دسته‌بندی جدید
-document.getElementById('save-cat').onclick = () => {
+safeBindEvent('save-cat', 'onclick', () => {
   const name = document.getElementById('new-cat-name').value.trim();
   const color = document.getElementById('new-cat-color').value;
   if(!name){ alert('نام دسته‌بندی را وارد کنید'); return; }
@@ -82,7 +88,7 @@ document.getElementById('save-cat').onclick = () => {
   render();
   document.getElementById('cat-select').value = nc.id;
   document.getElementById('map-cat-select').value = nc.id;
-};
+});
 
 window.delCat = function(id) {
   if(!confirm(`آیا مطمئن هستید؟ فعالیت‌های قبلی پاک نمی‌شوند.`)) return;
@@ -91,7 +97,7 @@ window.delCat = function(id) {
 };
 
 // ثبت فعالیت جدید دستی
-document.getElementById('add-btn').onclick = ()=>{
+safeBindEvent('add-btn', 'onclick', ()=>{
   const title = document.getElementById('act-title').value.trim();
   const catId = document.getElementById('cat-select').value;
   const tagsRaw = document.getElementById('act-tags').value.trim();
@@ -107,10 +113,10 @@ document.getElementById('add-btn').onclick = ()=>{
 
   state.events.push({ id: Date.now().toString(), date: state.curDate, title, catId, sMins, eMins, durMins, tags });
   save('planner_ev', state.events); saveCloud(); render(); switchTab('tab-timeline');
-};
+});
 
-// شروع و پایان فعالیت زنده
-document.getElementById('live-btn').onclick=()=>{
+// زنده
+safeBindEvent('live-btn', 'onclick', ()=>{
   if(!state.liveSession){
     state.liveSession = {
       title: document.getElementById('act-title').value.trim(),
@@ -141,7 +147,7 @@ document.getElementById('live-btn').onclick=()=>{
     });
     state.liveSession=null; save('planner_live', null); save('planner_ev', state.events); saveCloud(); render(); updateLiveButton();
   }
-};
+});
 
 window.cancelLiveSession = function() {
   if(!confirm('آیا از لغو و حذف زمان این فعالیت زنده اطمینان دارید؟ (هیچ فعالیتی ثبت نخواهد شد)')) return;
@@ -164,20 +170,20 @@ window.delEv = function(id) {
 };
 
 // تودو و عادت
-document.getElementById('add-todo-btn').onclick = () => {
+safeBindEvent('add-todo-btn', 'onclick', () => {
   const title = document.getElementById('todo-input').value.trim(); if(!title) return;
   state.todos.push({ id: 't'+Date.now(), title, date: state.curDate, done: false });
   save('planner_todos', state.todos); saveCloud(); render(); document.getElementById('todo-input').value = '';
-};
+});
 window.toggleTodo = (id) => {
   const t = state.todos.find(x => x.id === id); if(t) { t.done = !t.done; save('planner_todos', state.todos); saveCloud(); render(); }
 };
 window.deleteTodo = (id) => { state.todos = state.todos.filter(x => x.id !== id); save('planner_todos', state.todos); saveCloud(); render(); };
 
-document.getElementById('add-habit-btn').onclick = () => {
+safeBindEvent('add-habit-btn', 'onclick', () => {
   const title = document.getElementById('habit-input').value.trim(); if(!title) return;
   state.habits.push({ id: 'h'+Date.now(), title }); save('planner_habits', state.habits); saveCloud(); render(); document.getElementById('habit-input').value = '';
-};
+});
 window.toggleHabit = (hId, dateStr) => {
   if(!state.habitLogs[hId]) state.habitLogs[hId] = {};
   state.habitLogs[hId][dateStr] = !state.habitLogs[hId][dateStr];
@@ -186,56 +192,53 @@ window.toggleHabit = (hId, dateStr) => {
 window.deleteHabit = (id) => { state.habits = state.habits.filter(x => x.id !== id); delete state.habitLogs[id]; save('planner_habits', state.habits); save('planner_habitLogs', state.habitLogs); saveCloud(); render(); };
 
 // ژورنال و خاطره‌نویسی روزانه
-document.getElementById('save-journal-btn').onclick = () => {
+safeBindEvent('save-journal-btn', 'onclick', () => {
   const note = document.getElementById('journal-textarea').value.trim();
   let selectedMood = state.moods[state.curDate]?.mood || null;
   state.moods[state.curDate] = { mood: selectedMood, note }; save('planner_moods', state.moods); saveCloud(); alert('خاطره‌نویسی و یادداشت امروز با موفقیت ثبت شد!');
-};
+});
 document.querySelectorAll('.mood-emoji').forEach(sp => {
   sp.onclick = () => {
-    const textInp = document.getElementById('journal-textarea').value;
+    const textInp = document.getElementById('journal-textarea') ? document.getElementById('journal-textarea').value : '';
     if(!state.moods[state.curDate]) state.moods[state.curDate] = { note: textInp };
     state.moods[state.curDate].mood = sp.getAttribute('data-mood'); save('planner_moods', state.moods); saveCloud(); render();
   };
 });
 
 // تغییر نام نمایشی کاربری در تب تنظیمات
-document.getElementById('save-display-name-btn').onclick = async () => {
+safeBindEvent('save-display-name-btn', 'onclick', async () => {
   const newName = document.getElementById('setting-display-name').value.trim();
   if(!newName) return alert('لطفاً نام نمایشی معتبری وارد کنید.');
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if(!user) return;
 
-    // ۱. بروزرسانی متادیتای هویتی در Supabase Auth
     const { error: authErr } = await supabase.auth.updateUser({
       data: { display_name: newName }
     });
     if (authErr) throw authErr;
 
-    // ۲. بروزرسانی همزمان در دیتابیس پشتیبان profiles
     await supabase.from("profiles").upsert({ id: user.id, name: newName });
     
-    // ۳. آپدیت آنی خوش‌آمدگویی بالای صفحه
     const msg = document.getElementById("welcome-msg");
     if (msg) msg.textContent = "خوش آمدی، " + newName + " 👋";
     
     document.getElementById('setting-display-name').value = '';
-    alert('نام نمایشی شما با موفقیت به ' + newName + ' تغییر یافت!');
+    alert('نام نمایشی شما با موفقیت تغییر یافت!');
   } catch (err) {
     console.error(err);
     alert('خطایی در حین ثبت تغییر نام رخ داد.');
   }
-};
+});
 
 // خروجی بک‌آپ
-document.getElementById('export-btn').onclick = () => {
+safeBindEvent('export-btn', 'onclick', () => {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], { type: "application/json" }));
   a.download = `Planner_Backup_${state.curDate}.json`; a.click();
-};
+});
 
-document.getElementById('report-confirm-btn').onclick = () => render();
+safeBindEvent('report-confirm-btn', 'onclick', () => render());
 
 // احراز هویت و بارگذاری اطلاعات کاربری
 async function handleUserSession(session) {
@@ -255,7 +258,6 @@ async function handleUserSession(session) {
   const msg = document.getElementById("welcome-msg");
   if (msg) msg.textContent = displayName ? "خوش آمدی، " + displayName + " 👋" : "خوش آمدی 👋";
 
-  // فیکس دوم: لود کردن سریع تقویم و رندر تاریخ در ابتدای احراز هویت
   const dateLabel = document.getElementById('date-label');
   if (dateLabel) dateLabel.textContent = fmtDateLabel(state.curDate);
 
