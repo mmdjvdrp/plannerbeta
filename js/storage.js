@@ -35,7 +35,9 @@ export const state = {
   weekStartPref: load('planner_week_start_pref', 'sat'), 
   chartTypePref: load('planner_chart_type_pref', 'doughnut'), 
   
-  // تنظیمات پیش‌فرض اموجی‌های ۵ گانه حال و هوا (قابل شخصی‌سازی با WebM)
+  // تنظیم ترجیح گروه‌بندی خودکار تایم‌لاین (ذخیره در دیتابیس محلی و ابری)
+  groupTimelinePref: load('planner_group_timeline_pref', true), 
+  
   moodPresets: load('planner_mood_presets', [
     { level: '1', type: 'text', value: '🤩', label: 'بسیار عالی' },
     { level: '2', type: 'text', value: '😊', label: 'خوب و آرام' },
@@ -65,7 +67,7 @@ export async function saveCloud(){
         moods: state.moods, accentColor: state.accentColor,
         calendarPref: state.calendarPref, timeFormatPref: state.timeFormatPref, 
         weekStartPref: state.weekStartPref, chartTypePref: state.chartTypePref,
-        moodPresets: state.moodPresets
+        groupTimelinePref: state.groupTimelinePref, moodPresets: state.moodPresets
       }
     }, { onConflict: 'user_id' });
   } catch (err) { console.error("Error saving to cloud", err); }
@@ -96,6 +98,7 @@ export async function loadCloud(){
       state.weekStartPref  = cd.weekStartPref || "sat";
       state.chartTypePref  = cd.chartTypePref || "doughnut";
       state.moodPresets    = cd.moodPresets || state.moodPresets;
+      state.groupTimelinePref = cd.groupTimelinePref !== undefined ? cd.groupTimelinePref : true;
 
       save('planner_ev', state.events);
       save('planner_cats', state.cats);
@@ -112,6 +115,7 @@ export async function loadCloud(){
       save('planner_time_format_pref', state.timeFormatPref);
       save('planner_week_start_pref', state.weekStartPref);
       save('planner_chart_type_pref', state.chartTypePref);
+      save('planner_group_timeline_pref', state.groupTimelinePref);
     }
   } catch (err) { console.error("Error loading cloud data", err); }
 }
