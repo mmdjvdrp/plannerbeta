@@ -13,18 +13,29 @@
   <link rel="stylesheet" href="./css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<!-- استایل واکنش‌گرا -->
+<!-- استایل واکنش‌گرا و رفع فیکس اسکرول تب‌ها روی موبایل -->
 <style>
 @media(max-width: 768px) {
-  body { padding: 12px 8px; padding-bottom: 90px; }
+  body { padding: 12px 8px; padding-bottom: 95px; }
   .header { flex-direction: column; align-items: center; text-align: center; gap: 14px; }
   .logo { font-size: 22px; }
   .date-nav { display: flex; flex-wrap: wrap; justify-content: center; width: 100%; gap: 12px; }
   .date-nav > div:first-of-type { width: 100%; display: flex; justify-content: space-between; align-items: center; order: -1; }
   #date-label { flex: 1; min-width: 0; font-size: 13px; padding: 6px 4px; }
   .card { padding: 14px; border-radius: 12px; }
-  .app-nav { position: fixed; bottom: 0; left: 0; right: 0; margin-bottom: 0; border-radius: 20px 20px 0 0; padding: 10px 15px 20px 15px; z-index: 1000; box-shadow: 0 -5px 20px rgba(0,0,0,0.4); border: none; background: var(--surface); display: flex; gap: 10px; }
-  .nav-btn { flex-direction: column; gap: 4px; font-size: 11px; padding: 8px; }
+  
+  /* فیکس پویای تب‌ها برای موبایل جهت جا شدن همه المان‌ها با اسکرول افقی */
+  .app-nav { 
+    position: fixed; bottom: 0; left: 0; right: 0; margin-bottom: 0; 
+    border-radius: 20px 20px 0 0; padding: 10px 15px 20px 15px; z-index: 1000; 
+    box-shadow: 0 -5px 20px rgba(0,0,0,0.4); border: none; background: var(--surface); 
+    display: flex; gap: 12px; overflow-x: auto; scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  .app-nav::-webkit-scrollbar { display: none; }
+  .app-nav { -ms-overflow-style: none; scrollbar-width: none; }
+
+  .nav-btn { flex: 0 0 auto; min-width: 85px; flex-direction: column; gap: 4px; font-size: 11px; padding: 8px; }
   .nav-icon { font-size: 22px; }
   .mood-container { flex-direction: column; align-items: stretch; }
 }
@@ -74,7 +85,6 @@
     
     <!-- ================= تب 1: تایم‌لاین ================= -->
     <div id="tab-timeline" class="tab-section active">
-      <!-- سوییچ تعاملی گروه‌بندی کارهای هم‌موضوع -->
       <div style="display:flex; align-items:center; gap:10px; background:var(--surface2); padding:10px 14px; border-radius:12px; border:1px solid var(--border2); margin-bottom:16px;">
         <input type="checkbox" id="timeline-group-toggle" style="width:18px; height:18px; accent-color:var(--accent); cursor:pointer;">
         <label for="timeline-group-toggle" style="margin:0; font-size:12px; color:var(--text); cursor:pointer; font-weight:700; user-select:none;">یکپارچه‌سازی و گروه‌بندی خودکار کارهای هم‌موضوع</label>
@@ -128,7 +138,7 @@
       </div>
     </div>
 
-    <!-- ================= تب 4: ثبت و مدیریت ================= -->
+    <!-- ================= تب 4: ثبت و مدیریت (احیای روتین و اهداف) ================= -->
     <div id="tab-add" class="tab-section">
       <div class="card">
         <div class="card-title">ثبت فعالیت جدید</div>
@@ -159,12 +169,68 @@
         <div class="form-group">
           <div style="display:flex; align-items:center; gap:8px; background:var(--surface2); padding:10px; border-radius:8px; border:1px solid var(--border2);">
             <input type="checkbox" id="pomodoro-toggle" style="width:16px; height:16px; accent-color:var(--accent);">
-            <label for="pomodoro-toggle" style="margin:0; font-size:12px; color:var(--text);">فعال‌سازی آلارم پومودورو (۲۵ دقیقه کار)</label>
+            <label for="pomodoro-toggle" style="margin:0; font-size:12px; color:var(--text);">فعال‌سازی آلارم پومودورو</label>
           </div>
         </div>
         <button class="btn-primary" id="add-btn">+ افزودن به تایم‌لاین</button>
         <button class="btn-live" id="live-btn">شروع فعالیت زنده</button>
         <div class="live-status" id="live-status"></div>
+      </div>
+
+      <!-- دکمه‌های پنل تعاملی کشویی روتین و اهداف -->
+      <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+        <button id="toggle-rt-form-btn" class="btn-live" style="margin-top:0; flex:1;">⏰ تعریف روتین ثابت</button>
+        <button id="toggle-goal-form-btn" class="btn-live" style="margin-top:0; flex:1;">🎯 تعریف هدف ماهانه</button>
+      </div>
+
+      <!-- پنل روتین‌های ثابت روزانه (احیا شده) -->
+      <div class="card" id="rt-card-panel" style="display: none; position: relative;">
+        <button type="button" class="close-panel-btn" id="close-rt-panel">✕</button>
+        <div class="card-title">تعریف روتین‌های ثابت</div>
+        <div class="form-group">
+          <label>عنوان روتین</label>
+          <input type="text" id="rt-title" placeholder="مثلاً: کلاس زبان">
+        </div>
+        <div class="form-group">
+          <label>زمان شروع و پایان</label>
+          <div class="time-row">
+            <input type="text" id="rt-start" inputmode="numeric" placeholder="17:00" maxlength="5">
+            <input type="text" id="rt-end" inputmode="numeric" placeholder="18:30" maxlength="5">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>روزهای تکرار روتین</label>
+          <div id="rt-days-selector" style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px;">
+            <button type="button" class="rt-day-btn" data-day="0">ش</button>
+            <button type="button" class="rt-day-btn" data-day="1">ی</button>
+            <button type="button" class="rt-day-btn" data-day="2">د</button>
+            <button type="button" class="rt-day-btn" data-day="3">س</button>
+            <button type="button" class="rt-day-btn" data-day="4">چ</button>
+            <button type="button" class="rt-day-btn" data-day="5">پ</button>
+            <button type="button" class="rt-day-btn" data-day="6">ج</button>
+          </div>
+        </div>
+        <button class="btn-primary" id="add-rt-btn">+ ذخیره روتین</button>
+        <div id="rt-list" style="margin-top: 15px; display: flex; flex-direction: column; gap: 6px;"></div>
+      </div>
+
+      <!-- پنل تعریف هدف ماهانه جدید (احیا شده) -->
+      <div class="card" id="goal-card-panel" style="display: none; position: relative;">
+        <button type="button" class="close-panel-btn" id="close-goal-panel">✕</button>
+        <div class="card-title">تعریف هدف ماهانه جدید</div>
+        <div class="form-group">
+          <label>عنوان تمرین / فعالیت اختصاصی (اختیاری)</label>
+          <input type="text" id="goal-title" placeholder="مثلاً: وال سیت">
+        </div>
+        <div class="form-group">
+          <label>موضوع (دسته‌بندی)</label>
+          <select id="goal-cat-select"></select>
+        </div>
+        <div class="form-group">
+          <label>مدت زمان هدف (به دقیقه)</label>
+          <input type="text" id="goal-target" inputmode="numeric" placeholder="مثلاً: ۳۰" maxlength="5" autocomplete="off">
+        </div>
+        <button class="btn-primary" id="add-goal-btn">+ ثبت هدف ماهانه</button>
       </div>
     </div>
 
@@ -224,6 +290,7 @@
 
       <div class="card">
         <div class="card-title">شخصی‌سازی ظاهر</div>
+        
         <div class="form-group" style="margin-bottom: 20px;">
           <label>پوسته برنامه (تم)</label>
           <select id="setting-theme-select">
@@ -247,7 +314,18 @@
       </div>
 
       <div class="card">
-        <div class="card-title">تنظیمات تقویم و زمان</div>
+        <div class="card-title">تنظیمات تقویم و زمان و پومودورو</div>
+
+        <div class="form-group" style="margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div>
+            <label>کار پومودورو (دقیقه)</label>
+            <input type="text" id="setting-pomodoro-work" style="padding: 8px; border-radius: 8px; background: var(--surface2); color: var(--text); border: 1px solid var(--border2); width:100%; text-align:center;">
+          </div>
+          <div>
+            <label>استراحت پومودورو (دقیقه)</label>
+            <input type="text" id="setting-pomodoro-break" style="padding: 8px; border-radius: 8px; background: var(--surface2); color: var(--text); border: 1px solid var(--border2); width:100%; text-align:center;">
+          </div>
+        </div>
 
         <div class="form-group" style="margin-bottom: 20px;">
           <label>سیستم تقویم نمایشگر</label>
