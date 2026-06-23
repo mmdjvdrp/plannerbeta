@@ -28,31 +28,6 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
   });
 });
 
-// پرش از تایم‌لاین به صفحه ثبت و تعریف فعالیت جهت ویرایش داده‌ها
-window.editEv = function(id) {
-  const ev = state.events.find(e => e.id === id);
-  if (!ev) return;
-  
-  state.editingEventId = id;
-  
-  // جامپ به صفحه مدیریت فعالیت‌ها
-  switchTab("tab-add");
-  
-  // مقداردهی اتوماتیک فرم
-  document.getElementById("act-title").value = ev.title || "";
-  document.getElementById("cat-select").value = ev.catId || "";
-  document.getElementById("act-tags").value = (ev.tags || []).join(" ");
-  document.getElementById("start-time").value = fmtTime(ev.sMins);
-  document.getElementById("end-time").value = fmtTime(ev.eMins);
-  
-  // تبدیل دکمه اصلی به حالت ذخیره ویرایش
-  const addBtn = document.getElementById("add-btn");
-  if (addBtn) {
-    addBtn.textContent = "💾 ذخیره تغییرات فعالیت";
-    addBtn.style.background = "linear-gradient(135deg, #10b981, #059669)";
-  }
-};
-
 // مدیریت تاریخ روزانه
 safeBindEvent("prev-day", "onclick", () => { shiftDay(-1); });
 safeBindEvent("next-day", "onclick", () => { shiftDay(1); });
@@ -89,14 +64,14 @@ safeBindEvent("timeline-group-toggle", "onchange", (e) => {
   render();
 });
 
-// چک‌باکس انتخاب همه یا لغو انتخاب برای نمودار گزارش‌ها
+// چک‌باکس انتخاب همه موضوعات در بخش گزارش‌ها
 safeBindEvent("report-select-all", "onchange", (e) => {
   if (e.target.checked) {
     state.selectedReportCats = state.cats.map(c => c.id);
   } else {
     state.selectedReportCats = [];
   }
-  save('planner_selected_report_cats', state.selectedReportCats);
+  save("planner_selected_report_cats", state.selectedReportCats);
   saveCloud();
   render();
 });
@@ -194,7 +169,35 @@ window.delCat = function(id) {
   render();
 };
 
-// ثبت فعالیت جدید دستی (با پشتیبانی کامل از ویرایش ردیف‌های تایم‌لاین)
+// تابع ادیت و پرش به مدیریت به همراه زمان فعالیت
+window.editEv = function(id) {
+  const ev = state.events.find(e => e.id === id);
+  if (!ev) return;
+  
+  state.editingEventId = id;
+  
+  // پر کردن فرم ثبت و مدیریت با متغیرهای فعالیت انتخاب شده
+  document.getElementById("act-title").value = ev.title || "";
+  document.getElementById("cat-select").value = ev.catId || "";
+  document.getElementById("act-tags").value = (ev.tags || []).join(" ");
+  document.getElementById("start-time").value = fmtTime(ev.sMins);
+  document.getElementById("end-time").value = fmtTime(ev.eMins);
+  
+  switchTab("tab-add");
+  render();
+};
+
+// لغو حالت ویرایش فعالیت
+safeBindEvent("cancel-edit-btn", "onclick", () => {
+  state.editingEventId = null;
+  document.getElementById("act-title").value = "";
+  document.getElementById("act-tags").value = "";
+  document.getElementById("start-time").value = "";
+  document.getElementById("end-time").value = "";
+  render();
+});
+
+// ثبت یا ذخیره تغییرات ویرایش شده فعالیت دستی
 safeBindEvent("add-btn", "onclick", () => {
   const title = document.getElementById("act-title").value.trim();
   const catId = document.getElementById("cat-select").value;
@@ -214,30 +217,22 @@ safeBindEvent("add-btn", "onclick", () => {
   const tags = tagsRaw ? tagsRaw.split(" ").filter(t => t.startsWith("#")) : [];
 
   if (state.editingEventId) {
-    // ویرایش زمان فعالیت موجود
+    // بروزرسانی روی آبجکت قبلی
     const idx = state.events.findIndex(e => e.id === state.editingEventId);
     if (idx !== -1) {
-      state.events[idx] = {
-        ...state.events[idx],
-        title, catId, sMins, eMins, durMins, tags
-      };
+      state.events[idx].title = title;
+      state.events[idx].catId = catId;
+      state.events[idx].sMins = sMins;
+      state.events[idx].eMins = eMins;
+      state.events[idx].durMins = durMins;
+      state.events[idx].tags = tags;
     }
     state.editingEventId = null;
-    const addBtn = document.getElementById("add-btn");
-    if (addBtn) {
-      addBtn.textContent = "+ افزودن به تایم‌لاین";
-      addBtn.style.background = "linear-gradient(135deg, var(--accent), #5c3fcc)";
-    }
+    alert("تغییرات فعالیت با موفقیت بروزرسانی شد.");
   } else {
-    // افزودن رکورد جدید
+    // افزودن فعالیت کاملاً جدید
     state.events.push({ id: Date.now().toString(), date: state.curDate, title, catId, sMins, eMins, durMins, tags });
   }
-
-  // تمیز کردن فرم
-  document.getElementById("act-title").value = "";
-  document.getElementById("act-tags").value = "";
-  document.getElementById("start-time").value = "";
-  document.getElementById("end-time").value = "";
 
   save("planner_ev", state.events); 
   saveCloud(); 
@@ -369,16 +364,42 @@ safeBindEvent("save-display-name-btn", "onclick", async () => {
   }
 });
 
-// شخصی‌سازی شکلک‌های زنده احساسات
+// افزودن حالت خلق و خوی جدید
+safeBindEvent("add-mood-preset-btn", "onclick", () => {
+  state.moodPresets.push({
+    level: Date.now().toString(),
+    type: 'text',
+    value: '😊',
+    label: 'حالت جدید'
+  });
+  save("planner_mood_presets", state.moodPresets);
+  saveCloud();
+  render();
+});
+
+// حذف حالت خلق و خو
+window.deleteMoodPreset = function(idx) {
+  if (state.moodPresets.length <= 1) {
+    alert("باید حداقل یک حالت روحی در لیست وجود داشته باشد!");
+    return;
+  }
+  if (!confirm("آیا از حذف این حالت روحی اطمینان دارید؟")) return;
+  state.moodPresets.splice(idx, 1);
+  save("planner_mood_presets", state.moodPresets);
+  saveCloud();
+  render();
+};
+
+// ذخیره چیدمان اختصاصی اموجی‌ها یا فایل‌های WebM انیمیشنی
 safeBindEvent("save-custom-emojis-btn", "onclick", () => {
   const labels = document.querySelectorAll(".emoji-label-input");
   const types = document.querySelectorAll(".emoji-type-select");
   const values = document.querySelectorAll(".emoji-value-input");
   
-  if (types.length === state.moodPresets.length) {
-    types.forEach((sel, idx) => {
-      state.moodPresets[idx].label = labels[idx].value.trim();
-      state.moodPresets[idx].type = sel.value;
+  if (labels.length === state.moodPresets.length) {
+    labels.forEach((inp, idx) => {
+      state.moodPresets[idx].label = inp.value.trim();
+      state.moodPresets[idx].type = types[idx].value;
       state.moodPresets[idx].value = values[idx].value.trim();
     });
     
@@ -388,30 +409,6 @@ safeBindEvent("save-custom-emojis-btn", "onclick", () => {
     alert("شخصی‌سازی شکلک‌های زنده با موفقیت ذخیره شد!");
   }
 });
-
-// توابع تعریف/حذف حالات روحی پویا به صورت نامحدود
-window.deleteMoodPreset = function(idx) {
-  if (state.moodPresets.length <= 1) return alert("باید حداقل یک حالت روحی در پلتفرم وجود داشته باشد.");
-  if (!confirm("حذف این حالت؟ مقادیر روزهایی که این احساس را زده بودند تغییر نخواهد کرد.")) return;
-  state.moodPresets.splice(idx, 1);
-  state.moodPresets.forEach((p, i) => { p.level = String(i + 1); });
-  save("planner_mood_presets", state.moodPresets);
-  saveCloud();
-  render();
-};
-
-window.addMoodPreset = function() {
-  const nextLevel = String(state.moodPresets.length + 1);
-  state.moodPresets.push({
-    level: nextLevel,
-    type: 'text',
-    value: '😀',
-    label: `حالت جدید ${nextLevel}`
-  });
-  save("planner_mood_presets", state.moodPresets);
-  saveCloud();
-  render();
-};
 
 // خروجی بک‌آپ
 safeBindEvent("export-btn", "onclick", () => {
