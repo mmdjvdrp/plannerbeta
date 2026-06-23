@@ -18,8 +18,8 @@
 @media(max-width: 768px) {
   body { padding: 12px 8px; }
   
-  /* افزایش پدینگ انتهایی کانتینر اصلی جهت ایجاد فضای اسکرول برای بالا آمدن کامل محتوا از پشت منوی شناور */
-  .wrap { padding-bottom: 160px !important; } 
+  /* افزایش پدینگ انتهایی کانتینر اصلی جهت عدم تداخل محتوا با منوی دوردیفه شناور پایین صفحه */
+  .wrap { padding-bottom: 190px !important; } 
   
   .header { flex-direction: column; align-items: center; text-align: center; gap: 14px; }
   .logo { font-size: 22px; }
@@ -28,32 +28,15 @@
   #date-label { flex: 1; min-width: 0; font-size: 13px; padding: 6px 4px; }
   .card { padding: 14px; border-radius: 12px; }
   
-  /* ظرف نگهدارنده منو برای افکت گرادینت محو شونده در چپ و راست منو */
+  /* ظرف نگهدارنده منو تغییریافته به شبکه دوردیفه بجای اسکرول مبهم */
   .app-nav-container {
     position: fixed; bottom: 0; left: 0; right: 0; margin-bottom: 0; 
     border-radius: 20px 20px 0 0; z-index: 1000; 
     box-shadow: 0 -5px 25px rgba(0,0,0,0.5); background: var(--surface); 
-    padding: 6px 0 16px 0; 
+    padding: 10px 0 16px 0; 
   }
   .app-nav-container::before, .app-nav-container::after {
-    content: '';
-    position: absolute;
-    top: 6px;
-    bottom: 16px;
-    width: 35px;
-    pointer-events: none;
-    z-index: 1002;
-  }
-  /* محو شدگی ملایم بر اساس رنگ هر پوسته فعال */
-  .app-nav-container::before {
-    left: 0;
-    background: linear-gradient(to right, var(--surface) 30%, transparent);
-    border-radius: 20px 0 0 0;
-  }
-  .app-nav-container::after {
-    right: 0;
-    background: linear-gradient(to left, var(--surface) 30%, transparent);
-    border-radius: 0 20px 0 0;
+    display: none !important; /* حذف گرادینت‌های چپ و راست به دلیل حذف اسکرول افقی */
   }
 
   .app-nav { 
@@ -61,18 +44,17 @@
     box-shadow: none !important;
     border: none !important;
     background: transparent !important;
-    display: flex; gap: 12px; 
-    overflow-x: auto; 
-    scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
-    padding: 8px 16px !important;
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important; /* تبدیل تب‌ها به ۳ ستون منظم */
+    gap: 8px !important;
+    padding: 4px 12px !important;
     flex-wrap: nowrap !important;
   }
   .app-nav::-webkit-scrollbar { display: none; }
   .app-nav { -ms-overflow-style: none; scrollbar-width: none; }
 
-  .nav-btn { flex: 0 0 auto; min-width: 85px; flex-direction: column; gap: 4px; font-size: 11px; padding: 8px; }
-  .nav-icon { font-size: 22px; }
+  .nav-btn { flex: unset; width: 100%; min-width: unset !important; flex-direction: column; gap: 4px; font-size: 10px; padding: 6px 2px; }
+  .nav-icon { font-size: 18px; }
   .mood-container { flex-direction: column; align-items: stretch; }
 }
 .tab-section { display: none; animation: fadeIn 0.3s ease; }
@@ -140,7 +122,7 @@
     <nav class="app-nav">
       <button class="nav-btn active" data-tab="tab-timeline"><span class="nav-icon">📅</span> تایم‌لاین</button>
       <button class="nav-btn" data-tab="tab-habits"><span class="nav-icon">✔️</span> کار و عادت</button>
-      <button class="nav-btn" data-tab="tab-journal"><span class="nav-icon">📖</span> دفترچه روزانه</button>
+      <button class="nav-btn" data-tab="tab-journal"><span class="nav-icon">📖</span> دفترچه</button>
       <button class="nav-btn" data-tab="tab-add"><span class="nav-icon">⚙️</span> مدیریت</button>
       <button class="nav-btn" data-tab="tab-reports"><span class="nav-icon">📊</span> گزارش‌ها</button>
       <button class="nav-btn" data-tab="tab-settings"><span class="nav-icon">🛠️</span> تنظیمات</button>
@@ -239,6 +221,11 @@
             <div class="time-field"><input type="text" id="start-time" placeholder="08:30"><button class="now-btn" id="btn-now-s">الان</button></div>
             <div class="time-field"><input type="text" id="end-time" placeholder="10:00"><button class="now-btn" id="btn-now-e">الان</button></div>
           </div>
+        </div>
+        <!-- فیلد وقفه دستی جدید در فرم ثبت فعالیت دستی -->
+        <div class="form-group">
+          <label>مدت زمان وقفه/پاز در این فعالیت (دقیقه)</label>
+          <input type="text" id="act-pause" placeholder="0" inputmode="numeric" style="font-family: 'Vazirmatn', monospace; text-align: center;">
         </div>
         <div class="form-group">
           <div style="display:flex; align-items:center; gap:8px; background:var(--surface2); padding:10px; border-radius:8px; border:1px solid var(--border2);">
@@ -467,7 +454,7 @@
       <button id="close-gallery-modal" style="background:transparent; border:none; color:var(--muted); font-size:20px; cursor:pointer;">✕</button>
     </div>
     
-    <p style="font-size:11px; color:var(--muted); margin-bottom:14px; line-height:1.6;">لیست فایل‌های متحرک WebM موجود. یکی را انتخاب کنید تا به عنوان حالت روحی امروز یا دیگر پریست‌ها تنظیم شود:</p>
+    <p style="font-size:11px; color:var(--muted); margin-bottom:14px; line-height:1.6;">لیست فایل‌های متحرک WebM موجود. یکی را انتخاب کنید تا به عنوان حالت روحی امروز یا شکلک دسته‌بندی موضوعی تنظیم شود:</p>
     
     <!-- کانتینر ابزارهای بالای گالری -->
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px;">
