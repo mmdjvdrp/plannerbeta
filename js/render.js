@@ -445,8 +445,15 @@ export function renderActivityMap(){
   
   map.innerHTML='';
 
-  ['ش','ی','د','س','چ','پ','ج'].forEach(day=>{
-    map.innerHTML += `<div class="map-weekday">${day}</div>`;
+  ['sh','y','d','s','ch','p','j'].forEach(day=>{
+    let dLabel = 'ش';
+    if(day==='y') dLabel='ی';
+    if(day==='d') dLabel='د';
+    if(day==='s') dLabel='س';
+    if(day==='ch') dLabel='چ';
+    if(day==='p') dLabel='پ';
+    if(day==='j') dLabel='ج';
+    map.innerHTML += `<div class="map-weekday">${dLabel}</div>`;
   });
 
   const selectedValue = sel.value;
