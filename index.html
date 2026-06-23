@@ -16,7 +16,11 @@
 <!-- استایل واکنش‌گرا و رفع فیکس اسکرول تب‌ها روی موبایل -->
 <style>
 @media(max-width: 768px) {
-  body { padding: 12px 8px; padding-bottom: 110px; } /* افزایش فاصله از پایین جهت پیشگیری از اورلپ شدن منو */
+  body { padding: 12px 8px; }
+  
+  /* افزایش پدینگ انتهایی کانتینر اصلی جهت ایجاد فضای اسکرول برای بالا آمدن کامل محتوا از پشت منوی شناور */
+  .wrap { padding-bottom: 160px !important; } 
+  
   .header { flex-direction: column; align-items: center; text-align: center; gap: 14px; }
   .logo { font-size: 22px; }
   .date-nav { display: flex; flex-wrap: wrap; justify-content: center; width: 100%; gap: 12px; }
@@ -323,7 +327,7 @@
 
         <!-- بخش نمایش اطلاعات جزئی دسته کلیک شده در گزارش ویژه نسخه گوشی و تبلت -->
         <div id="report-detail-card" style="margin-top: 10px; margin-bottom: 16px; padding: 12px; border-radius: 10px; background: var(--surface2); border: 1px solid var(--border2); text-align: center; font-size: 12px; color: var(--text); min-height: 44px; display: flex; align-items: center; justify-content: center; line-height: 1.6;">
-          📊 برای فیلتر یا مشاهده آمار دقیق‌تر، روی دسته‌بندی‌های زیر ضربه بزنید.
+          📊 برای فیلتر یا مشاهده آمار دقیق‌تر، روی دسته‌ب بندی‌های زیر ضربه بزنید.
         </div>
 
         <div id="report-grid"></div>
