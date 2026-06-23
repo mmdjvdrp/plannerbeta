@@ -104,9 +104,8 @@
       </div>
     </div>
 
-    <!-- ================= تب 3: دفترچه روزانه و یادداشت (جدید) ================= -->
+    <!-- ================= تب 3: دفترچه روزانه و یادداشت ================= -->
     <div id="tab-journal" class="tab-section">
-      <!-- حال و هوای روزانه -->
       <div class="card">
         <div class="card-title">حال و هوای امروز من</div>
         <div class="mood-container" style="display:flex; gap:12px; align-items:center; justify-content: center;">
@@ -120,7 +119,6 @@
         </div>
       </div>
 
-      <!-- دفترچه و ژورنال روزانه -->
       <div class="card">
         <div class="card-title">دفترچه روزانه / یادداشت خاطرات امروز</div>
         <div class="form-group">
@@ -176,10 +174,11 @@
         <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap: wrap; gap:8px;">
           <span>گزارش دوره‌ای موضوعات</span>
           <div style="display:flex; gap:6px; align-items:center;">
-            <!-- منوی سوئیچ ساختار چارت -->
+            <!-- منوی سوئیچ ساختار چارت (اضافه شدن چارت خطی) -->
             <select id="report-chart-type" style="width: auto; padding: 4px; font-size: 11px; height: 28px; border-radius: 6px; background:var(--surface2); color:var(--text); border:1px solid var(--border2);">
               <option value="doughnut">دایره‌ای (Doughnut)</option>
               <option value="bar">ستونی (Bar)</option>
+              <option value="line">خطی (Line)</option>
             </select>
             <input type="text" id="report-days" value="7" style="width:36px; padding:4px; text-align:center; font-size:11px; height:28px;">
             <button id="report-confirm-btn" class="action-btn" style="height:28px; padding:0 8px;">تایید</button>
@@ -206,7 +205,6 @@
 
     <!-- ================= تب 6: تنظیمات ================= -->
     <div id="tab-settings" class="tab-section">
-      <!-- تنظیمات پروفایل و نام کاربری -->
       <div class="card">
         <div class="card-title">تنظیمات پروفایل</div>
         <div class="form-group" style="margin-bottom: 20px;">
