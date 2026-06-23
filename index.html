@@ -216,10 +216,12 @@
             <select id="cat-select"></select>
             <button class="btn-icon" id="toggle-cat" title="ایجاد دسته جدید">+</button>
           </div>
+          <!-- کادر ایجاد دسته‌بندی جدید مجهز به انتخابگر اموجی -->
           <div class="new-cat-box" id="new-cat-box" style="background: var(--surface2); border: 1px dashed var(--border2); border-radius: 8px; padding: 10px; margin-top: 8px; display: none;">
             <div class="new-cat-inner" style="display: flex; gap: 6px; align-items: center;">
-              <input type="text" id="new-cat-name" placeholder="نام دسته جدید">
-              <input type="color" id="new-cat-color" value="#7c5cfc">
+              <input type="text" id="new-cat-emoji" placeholder="📅" style="width:45px; text-align:center; padding: 8px; border-radius: 8px; border:1px solid var(--border2); background:var(--surface); color:var(--text); font-size:14px; outline:none;">
+              <input type="text" id="new-cat-name" placeholder="نام دسته جدید" style="flex:1;">
+              <input type="color" id="new-cat-color" value="#7c5cfc" style="width:36px; height:36px; border:none; border-radius:8px; cursor:pointer; background:transparent;">
               <button class="btn-save-cat" id="save-cat" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border2); background: var(--surface3); color: var(--text); font-size: 12px; cursor: pointer;">ذخیره</button>
             </div>
           </div>
