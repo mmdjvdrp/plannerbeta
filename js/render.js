@@ -109,7 +109,7 @@ export function renderTimeline(){
 export function renderReport(){
   const grid = document.getElementById('report-grid');
   const ctx = document.getElementById('report-chart');
-  if(!grid) return;
+  if(!grid || !ctx) return;
 
   const daysRange = parseInt(document.getElementById('report-days').value) || 7;
   const [y,mo,d]=state.curDate.split('-').map(Number);
@@ -147,10 +147,58 @@ export function renderReport(){
       </div>`;
   });
 
-  if(ctx && data.length > 0) {
-    const chartType = state.chartTypePref || 'doughnut';
-    
-    // تعریف استایل متناسب برای نمودار ستونی
+  const chartType = state.chartTypePref || 'doughnut';
+
+  // ۱. رندر نمودار خطی روند روزانه فعالیت‌ها
+  if (chartType === 'line') {
+    const dates = [];
+    for (let i = daysRange - 1; i >= 0; i--) {
+      const dt = new Date(y, mo - 1, d - i);
+      dates.push(`${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`);
+    }
+
+    const isJalali = (state.calendarPref === 'jalali');
+    const xLabels = dates.map(dStr => {
+      const [ey, em, ed] = dStr.split('-').map(Number);
+      const dt = new Date(ey, em - 1, ed);
+      return new Intl.DateTimeFormat(isJalali ? 'fa-IR' : 'en-US', { month: 'numeric', day: 'numeric' }).format(dt);
+    });
+
+    const lineDatasets = state.cats.map(cat => {
+      const dataPoints = dates.map(dateStr => {
+        const dayEvs = state.events.filter(e => e.date === dateStr && e.catId === cat.id);
+        return dayEvs.reduce((sum, e) => sum + e.durMins, 0);
+      });
+      return {
+        label: cat.name,
+        data: dataPoints,
+        borderColor: cat.color,
+        backgroundColor: cat.color + '18',
+        fill: true,
+        tension: 0.3,
+        borderWidth: 2.5,
+        pointRadius: 3
+      };
+    });
+
+    reportChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: { labels: xLabels, datasets: lineDatasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top', labels: { color: '#999', font: { family: 'Vazirmatn', size: 10 } } }
+        },
+        scales: {
+          y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#999', font: { family: 'Vazirmatn' } } },
+          x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#999', font: { family: 'Vazirmatn' } } }
+        }
+      }
+    });
+  } 
+  // ۲. رندر نمودارهای یکپارچه دایره‌ای یا ستونی
+  else if (data.length > 0) {
     const chartOptions = {
       responsive: true,
       maintainAspectRatio: false,
@@ -184,6 +232,7 @@ export function renderReport(){
       options: chartOptions
     });
   }
+  
   document.getElementById('total-line').innerHTML=`مجموع گزارش: <span>${fmtDur(total)}</span>`;
 }
 
@@ -277,7 +326,6 @@ export function renderHabitsAndTodos() {
   });
 }
 
-// نمایش خلق‌وخو و دفترچه خاطرات روزانه
 export function renderMood() {
   const noteInp = document.getElementById('journal-textarea');
   const emojiSpans = document.querySelectorAll('.mood-emoji');
@@ -393,16 +441,15 @@ export function syncSettingsForm() {
   if (document.getElementById('setting-calendar')) document.getElementById('setting-calendar').value = state.calendarPref;
   if (document.getElementById('setting-duration-format')) document.getElementById('setting-duration-format').value = state.timeFormatPref;
   if (document.getElementById('setting-week-start')) document.getElementById('setting-week-start').value = state.weekStartPref;
-  if (document.getElementById('report-chart-type')) document.getElementById('report-chart-type').value = state.chartTypePref;
 }
 
 export function render(){
   applyTheme();
   
-  // فیکس اول: رندر کردن تاریخ در بالاترین نقطه جهت لود بلادرنگ پس از ورود
+  // رفع اشکال تاریخ: مقداردهی اولیه همزمان با شروع رندر
   const dateLabel = document.getElementById('date-label');
   if (dateLabel) dateLabel.textContent = fmtDateLabel(state.curDate);
-
+  
   renderCats();
   renderTimeline();
   renderReport();
