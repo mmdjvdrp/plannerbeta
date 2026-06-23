@@ -12,8 +12,23 @@ export function applyTheme(){
   document.documentElement.style.setProperty('--accent', state.accentColor);
   document.documentElement.style.setProperty('--accent-glow', `color-mix(in srgb, ${state.accentColor} 25%, transparent)`);
   
+  // اعمال ویژگی ناوبری انتخاب شده به بدنه HTML
+  const navStyle = state.mobileNavStyle || 'grid';
+  document.body.setAttribute('data-nav-style', navStyle);
+
+  // بهینه‌سازی فاصله‌بندی نهایی بدنه بر اساس ارتفاع سبک منو روی موبایل
+  const wrap = document.querySelector('.wrap');
+  if (wrap && window.innerWidth <= 768) {
+    if (navStyle === 'grid') {
+      wrap.style.setProperty('padding-bottom', '190px', 'important');
+    } else {
+      wrap.style.setProperty('padding-bottom', '150px', 'important');
+    }
+  }
+
   if(document.getElementById('setting-theme-select')) document.getElementById('setting-theme-select').value = state.theme;
   if(document.getElementById('setting-accent-picker')) document.getElementById('setting-accent-picker').value = state.accentColor;
+  if(document.getElementById('setting-mobile-nav')) document.getElementById('setting-mobile-nav').value = navStyle;
 }
 
 export function renderCats(){
@@ -24,11 +39,10 @@ export function renderCats(){
   if(!sel || !mapSel || !manager) return;
 
   const currentVal = sel.value;
-  const currentMapVal = mapSel.value; // ذخیره انتخاب فعلی نقشه ماهانه جهت جلوگیری از ریست شدن
+  const currentMapVal = mapSel.value;
   sel.innerHTML=''; mapSel.innerHTML=''; manager.innerHTML='';
   if (goalSel) goalSel.innerHTML = '';
   
-  // افزودن گزینه پیش‌فرض خلق و خو به نقشه ماهانه موضوعات
   const moodOpt = document.createElement('option');
   moodOpt.value = 'mood_tracker';
   moodOpt.textContent = 'حالت روحی روزانه (خلق‌و‌خو) 🤩';
@@ -42,22 +56,30 @@ export function renderCats(){
   
   state.cats.forEach(c=>{
     const emoji = c.emoji || '📅';
-    const o=document.createElement('option'); o.value=c.id; o.textContent=`${emoji} ${c.name}`;
+    const isUrl = emoji.startsWith('http');
+    const displayEmoji = isUrl ? '🎥' : emoji;
+
+    const o=document.createElement('option'); o.value=c.id; o.textContent=`${displayEmoji} ${c.name}`;
     sel.appendChild(o); mapSel.appendChild(o.cloneNode(true));
     if (goalSel) goalSel.appendChild(o.cloneNode(true));
 
     const item=document.createElement('div');
     item.className='cat-item'; item.style.setProperty('--cat-color', c.color);
-    item.style.gridTemplateColumns = "20px 24px 1fr 34px 34px"; // تطبیق عرض برای قرارگیری نماد اموجی
+    item.style.gridTemplateColumns = "20px 28px 1fr 34px 34px 34px"; 
     
     if (c.id === currentVal) {
       item.classList.add('selected');
     }
 
+    const emojiHtml = isUrl 
+      ? `<video src="${emoji}" autoplay loop muted playsinline style="width:24px; height:24px; object-fit:cover; border-radius:50%; pointer-events:none;"></video>`
+      : `<span style="font-size:15px; text-align:center;">${emoji}</span>`;
+
     item.innerHTML=`
       <span class="cat-swatch"></span>
-      <span style="font-size:15px; text-align:center;">${emoji}</span>
+      <div style="display:flex; align-items:center; justify-content:center; width:24px; height:24px; overflow:hidden; border-radius:50%;">${emojiHtml}</div>
       <span class="cat-name">${escHtml(c.name)}</span>
+      <button class="cat-emoji-edit" type="button" onclick="event.stopPropagation(); window.openCatEmojiPicker('${c.id}')" style="width:32px; height:32px; border:1px solid var(--border2); border-radius:8px; background:var(--surface3); color:var(--muted); cursor:pointer;" title="انتخاب شکلک متحرک">🖼️</button>
       <input class="cat-color-edit" type="color" value="${c.color}">
       <button class="cat-delete" type="button">✕</button>
     `;
@@ -82,7 +104,6 @@ export function renderCats(){
     sel.value = currentVal;
   }
 
-  // بازیابی انتخاب نقشه ماهانه در صورتی که هنوز معتبر باشد
   if (currentMapVal && (currentMapVal === 'mood_tracker' || state.cats.some(c => c.id === currentMapVal))) {
     mapSel.value = currentMapVal;
   } else {
@@ -101,7 +122,6 @@ export function renderTimeline(){
   if(!dayEvents.length){ em.style.display='block'; tl.style.display='none'; return; }
   em.style.display='none'; tl.style.display='block'; tl.innerHTML='';
 
-  // حالت اول: گروه‌بندی خودکار کارهای هم‌موضوع (On)
   if (state.groupTimelinePref) {
     const groups = {};
     dayEvents.forEach(ev => {
@@ -118,6 +138,12 @@ export function renderTimeline(){
     sortedCatIds.forEach(catId => {
       const cat = state.cats.find(c => c.id === catId) || {name: 'حذف شده', color: '#999', emoji: '📅'};
       const catEmoji = cat.emoji || '📅';
+      const isUrl = catEmoji.startsWith('http');
+      
+      const catEmojiHtml = isUrl
+        ? `<video src="${catEmoji}" autoplay loop muted playsinline style="width:18px; height:18px; object-fit:cover; border-radius:50%; vertical-align:middle; display:inline-block; margin-inline-end:6px;"></video>`
+        : `<span style="margin-inline-end:6px;">${catEmoji}</span>`;
+
       const grp = groups[catId].sort((a,b) => a.sMins - b.sMins);
       const totalDur = grp.reduce((sum, e) => sum + e.durMins, 0);
 
@@ -144,7 +170,9 @@ export function renderTimeline(){
           <div style="display:flex; align-items:center; gap:12px;">
             <span style="width:10px; height:10px; border-radius:50%; background:${cat.color}; display:inline-block;"></span>
             <div>
-              <div style="font-size: 13px; font-weight: 700; color: var(--text);">${catEmoji} ${escHtml(cat.name)}</div>
+              <div style="font-size: 13px; font-weight: 700; color: var(--text); display:flex; align-items:center;">
+                ${catEmojiHtml} ${escHtml(cat.name)}
+              </div>
               <div style="font-size: 11px; color: var(--muted); margin-top:2px;">
                 ${grp.length} بار تکرار فعالیت &mdash; مجموعاً: <b>${fmtDur(totalDur)}</b>
               </div>
@@ -163,7 +191,7 @@ export function renderTimeline(){
         ">
           ${grp.map(ev => {
             const tagsHtml = (ev.tags||[]).map(t => `<span class="tag-badge">${escHtml(t)}</span>`).join('');
-            const pauseText = ev.pauseMins ? `<span style="color:#f87171; margin-inline-start: 6px;">(پاز: ${ev.pauseMins}m)</span>` : '';
+            const pauseText = ev.pauseMins ? `<span style="color:#f87171; margin-inline-start: 6px;">(وقفه: ${ev.pauseMins}m)</span>` : '';
             return `
               <div style="
                 display: flex;
@@ -192,11 +220,16 @@ export function renderTimeline(){
       tl.appendChild(details);
     });
   } 
-  // حالت دوم: نمایش سنتی و ترتیبی خام (Off)
   else {
     dayEvents.sort((a,b) => a.sMins - b.sMins).forEach(ev => {
       const cat = state.cats.find(c => c.id === ev.catId) || {name: 'حذف شده', color: '#999', emoji: '📅'};
       const catEmoji = cat.emoji || '📅';
+      const isUrl = catEmoji.startsWith('http');
+      
+      const catEmojiHtml = isUrl
+        ? `<video src="${catEmoji}" autoplay loop muted playsinline style="width:16px; height:16px; object-fit:cover; border-radius:50%; vertical-align:middle; display:inline-block; margin-inline-end:4px;"></video>`
+        : `<span style="margin-inline-end:4px;">${catEmoji}</span>`;
+
       const tagsHtml = (ev.tags||[]).map(t => `<span class="tag-badge">${escHtml(t)}</span>`).join('');
       
       tl.innerHTML += `
@@ -205,7 +238,9 @@ export function renderTimeline(){
           <div class="tl-info">
             <div class="tl-title">${escHtml(ev.title || cat.name)}</div>
             <div class="tl-meta">
-              <span class="tl-badge" style="background:${cat.color}">${catEmoji} ${escHtml(cat.name)}</span>
+              <span class="tl-badge" style="background:${cat.color}; display:inline-flex; align-items:center; gap:4px;">
+                ${catEmojiHtml} ${escHtml(cat.name)}
+              </span>
               <span class="tl-time">${fmtTime(ev.sMins)} تا ${fmtTime(ev.eMins)}</span>
               <span class="tl-dur">(${fmtDur(ev.durMins)})</span>
               ${ev.pauseMins ? `<span style="color:#f87171; font-size:10px; margin-right:6px;">(وقفه: ${ev.pauseMins}m)</span>` : ''}
@@ -243,12 +278,10 @@ export function renderReport(){
     total+=e.durMins; 
   });
 
-  // اگر فیلتر فیلدها خالی باشد، همه دسته‌بندی‌ها به طور پیش‌فرض ست می‌شوند
   if (!state.selectedReportCats || state.selectedReportCats.length === 0) {
     state.selectedReportCats = state.cats.map(c => c.id);
   }
 
-  // بروزرسانی تیک دکمه Select All
   const selectAllCheckbox = document.getElementById('report-select-all');
   if (selectAllCheckbox) {
     const uniqueWeekCatIds = Object.keys(sums);
@@ -263,7 +296,6 @@ export function renderReport(){
   const bgColors = [];
   grid.innerHTML='';
 
-  // محاسبه فقط دسته‌های انتخاب شده فعال در نمودار
   const activeSums = {};
   let activeTotal = 0;
   Object.keys(sums).forEach(catId => {
@@ -273,7 +305,6 @@ export function renderReport(){
     }
   });
 
-  // بروزرسانی کارت آمار پیشرفته زیر نمودار برای موبایل
   const detailCard = document.getElementById('report-detail-card');
   if (detailCard) {
     if (state.selectedReportCats.length === state.cats.length || state.selectedReportCats.length === 0 && state.cats.length > 0) {
@@ -291,7 +322,6 @@ export function renderReport(){
 
   const chartType = state.chartTypePref || 'doughnut';
 
-  // تولید چارت بر اساس دسته‌های تیک‌خورده
   if (chartType === 'line') {
     const dates = [];
     for (let i = daysRange - 1; i >= 0; i--) {
@@ -385,7 +415,6 @@ export function renderReport(){
     }
   }
 
-  // رندر گرید زیر نمودار با ساختار چک‌باکس لمسی زیبا و واکنش‌گرای موبایل
   const recordedCatIds = Object.keys(sums);
   if (recordedCatIds.length === 0) {
     grid.innerHTML = '<div style="color:var(--muted); font-size:12px; text-align:center; padding:10px;">داده‌ای برای دوره‌ی انتخاب شده وجود ندارد.</div>';
@@ -393,6 +422,12 @@ export function renderReport(){
     recordedCatIds.forEach(catId => {
       const cat = state.cats.find(c => c.id === catId) || {name: 'حذف شده', color: '#999', emoji: '📅'};
       const catEmoji = cat.emoji || '📅';
+      const isUrl = catEmoji.startsWith('http');
+      
+      const catEmojiHtml = isUrl
+        ? `<video src="${catEmoji}" autoplay loop muted playsinline style="width:20px; height:20px; object-fit:cover; border-radius:50%; vertical-align:middle; display:inline-block; margin-inline-end:6px;"></video>`
+        : `<span style="margin-inline-end:6px;">${catEmoji}</span>`;
+
       const mins = sums[catId];
       const isSelected = state.selectedReportCats.includes(catId);
       const pct = total > 0 ? Math.round((mins / total) * 100) : 0;
@@ -401,14 +436,15 @@ export function renderReport(){
       itemDiv.className = `report-item-interactive ${isSelected ? 'selected' : ''}`;
       itemDiv.style.setProperty('--cat-color', cat.color);
       
-      // ساخت یک چک‌باکس داخلی فیزیکی با آیکون تیک متحرک
       itemDiv.innerHTML = `
         <div class="report-header" style="display:flex; justify-content:space-between; align-items:center;">
           <div style="display:flex; align-items:center; gap:10px;">
             <span style="display:inline-block; width:16px; height:16px; border-radius:5px; border:2px solid ${cat.color}; background:${isSelected ? cat.color : 'transparent'}; transition: background 0.2s, transform 0.15s; position:relative; flex-shrink:0;">
               ${isSelected ? '<span style="position:absolute; left:3px; top:-1px; color:#fff; font-size:9px; font-weight:bold; line-height:1;">✓</span>' : ''}
             </span>
-            <span style="color:${cat.color}; font-weight:700; font-size:13px;">${catEmoji} ${escHtml(cat.name)}</span>
+            <span style="color:${cat.color}; font-weight:700; font-size:13px; display:flex; align-items:center; gap:4px;">
+              ${catEmojiHtml} ${escHtml(cat.name)}
+            </span>
           </div>
           <span style="font-size:12px; color:var(--text); font-weight:500;">${fmtDur(mins)} (${pct}٪)</span>
         </div>
@@ -480,7 +516,6 @@ export function renderActivityMap(){
     map.innerHTML += `<div class="map-day" style="background:transparent; border:none;"></div>`;
   }
 
-  // اگر حالت روحی به عنوان موضوع پیش‌فرض انتخاب شده باشد
   if (selectedValue === 'mood_tracker') {
     for(let day=1; day<=daysInMonth; day++){
       const dateStr = `${y}-${pad(mo)}-${pad(day)}`;
@@ -493,7 +528,6 @@ export function renderActivityMap(){
       if (dayMood && dayMood.mood) {
         const preset = state.moodPresets.find(p => String(p.level) === String(dayMood.mood));
         if (preset) {
-          // بزرگ‌نمایی کامل اموجی و انیمیشن WebM به طوری که کل کادر روز را بپوشاند
           if (preset.type === 'webm' || preset.type === 'video') {
             displayContent = `<video src="${preset.value}" autoplay loop muted playsinline style="width:100%; height:100%; object-fit:cover; border-radius:8px; pointer-events:none; position:absolute; inset:0;"></video>`;
           } else {
@@ -511,7 +545,6 @@ export function renderActivityMap(){
       dayCell.setAttribute('title', tooltipText.replace(/\n/g, ' - '));
       dayCell.style.cursor = 'pointer';
       
-      // تنظیم نمایش عدد روز با اولویت لایه‌ای (z-index) بالاتر جهت خوانایی بر روی اموجی‌های بزرگ
       dayCell.innerHTML = `
         <span class="map-day-num" style="z-index: 10; opacity: 0.85; font-weight: 700; text-shadow: 0px 0px 4px var(--bg), 0px 0px 4px #000; color: #fff;">${day}</span>
         <div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; position:relative;">${displayContent}</div>
@@ -536,7 +569,6 @@ export function renderActivityMap(){
       map.appendChild(dayCell);
     }
   } 
-  // حالت معمولی: دسته‌بندی موضوعی خاص
   else {
     const cat=state.cats.find(c=>c.id===selectedValue);
     if (!cat) return;
@@ -590,7 +622,6 @@ export function renderHabitsAndTodos() {
   const habitList = document.getElementById('habit-list');
   if(!todoList || !habitList) return;
 
-  // شامل کارهای امروز به همراه تمام کارهای تکرار شونده روزانه
   const todaysTodos = state.todos.filter(t => t.date === state.curDate || t.isDaily);
   todoList.innerHTML = todaysTodos.length ? '' : '<div style="color:var(--muted); font-size:12px;">کاری ثبت نشده</div>';
   todaysTodos.forEach(t => {
@@ -608,7 +639,7 @@ export function renderHabitsAndTodos() {
         </div>
         <div style="display:flex; gap:6px; align-items: center;">
           <button class="${dailyButtonClass}" style="font-size:10px; padding: 4px 8px; height: 28px; ${dailyActiveColor}" onclick="toggleRecurringTodo('${t.id}')" title="تکرار هر روزه این کار">${dailyButtonLabel}</button>
-          <button class="btn-del" style="width:28px; height:28px;" onclick="deleteTodo('${t.id}')">✕</button>
+          <button class="btn-del" style="width:24px; height:24px;" onclick="deleteTodo('${t.id}')">✕</button>
         </div>
       </div>`;
   });
@@ -704,7 +735,6 @@ function startLiveStopwatch() {
         notified=true; 
         new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(()=>{});
         
-        // ارسال اعلان سیستمی در صورت داشتن مجوز معتبر
         if ('Notification' in window && Notification.permission === 'granted') {
           new Notification("پومودورو 🍅", {
             body: `زمان کار پومودورو با موفقیت به پایان رسید! (${pomoLimit} دقیقه)`,
@@ -805,12 +835,18 @@ export function renderRoutines() {
   state.routines.forEach(rt => {
     const cat = state.cats.find(c => c.id === rt.catId) || {name: 'حذف شده', color: '#999', emoji: '📅'};
     const catEmoji = cat.emoji || '📅';
+    const isUrl = catEmoji.startsWith('http');
+    
+    const catEmojiHtml = isUrl
+      ? `<video src="${catEmoji}" autoplay loop muted playsinline style="width:16px; height:16px; object-fit:cover; border-radius:50%; vertical-align:middle; display:inline-block; margin-inline-end:4px;"></video>`
+      : `<span style="margin-inline-end:4px;">${catEmoji}</span>`;
+
     const daysStr = rt.days.map(d => daysName[d]).join('، ');
     
     list.innerHTML += `
       <div style="display:flex; align-items:center; justify-content:space-between; background:var(--surface2); border:1px solid var(--border); border-right:3px solid ${cat.color}; border-radius:8px; padding:6px 10px;">
         <div>
-          <div style="font-size:12px; font-weight:700;">${escHtml(rt.title)} (${catEmoji} ${cat.name})</div>
+          <div style="font-size:12px; font-weight:700; display:flex; align-items:center; gap:4px;">${escHtml(rt.title)} (${catEmojiHtml} ${cat.name})</div>
           <div style="font-size:10px; color:var(--muted)">ساعت ${rt.startTime} تا ${rt.endTime} | روزهای: ${daysStr}</div>
         </div>
         <button class="btn-del" style="width:24px; height:24px; font-size:11px;" onclick="delRoutine('${rt.id}')">✕</button>
@@ -824,7 +860,6 @@ export function renderCustomEmojisEditor() {
   if (!container) return;
   
   container.innerHTML = state.moodPresets.map((preset, idx) => {
-    // ایجاد نمایه گرافیکی از پیش‌نمایش به جای کادر متنی طولانی آدرس
     let previewHtml = '';
     if (preset.type === 'webm') {
       previewHtml = `<video src="${preset.value}" autoplay loop muted playsinline style="width:32px; height:32px; border-radius:50%; object-fit:cover; border:1px solid var(--border);"></video>`;
@@ -832,7 +867,6 @@ export function renderCustomEmojisEditor() {
       previewHtml = `<span style="font-size:24px; display:inline-block; width:32px; text-align:center;">${preset.value}</span>`;
     }
 
-    // اگر متنی بود، کادر متنی کوچکی برای تایپ مستقیم اموجی نشان می‌دهیم، در غیر این صورت آن را کاملاً پنهان می‌کنیم تا هیچ آدرس زشتی نمایش داده نشود
     const textInputStyle = preset.type === 'webm' ? 'display: none;' : '';
 
     return `
@@ -848,7 +882,7 @@ export function renderCustomEmojisEditor() {
           ${previewHtml}
         </div>
 
-        <!-- کادر متنی که فقط در حالت شکلک متنی نمایش داده می‌شود و در حالت WebM کاملاً پنهان است -->
+        <!-- کادر متنی که فقط در حالت شکلک متنی نمایش داده می‌شود -->
         <input type="text" class="emoji-value-input" data-idx="${idx}" id="preset-val-input-${idx}" value="${escHtml(preset.value)}" style="width:60px; padding:6px; font-size:12px; height:32px; border-radius:6px; ${textInputStyle}" placeholder="😊">
         
         <button class="action-btn" type="button" onclick="openEmojiGallery(${idx})" style="padding: 0 10px; height:32px; font-size:11px; background:var(--surface3); border:1px solid var(--border2); color:var(--text); ${preset.type === 'text' ? 'display:none;' : ''}">🖼️ گالری</button>
@@ -857,18 +891,16 @@ export function renderCustomEmojisEditor() {
   }).join('');
 }
 
-// تغییر آنی فیلدها در زمان سوییچ نوع شکلک در مدیریت شکلک‌ها
 window.onEmojiTypeChange = function(selectEl, idx) {
   state.moodPresets[idx].type = selectEl.value;
   if (selectEl.value === 'webm' && !state.moodPresets[idx].value.startsWith('http')) {
-    state.moodPresets[idx].value = 'https://ipureiqnhgatigewbggj.supabase.co/storage/v1/object/public/emojis/001.webm'; // پیش‌فرض
+    state.moodPresets[idx].value = 'https://ipureiqnhgatigewbggj.supabase.co/storage/v1/object/public/emojis/001.webm'; 
   } else if (selectEl.value === 'text' && state.moodPresets[idx].value.startsWith('http')) {
-    state.moodPresets[idx].value = '😊'; // پیش‌فرض
+    state.moodPresets[idx].value = '😊'; 
   }
   renderCustomEmojisEditor();
 };
 
-// تابع رندر وضعیت و درصد پیشرفت اهداف ماه جاری بر اساس فعالیت‌های واقعی ثبت شده
 export function renderGoals() {
   const list = document.getElementById('goals-list');
   if (!list) return;
@@ -884,8 +916,12 @@ export function renderGoals() {
   currentMonthGoals.forEach(g => {
     const cat = state.cats.find(c => c.id === g.catId) || {name: 'حذف شده', color: '#999', emoji: '📅'};
     const catEmoji = cat.emoji || '📅';
+    const isUrl = catEmoji.startsWith('http');
+    
+    const catEmojiHtml = isUrl
+      ? `<video src="${catEmoji}" autoplay loop muted playsinline style="width:16px; height:16px; object-fit:cover; border-radius:50%; vertical-align:middle; display:inline-block; margin-inline-end:4px;"></video>`
+      : `<span style="margin-inline-end:4px;">${catEmoji}</span>`;
 
-    // محاسبه دقایق ثبت شده در این ماه برای این دسته‌بندی
     const completedMins = state.events
       .filter(e => e.catId === g.catId && e.date.startsWith(g.month))
       .reduce((sum, e) => sum + e.durMins, 0);
@@ -904,9 +940,11 @@ export function renderGoals() {
 
     itemDiv.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-        <div>
+        <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
           <span style="font-size:13px; font-weight:700; color:var(--text);">${escHtml(g.title || cat.name)}</span>
-          <span style="font-size:10px; background:${cat.color}15; color:${cat.color}; padding:2px 6px; border-radius:4px; margin-right:6px; font-weight:bold;">${catEmoji} ${escHtml(cat.name)}</span>
+          <span style="font-size:10px; background:${cat.color}15; color:${cat.color}; padding:2px 6px; border-radius:4px; font-weight:bold; display:inline-flex; align-items:center; gap:4px;">
+            ${catEmojiHtml} ${escHtml(cat.name)}
+          </span>
         </div>
         <button class="btn-del" style="width:24px; height:24px; font-size:11px;" onclick="deleteGoal('${g.id}')">✕</button>
       </div>
@@ -946,7 +984,7 @@ export function render(){
   renderHabitsAndTodos();
   renderMood();
   renderRoutines();
-  renderGoals(); // رندر بخش وضعیت اهداف ماهانه
+  renderGoals(); 
   updateLiveButton();
   syncSettingsForm();
   renderCustomEmojisEditor(); 
