@@ -4,7 +4,7 @@ import { state, save, saveCloud, loadCloud } from "./storage.js";
 import { getNow, parseTime, pad, getLocalDateStr } from "./helpers.js";
 import { render, applyTheme, updateLiveButton } from "./render.js";
 
-// مدیریت تب‌ها
+// مدیریت تغییر تب‌ها
 window.switchTab = function(tabId) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
@@ -15,7 +15,7 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.getAttribute('data-tab')));
 });
 
-// مدیریت روز و ماه
+// مدیریت تاریخ روزانه
 document.getElementById('prev-day').onclick = () => shiftDay(-1);
 document.getElementById('next-day').onclick = () => shiftDay(1);
 document.getElementById('btn-today').onclick = () => { state.curDate = getLocalDateStr(); render(); };
@@ -85,7 +85,7 @@ window.delCat = function(id) {
   save('planner_cats', state.cats); saveCloud(); render();
 };
 
-// ثبت فعالیت
+// ثبت فعالیت جدید دستی
 document.getElementById('add-btn').onclick = ()=>{
   const title = document.getElementById('act-title').value.trim();
   const catId = document.getElementById('cat-select').value;
@@ -104,25 +104,48 @@ document.getElementById('add-btn').onclick = ()=>{
   save('planner_ev', state.events); saveCloud(); render(); switchTab('tab-timeline');
 };
 
-// زنده
+// شروع و پایان فعالیت زنده (پایان با ذخیره کسری زمان وقفه و پاز زنده)
 document.getElementById('live-btn').onclick=()=>{
   if(!state.liveSession){
     state.liveSession = {
       title: document.getElementById('act-title').value.trim(),
       catId: document.getElementById('cat-select').value,
       date: state.curDate, sMins: parseTime(getNow()), 
+      pauseMins: 0,
+      pauseStartMins: null,
       isPomodoro: document.getElementById('pomodoro-toggle').checked
     };
     save('planner_live', state.liveSession); saveCloud(); updateLiveButton();
   } else {
     const endNow = parseTime(getNow());
-    let durMins = endNow - state.liveSession.sMins; if(durMins<0) durMins += 24*60;
+    
+    // محاسبه مجموع وقفه‌های سپری شده قبل از ثبت نهایی
+    let finalPauseMins = state.liveSession.pauseMins || 0;
+    if (state.liveSession.pauseStartMins !== null && state.liveSession.pauseStartMins !== undefined) {
+      let diff = endNow - state.liveSession.pauseStartMins;
+      if (diff < 0) diff += 24 * 60;
+      finalPauseMins += diff;
+    }
+
+    let totalElapsed = endNow - state.liveSession.sMins; if(totalElapsed<0) totalElapsed += 24*60;
+    let durMins = totalElapsed - finalPauseMins;
+    if(durMins <= 0) durMins = 1; // جلوگیری از ذخیره زمان منفی
+
     state.events.push({
       id: Date.now().toString(), date: state.liveSession.date, title: state.liveSession.title,
-      catId: state.liveSession.catId, sMins: state.liveSession.sMins, eMins: endNow, durMins, tags: []
+      catId: state.liveSession.catId, sMins: state.liveSession.sMins, eMins: endNow, durMins, pauseMins: finalPauseMins, tags: []
     });
     state.liveSession=null; save('planner_live', null); save('planner_ev', state.events); saveCloud(); render(); updateLiveButton();
   }
+};
+
+// متد لغو و انصراف از ثبت زنده فعلی (جلوگیری از ذخیره شدن)
+window.cancelLiveSession = function() {
+  if(!confirm('آیا از لغو و حذف زمان این فعالیت زنده اطمینان دارید؟ (هیچ فعالیتی ثبت نخواهد شد)')) return;
+  state.liveSession = null;
+  save('planner_live', null);
+  saveCloud();
+  updateLiveButton();
 };
 
 // کپی و حذف فعالیت
