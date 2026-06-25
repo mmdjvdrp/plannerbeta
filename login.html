@@ -121,6 +121,11 @@ button:disabled {
     <label for="login-password">رمز</label>
     <input id="login-password" type="password" placeholder="رمز عبور" required minlength="6">
     
+    <!-- لینک فراموشی رمز عبور -->
+    <div style="text-align: left; margin-top: -10px; margin-bottom: 15px;">
+      <a href="./reset-password.html" style="color: #7c5cfc; text-decoration: none; font-size: 12px;">فراموشی رمز عبور؟</a>
+    </div>
+
     <div class="err" id="login-err"></div>
     <button id="login-btn" type="submit">ورود</button>
   </form>
@@ -149,7 +154,7 @@ let registering = false;
 
 // بررسی وضعیت ورود کاربر جهت جلوگیری از هدایت بیهوده
 supabase.auth.onAuthStateChange((event, session) => {
-  if (session?.user && !registering) {
+  if (session?.user && !registering && event !== "PASSWORD_RECOVERY") {
     window.location.href = "./index.html";
   }
 });
