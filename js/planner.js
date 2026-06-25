@@ -572,6 +572,36 @@ safeBindEvent("save-display-name-btn", "onclick", async () => {
   }
 });
 
+// تغییر آدرس ایمیل در تب تنظیمات
+safeBindEvent("save-email-btn", "onclick", async () => {
+  const newEmail = document.getElementById("setting-email").value.trim();
+  if(!newEmail) return alert("لطفاً ایمیل معتبری وارد کنید.");
+  try {
+    const { error } = await supabase.auth.updateUser({ email: newEmail });
+    if (error) throw error;
+    document.getElementById("setting-email").value = "";
+    alert("درخواست تغییر ایمیل ثبت شد. لطفاً لینک‌های تأیید ارسال شده به ایمیل قدیم و جدید خود را بررسی کنید.");
+  } catch (err) {
+    console.error(err);
+    alert("خطا در تغییر ایمیل: " + err.message);
+  }
+});
+
+// تغییر رمز عبور در تب تنظیمات
+safeBindEvent("save-password-btn", "onclick", async () => {
+  const newPassword = document.getElementById("setting-password").value;
+  if(!newPassword || newPassword.length < 6) return alert("رمز عبور باید حداقل ۶ کاراکتر باشد.");
+  try {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+    document.getElementById("setting-password").value = "";
+    alert("رمز عبور شما با موفقیت تغییر یافت!");
+  } catch (err) {
+    console.error(err);
+    alert("خطا در تغییر رمز عبور: " + err.message);
+  }
+});
+
 // افزودن حالت خلق و خوی جدید
 safeBindEvent("add-mood-preset-btn", "onclick", () => {
   state.moodPresets.push({
