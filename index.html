@@ -92,6 +92,26 @@
   background: var(--surface3) !important;
   box-shadow: 0 0 12px color-mix(in srgb, var(--cat-color) 40%, transparent);
 }
+
+/* افزودن بهینه‌سازی فرمت ایمیل و پسورد متناسب با دیگر اینپوت‌ها */
+input[type=email], input[type=password] {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'Vazirmatn', sans-serif;
+  font-size: 14px;
+  padding: 8px 12px;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+input[type=email]:focus, input[type=password]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
 </style>
 </head>
 <body>
@@ -352,11 +372,31 @@
     <div id="tab-settings" class="tab-section">
       <div class="card">
         <div class="card-title">تنظیمات پروفایل</div>
+        
+        <!-- تغییر نام نمایشی -->
         <div class="form-group" style="margin-bottom: 20px;">
           <label>تغییر نام نمایشی (Display Name)</label>
           <div style="display:flex; gap:8px;">
             <input type="text" id="setting-display-name" placeholder="نام جدید شما">
             <button id="save-display-name-btn" class="action-btn">ثبت تغییرات</button>
+          </div>
+        </div>
+
+        <!-- تغییر ایمیل -->
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label>تغییر آدرس ایمیل (Email Address)</label>
+          <div style="display:flex; gap:8px;">
+            <input type="email" id="setting-email" placeholder="ایمیل جدید شما" style="direction: ltr;">
+            <button id="save-email-btn" class="action-btn">بروزرسانی ایمیل</button>
+          </div>
+        </div>
+
+        <!-- تغییر رمز عبور -->
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label>تغییر رمز عبور (Password)</label>
+          <div style="display:flex; gap:8px; flex-direction: column;">
+            <input type="password" id="setting-password" placeholder="رمز عبور جدید (حداقل ۶ کاراکتر)" style="direction: ltr; margin-bottom: 8px;">
+            <button id="save-password-btn" class="btn-primary" style="margin-top:0;">بروزرسانی رمز عبور</button>
           </div>
         </div>
       </div>
@@ -454,7 +494,7 @@
       <button id="close-gallery-modal" style="background:transparent; border:none; color:var(--muted); font-size:20px; cursor:pointer;">✕</button>
     </div>
     
-    <p style="font-size:11px; color:var(--muted); margin-bottom:14px; line-height:1.6;">لیست فایل‌های متحرک WebM موجود. یکی را انتخاب کنید تا به عنوان حالت روحی امروز یا شکلک دسته‌بندی موضوعی تنظیم شود:</p>
+    <p style="font-size:11px; color:var(--muted); margin-bottom:14px; line-height:1.6;">لیست فایل‌های متحرک WebM موجود. یکی را انتخاب کنید تا به عنوان حالت روحی امروز یا شکلک دسته‌ب بندی موضوعی تنظیم شود:</p>
     
     <!-- کانتینر ابزارهای بالای گالری -->
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px;">
