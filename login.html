@@ -18,6 +18,7 @@ body{
   justify-content:center;
   align-items:center;
   min-height:100vh;
+  margin: 0;
 }
 
 .box {
@@ -26,6 +27,7 @@ body{
   background: #1f2937;
   padding: 25px;
   border-radius: 15px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
 }
 
 input{
@@ -33,12 +35,34 @@ input{
   padding:10px;
   margin:5px 0 15px;
   box-sizing:border-box;
+  border-radius: 8px;
+  border: 1px solid #374151;
+  background: #111827;
+  color: white;
+  outline: none;
+}
+input:focus {
+  border-color: #7c5cfc;
 }
 
 button{
   width:100%;
-  padding:10px;
+  padding:12px;
   cursor:pointer;
+  border: none;
+  border-radius: 8px;
+  background: #7c5cfc;
+  color: white;
+  font-family: Vazirmatn, sans-serif;
+  font-weight: bold;
+  transition: background 0.2s;
+}
+button:hover:not(:disabled) {
+  background: #6a4ce2;
+}
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .hidden{
@@ -82,34 +106,39 @@ button{
 
 <div class="box">
 
-  <h2 style="margin-bottom:20px">تقویم روزانه</h2>
+  <h2 style="margin-bottom:20px; text-align: center;">تقویم روزانه</h2>
 
   <div class="tab-row">
-    <button class="tab-btn active" id="tab-login">ورود</button>
-    <button class="tab-btn" id="tab-register">ثبت نام</button>
+    <button class="tab-btn active" id="tab-login" type="button">ورود</button>
+    <button class="tab-btn" id="tab-register" type="button">ثبت نام</button>
   </div>
 
   <!-- فرم ورود -->
-  <div id="login-section">
-    <label>ایمیل</label>
-    <input id="login-email" type="email" placeholder="example@email.com">
-    <label>رمز</label>
-    <input id="login-password" type="password" placeholder="رمز عبور">
+  <form id="login-section" onsubmit="return false;">
+    <label for="login-email">ایمیل</label>
+    <input id="login-email" type="email" placeholder="example@email.com" required>
+    
+    <label for="login-password">رمز</label>
+    <input id="login-password" type="password" placeholder="رمز عبور" required minlength="6">
+    
     <div class="err" id="login-err"></div>
-    <button id="login-btn">ورود</button>
-  </div>
+    <button id="login-btn" type="submit">ورود</button>
+  </form>
 
   <!-- فرم ثبت نام -->
-  <div id="register-section" style="display:none">
-    <label>نام نمایشی</label>
-    <input id="register-name" placeholder="مثلاً: علی">
-    <label>ایمیل</label>
-    <input id="register-email" type="email" placeholder="example@email.com">
-    <label>رمز</label>
-    <input id="register-password" type="password" placeholder="حداقل ۶ کاراکتر">
+  <form id="register-section" style="display:none" onsubmit="return false;">
+    <label for="register-name">نام نمایشی</label>
+    <input id="register-name" placeholder="مثلاً: علی" required>
+    
+    <label for="register-email">ایمیل</label>
+    <input id="register-email" type="email" placeholder="example@email.com" required>
+    
+    <label for="register-password">رمز</label>
+    <input id="register-password" type="password" placeholder="حداقل ۶ کاراکتر" required minlength="6">
+    
     <div class="err" id="register-err"></div>
-    <button id="register-btn">ثبت نام</button>
-  </div>
+    <button id="register-btn" type="submit">ثبت نام</button>
+  </form>
 
 </div>
 
@@ -118,7 +147,7 @@ import { supabase } from "./js/supabase.js";
 
 let registering = false;
 
-// بررسی وضعیت ورود کاربر
+// بررسی وضعیت ورود کاربر جهت جلوگیری از هدایت بیهوده
 supabase.auth.onAuthStateChange((event, session) => {
   if (session?.user && !registering) {
     window.location.href = "./index.html";
@@ -141,10 +170,13 @@ document.getElementById("tab-register").onclick = () => {
 };
 
 // ورود به حساب کاربری
-document.getElementById("login-btn").onclick = async () => {
+document.getElementById("login-section").onsubmit = async (e) => {
+  e.preventDefault();
   const email    = document.getElementById("login-email").value.trim();
   const password = document.getElementById("login-password").value;
   const err      = document.getElementById("login-err");
+  const btn      = document.getElementById("login-btn");
+  
   err.style.display = "none";
 
   if(!email || !password){ 
@@ -153,20 +185,32 @@ document.getElementById("login-btn").onclick = async () => {
     return; 
   }
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) {
-    err.textContent = "ایمیل یا رمز اشتباه است یا تایید نشده است.";
+  try {
+    btn.disabled = true;
+    btn.textContent = "در حال بررسی...";
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      err.textContent = "ایمیل یا رمز اشتباه است یا حساب تایید نشده است.";
+      err.style.display = "block";
+    }
+  } catch (e) {
+    err.textContent = e.message;
     err.style.display = "block";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "ورود";
   }
 };
 
-// کد اصلاح‌شده ثبت‌نام در دکمه register-btn فایل login.html
-
-document.getElementById("register-btn").onclick = async () => {
+// ثبت‌نام کاربری
+document.getElementById("register-section").onsubmit = async (e) => {
+  e.preventDefault();
   const name     = document.getElementById("register-name").value.trim();
   const email    = document.getElementById("register-email").value.trim();
   const password = document.getElementById("register-password").value;
   const err      = document.getElementById("register-err");
+  const btn      = document.getElementById("register-btn");
+  
   err.style.display = "none";
 
   if(!name){ err.textContent = "نام را وارد کنید"; err.style.display = "block"; return; }
@@ -175,6 +219,8 @@ document.getElementById("register-btn").onclick = async () => {
 
   try{
     registering = true;
+    btn.disabled = true;
+    btn.textContent = "در حال ثبت‌نام...";
     
     // ۱. ثبت‌نام کاربر به همراه ذخیره نام در متادیتای اکانت (display_name)
     const { data, error } = await supabase.auth.signUp({
@@ -201,6 +247,9 @@ document.getElementById("register-btn").onclick = async () => {
     registering = false;
     err.textContent = e.message;
     err.style.display = "block";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "ثبت نام";
   }
 };
 </script>
