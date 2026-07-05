@@ -1,6 +1,7 @@
 // js/render.js
 import { state, save, saveCloud } from "./storage.js";
 import { fmtDateLabel, fmtTime, fmtDur, escHtml, pad, getNow, parseTime } from "./helpers.js";
+import { renderTodayRoutines } from "./features.js";
 
 let liveStopwatchInterval = null;
 let reportChartInstance = null;
@@ -99,12 +100,26 @@ export function renderCats(){
     };
     manager.appendChild(item);
   });
+
+  if (state.routines && state.routines.length > 0) {
+    const divider = document.createElement('option');
+    divider.disabled = true;
+    divider.textContent = '──────────';
+    mapSel.appendChild(divider);
+
+    state.routines.forEach(rt => {
+      const o = document.createElement('option');
+      o.value = `rt_${rt.id}`;
+      o.textContent = `⏰ روتین: ${rt.title}`;
+      mapSel.appendChild(o);
+    });
+  }
   
   if (currentVal && state.cats.some(c => c.id === currentVal)) {
     sel.value = currentVal;
   }
 
-  if (currentMapVal && (currentMapVal === 'mood_tracker' || state.cats.some(c => c.id === currentMapVal))) {
+  if (currentMapVal && (currentMapVal === 'mood_tracker' || currentMapVal.startsWith('rt_') || state.cats.some(c => c.id === currentMapVal))) {
     mapSel.value = currentMapVal;
   } else {
     mapSel.value = 'mood_tracker';
@@ -569,6 +584,41 @@ export function renderActivityMap(){
       map.appendChild(dayCell);
     }
   } 
+  else if (selectedValue.startsWith('rt_')) {
+    const rtId = selectedValue.replace('rt_', '');
+    const rt = state.routines.find(r => r.id === rtId);
+    if (!rt) return;
+    const cat = state.cats.find(c => c.id === rt.catId) || { name: 'روتین', color: 'var(--accent)' };
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${y}-${pad(mo)}-${pad(day)}`;
+      const isCompleted = state.routineLogs[rt.id] && state.routineLogs[rt.id][dateStr];
+      const formattedDate = fmtDateLabel(dateStr);
+      const tooltipText = `${formattedDate} | روتین ${rt.title}: ${isCompleted ? 'انجام شد ✓' : 'انجام نشده'}`;
+
+      const dayCell = document.createElement('div');
+      dayCell.className = 'map-day';
+      dayCell.setAttribute('title', tooltipText);
+      dayCell.style.cursor = 'pointer';
+
+      dayCell.innerHTML = `
+        <span class="map-day-num">${day}</span>
+        <span class="map-dot" style="width:${isCompleted ? 14 : 4}px; height:${isCompleted ? 14 : 4}px; background:${isCompleted ? cat.color : 'var(--surface3)'}; border-radius:${isCompleted ? '50%' : '50%'}; transition:all 0.2s;"></span>
+      `;
+
+      dayCell.onclick = () => {
+        if (tooltipDetail) {
+          tooltipDetail.innerHTML = `
+            <div style="width:100%; text-align:right;">
+              <strong>📅 ${formattedDate}</strong>
+              <div style="margin-top:4px;">وضعیت روتین <span style="color:${cat.color}; font-weight:bold;">"${escHtml(rt.title)}"</span>: <b>${isCompleted ? 'کاملاً انجام شده و تیک خورده است ✓' : 'تیک زده نشده یا در این روز برنامه‌ریزی نبوده است'}</b></div>
+            </div>
+          `;
+        }
+      };
+      map.appendChild(dayCell);
+    }
+  }
   else {
     const cat=state.cats.find(c=>c.id===selectedValue);
     if (!cat) return;
@@ -854,7 +904,6 @@ export function renderRoutines() {
   });
 }
 
-// ساخت ویرایشگر پیشرفته و کاملاً شخصی‌سازی شده اموجی‌ها با مخفی‌سازی کامل لینک متنی و دکمه اضافه و حذف
 export function renderCustomEmojisEditor() {
   const container = document.getElementById('custom-emojis-container');
   if (!container) return;
@@ -877,12 +926,10 @@ export function renderCustomEmojisEditor() {
           <option value="webm" ${preset.type === 'webm' ? 'selected' : ''}>انیمیشن (WebM)</option>
         </select>
         
-        <!-- پیش‌نمایش زنده شکلک -->
         <div style="display:flex; align-items:center; justify-content:center; width:38px; height:32px;">
           ${previewHtml}
         </div>
 
-        <!-- کادر متنی که فقط در حالت شکلک متنی نمایش داده می‌شود -->
         <input type="text" class="emoji-value-input" data-idx="${idx}" id="preset-val-input-${idx}" value="${escHtml(preset.value)}" style="width:60px; padding:6px; font-size:12px; height:32px; border-radius:6px; ${textInputStyle}" placeholder="😊">
         
         <button class="action-btn" type="button" onclick="openEmojiGallery(${idx})" style="padding: 0 10px; height:32px; font-size:11px; background:var(--surface3); border:1px solid var(--border2); color:var(--text); ${preset.type === 'text' ? 'display:none;' : ''}">🖼️ گالری</button>
@@ -984,6 +1031,7 @@ export function render(){
   renderHabitsAndTodos();
   renderMood();
   renderRoutines();
+  renderTodayRoutines();
   renderGoals(); 
   updateLiveButton();
   syncSettingsForm();
