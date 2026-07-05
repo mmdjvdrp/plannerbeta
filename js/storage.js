@@ -42,7 +42,11 @@ export const state = {
   groupTimelinePref: load('planner_group_timeline_pref', true), 
   selectedReportCats: load('planner_selected_report_cats', []), 
   
-  // متغیر سبک منوی ناوبری موبایل (با مقدار پیش‌فرض شبکه دوردیفه)
+  // متغیرهای جدید ثبت تیک روتین و وضعیت آموزش
+  routineLogs: load('planner_routine_logs', {}),
+  tutorialCompleted: load('planner_tutorial_completed', false),
+  
+  // متغیر سبک منوی ناوبری موبایل
   mobileNavStyle: load('planner_mobile_nav_style', 'grid'),
   
   pomodoroWorkPref: load('planner_pomo_work_pref', 25),
@@ -79,7 +83,8 @@ export async function saveCloud(){
         weekStartPref: state.weekStartPref, chartTypePref: state.chartTypePref,
         groupTimelinePref: state.groupTimelinePref, moodPresets: state.moodPresets,
         pomodoroWorkPref: state.pomodoroWorkPref, pomodoroBreakPref: state.pomodoroBreakPref,
-        selectedReportCats: state.selectedReportCats, mobileNavStyle: state.mobileNavStyle
+        selectedReportCats: state.selectedReportCats, mobileNavStyle: state.mobileNavStyle,
+        routineLogs: state.routineLogs, tutorialCompleted: state.tutorialCompleted
       }
     }, { onConflict: 'user_id' });
   } catch (err) { console.error("Error saving to cloud", err); }
@@ -114,6 +119,9 @@ export async function loadCloud(){
       state.selectedReportCats = cd.selectedReportCats || [];
       state.mobileNavStyle = cd.mobileNavStyle || "grid";
       
+      state.routineLogs       = cd.routineLogs || {};
+      state.tutorialCompleted = cd.tutorialCompleted || false;
+      
       state.pomodoroWorkPref  = cd.pomodoroWorkPref || 25;
       state.pomodoroBreakPref = cd.pomodoroBreakPref || 5;
 
@@ -137,6 +145,8 @@ export async function loadCloud(){
       save('planner_pomo_break_pref', state.pomodoroBreakPref);
       save('planner_selected_report_cats', state.selectedReportCats);
       save('planner_mobile_nav_style', state.mobileNavStyle);
+      save('planner_routine_logs', state.routineLogs);
+      save('planner_tutorial_completed', state.tutorialCompleted);
     }
   } catch (err) { console.error("Error loading cloud data", err); }
 }
