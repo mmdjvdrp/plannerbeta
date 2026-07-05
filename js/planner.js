@@ -230,6 +230,14 @@ safeBindEvent("setting-accent-picker", "onchange", (e) => {
   applyTheme();
 });
 
+// رویداد تغییر سبک منوی ناوبری موبایل
+safeBindEvent("setting-mobile-nav", "onchange", (e) => {
+  state.mobileNavStyle = e.target.value;
+  save("planner_mobile_nav_style", state.mobileNavStyle);
+  saveCloud();
+  applyTheme();
+});
+
 // رویدادهای جدید تنظیمات تقویم و قالب‌ها
 safeBindEvent("setting-calendar", "onchange", (e) => {
   state.calendarPref = e.target.value; 
