@@ -125,6 +125,7 @@ export async function loadCloud(){
       state.pomodoroWorkPref  = cd.pomodoroWorkPref || 25;
       state.pomodoroBreakPref = cd.pomodoroBreakPref || 5;
 
+      // ذخیره محلی تمام داده‌ها
       save('planner_ev', state.events);
       save('planner_cats', state.cats);
       save('planner_theme', state.theme);
