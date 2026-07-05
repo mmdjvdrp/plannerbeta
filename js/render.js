@@ -1,7 +1,7 @@
 // js/render.js
 import { state, save, saveCloud } from "./storage.js";
 import { fmtDateLabel, fmtTime, fmtDur, escHtml, pad, getNow, parseTime } from "./helpers.js";
-import { renderTodayRoutines } from "./features.js";
+import { renderTodayRoutines } from "./features.js"; // ایمپورت تابع جدید
 
 let liveStopwatchInterval = null;
 let reportChartInstance = null;
@@ -13,9 +13,11 @@ export function applyTheme(){
   document.documentElement.style.setProperty('--accent', state.accentColor);
   document.documentElement.style.setProperty('--accent-glow', `color-mix(in srgb, ${state.accentColor} 25%, transparent)`);
   
+  // اعمال ویژگی ناوبری انتخاب شده به بدنه HTML
   const navStyle = state.mobileNavStyle || 'grid';
   document.body.setAttribute('data-nav-style', navStyle);
 
+  // بهینه‌سازی فاصله‌بندی نهایی بدنه بر اساس ارتفاع سبک منو روی موبایل
   const wrap = document.querySelector('.wrap');
   if (wrap && window.innerWidth <= 768) {
     if (navStyle === 'grid') {
@@ -38,10 +40,11 @@ export function renderCats(){
   if(!sel || !mapSel || !manager) return;
 
   const currentVal = sel.value;
-  const currentMapVal = mapSel.value;
+  const currentMapVal = mapSel.value; // نگهداری مقدار فعلی mapSel
   sel.innerHTML=''; mapSel.innerHTML=''; manager.innerHTML='';
   if (goalSel) goalSel.innerHTML = '';
   
+  // گزینه پیش‌فرض برای حالت روحی روزانه
   const moodOpt = document.createElement('option');
   moodOpt.value = 'mood_tracker';
   moodOpt.textContent = 'حالت روحی روزانه (خلق‌و‌خو) 🤩';
@@ -50,7 +53,7 @@ export function renderCats(){
   if(!state.cats.length){
     sel.innerHTML='<option disabled selected>اول موضوع بسازید</option>';
     manager.innerHTML='<div style="color:var(--muted); font-size:12px;">هنوز موضوعی ندارید.</div>';
-    return;
+    // اگر دسته‌بندی نباشد، تنها گزینه mood_tracker، روتین‌ها و عادت‌ها نمایش داده می‌شوند
   }
   
   state.cats.forEach(c=>{
@@ -59,7 +62,8 @@ export function renderCats(){
     const displayEmoji = isUrl ? '🎥' : emoji;
 
     const o=document.createElement('option'); o.value=c.id; o.textContent=`${displayEmoji} ${c.name}`;
-    sel.appendChild(o); mapSel.appendChild(o.cloneNode(true));
+    sel.appendChild(o); 
+    mapSel.appendChild(o.cloneNode(true)); // افزودن به mapSel
     if (goalSel) goalSel.appendChild(o.cloneNode(true));
 
     const item=document.createElement('div');
@@ -99,28 +103,46 @@ export function renderCats(){
     manager.appendChild(item);
   });
 
+  // اضافه کردن روتین‌ها به mapSel برای نمایش در نقشه ماهانه
   if (state.routines && state.routines.length > 0) {
     const divider = document.createElement('option');
     divider.disabled = true;
-    divider.textContent = '──────────';
+    divider.textContent = '─── روتین‌ها ───';
     mapSel.appendChild(divider);
 
     state.routines.forEach(rt => {
       const o = document.createElement('option');
-      o.value = `rt_${rt.id}`;
+      o.value = `rt_${rt.id}`; // پیشوند 'rt_' برای تشخیص روتین
       o.textContent = `⏰ روتین: ${rt.title}`;
       mapSel.appendChild(o);
     });
   }
+
+  // اضافه کردن عادت‌ها به mapSel برای نمایش در نقشه ماهانه
+  if (state.habits && state.habits.length > 0) {
+    const divider = document.createElement('option');
+    divider.disabled = true;
+    divider.textContent = '─── عادت‌ها ───';
+    mapSel.appendChild(divider);
+
+    state.habits.forEach(hb => {
+      const o = document.createElement('option');
+      o.value = `hb_${hb.id}`; // پیشوند 'hb_' برای تشخیص عادت
+      o.textContent = `✔️ عادت: ${hb.title}`;
+      mapSel.appendChild(o);
+    });
+  }
   
+  // تنظیم مجدد مقدار انتخاب شده در سلکتورها
   if (currentVal && state.cats.some(c => c.id === currentVal)) {
     sel.value = currentVal;
   }
 
-  if (currentMapVal && (currentMapVal === 'mood_tracker' || currentMapVal.startsWith('rt_') || state.cats.some(c => c.id === currentMapVal))) {
+  // اطمینان از اینکه مقدار mapSel پس از رندر مجدد حفظ شود (شامل روتین‌ها و عادت‌ها)
+  if (currentMapVal && (currentMapVal === 'mood_tracker' || currentMapVal.startsWith('rt_') || currentMapVal.startsWith('hb_') || state.cats.some(c => c.id === currentMapVal))) {
     mapSel.value = currentMapVal;
   } else {
-    mapSel.value = 'mood_tracker';
+    mapSel.value = 'mood_tracker'; // مقدار پیش‌فرض
   }
 }
 
@@ -504,6 +526,7 @@ export function renderActivityMap(){
   
   map.innerHTML='';
 
+  // رندر روزهای هفته
   ['sh','y','d','s','ch','p','j'].forEach(day=>{
     let dLabel = 'ش';
     if(day==='y') dLabel='ی';
@@ -522,19 +545,22 @@ export function renderActivityMap(){
   }
 
   const daysInMonth=new Date(y, mo, 0).getDate();
-  const firstDay=new Date(y, mo-1, 1).getDay();
-  const startOffset=(firstDay+1)%7; 
+  const firstDay=new Date(y, mo-1, 1).getDay(); // 0 for Sunday, 6 for Saturday
+  // برای شروع از شنبه در تقویم شمسی
+  const startOffset=(firstDay + (state.weekStartPref === 'sat' ? 1 : 0)) % 7; 
   
   for(let i=0; i<startOffset; i++) {
     map.innerHTML += `<div class="map-day" style="background:transparent; border:none;"></div>`;
   }
 
+  // ۱. ردیابی هیت‌مپ روزهای ثبت حالت روحی روزانه (Mood Tracker)
   if (selectedValue === 'mood_tracker') {
     for(let day=1; day<=daysInMonth; day++){
       const dateStr = `${y}-${pad(mo)}-${pad(day)}`;
       const dayMood = state.moods[dateStr];
       let displayContent = '';
       let tooltipText = '';
+      
       const formattedDate = fmtDateLabel(dateStr);
 
       if (dayMood && dayMood.mood) {
@@ -581,6 +607,7 @@ export function renderActivityMap(){
       map.appendChild(dayCell);
     }
   } 
+  // ۲. ردیابی هیت‌مپ تیک‌های روتین انتخاب شده بر حسب تیک چک‌لیست
   else if (selectedValue.startsWith('rt_')) {
     const rtId = selectedValue.replace('rt_', '');
     const rt = state.routines.find(r => r.id === rtId);
@@ -600,7 +627,7 @@ export function renderActivityMap(){
 
       dayCell.innerHTML = `
         <span class="map-day-num">${day}</span>
-        <span class="map-dot" style="width:${isCompleted ? 14 : 4}px; height:${isCompleted ? 14 : 4}px; background:${isCompleted ? cat.color : 'var(--surface3)'}; border-radius:${isCompleted ? '50%' : '50%'}; transition:all 0.2s;"></span>
+        <span class="map-dot" style="width:${isCompleted ? 14 : 4}px; height:${isCompleted ? 14 : 4}px; background:${isCompleted ? cat.color : 'var(--surface3)'}; border-radius:50%; transition:all 0.2s;"></span>
       `;
 
       dayCell.onclick = () => {
@@ -616,6 +643,43 @@ export function renderActivityMap(){
       map.appendChild(dayCell);
     }
   }
+  // ۳. ردیابی هیت‌مپ تیک‌های عادت انتخاب شده بر حسب تیک هبیت ترکر
+  else if (selectedValue.startsWith('hb_')) {
+    const hbId = selectedValue.replace('hb_', '');
+    const hb = state.habits.find(h => h.id === hbId);
+    if (!hb) return;
+    const accentColor = state.accentColor || '#7c5cfc';
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${y}-${pad(mo)}-${pad(day)}`;
+      const isCompleted = state.habitLogs[hb.id] && state.habitLogs[hb.id][dateStr];
+      const formattedDate = fmtDateLabel(dateStr);
+      const tooltipText = `${formattedDate} | عادت ${hb.title}: ${isCompleted ? 'انجام شد ✓' : 'انجام نشده'}`;
+
+      const dayCell = document.createElement('div');
+      dayCell.className = 'map-day';
+      dayCell.setAttribute('title', tooltipText);
+      dayCell.style.cursor = 'pointer';
+
+      dayCell.innerHTML = `
+        <span class="map-day-num">${day}</span>
+        <span class="map-dot" style="width:${isCompleted ? 14 : 4}px; height:${isCompleted ? 14 : 4}px; background:${isCompleted ? accentColor : 'var(--surface3)'}; border-radius: 50%; transition:all 0.2s;"></span>
+      `;
+
+      dayCell.onclick = () => {
+        if (tooltipDetail) {
+          tooltipDetail.innerHTML = `
+            <div style="width:100%; text-align:right;">
+              <strong>📅 ${formattedDate}</strong>
+              <div style="margin-top:4px;">وضعیت عادت <span style="color:${accentColor}; font-weight:bold;">"${escHtml(hb.title)}"</span>: <b>${isCompleted ? 'کاملاً انجام شده و تیک خورده است ✓' : 'انجام نشده است'}</b></div>
+            </div>
+          `;
+        }
+      };
+      map.appendChild(dayCell);
+    }
+  }
+  // ۴. ردیابی هیت‌مپ مدت زمان مجموع فعالیت‌های موضوعات
   else {
     const cat=state.cats.find(c=>c.id===selectedValue);
     if (!cat) return;
@@ -734,7 +798,7 @@ export function renderMood() {
     if (preset.type === 'webm' || preset.type === 'video') {
       return `
         <div class="mood-emoji" data-mood="${preset.level}" style="cursor:pointer; display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:50%; overflow:hidden; transition: all 0.2s; ${activeStyle}">
-          <video src="${preset.value}" autoplay loop muted playsinline style="width:100%; height:100%; object-fit:cover; pointer-events:none;"></video>
+          <video src="${preset.value}" autoplay loop muted playsinline style="width:100%; height:100%; object-fit:cover; pointer-events:none; border-radius:50%;"></video>
         </div>`;
     } else {
       return `
@@ -901,6 +965,7 @@ export function renderRoutines() {
   });
 }
 
+// ساخت ویرایشگر پیشرفته و کاملاً شخصی‌سازی شده اموجی‌ها با مخفی‌سازی کامل لینک متنی و دکمه اضافه و حذف
 export function renderCustomEmojisEditor() {
   const container = document.getElementById('custom-emojis-container');
   if (!container) return;
@@ -923,10 +988,12 @@ export function renderCustomEmojisEditor() {
           <option value="webm" ${preset.type === 'webm' ? 'selected' : ''}>انیمیشن (WebM)</option>
         </select>
         
+        <!-- پیش‌نمایش زنده شکلک -->
         <div style="display:flex; align-items:center; justify-content:center; width:38px; height:32px;">
           ${previewHtml}
         </div>
 
+        <!-- کادر متنی که فقط در حالت شکلک متنی نمایش داده می‌شود -->
         <input type="text" class="emoji-value-input" data-idx="${idx}" id="preset-val-input-${idx}" value="${escHtml(preset.value)}" style="width:60px; padding:6px; font-size:12px; height:32px; border-radius:6px; ${textInputStyle}" placeholder="😊">
         
         <button class="action-btn" type="button" onclick="openEmojiGallery(${idx})" style="padding: 0 10px; height:32px; font-size:11px; background:var(--surface3); border:1px solid var(--border2); color:var(--text); ${preset.type === 'text' ? 'display:none;' : ''}">🖼️ گالری</button>
