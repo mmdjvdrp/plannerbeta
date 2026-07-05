@@ -13,11 +13,9 @@ export function applyTheme(){
   document.documentElement.style.setProperty('--accent', state.accentColor);
   document.documentElement.style.setProperty('--accent-glow', `color-mix(in srgb, ${state.accentColor} 25%, transparent)`);
   
-  // اعمال ویژگی ناوبری انتخاب شده به بدنه HTML
   const navStyle = state.mobileNavStyle || 'grid';
   document.body.setAttribute('data-nav-style', navStyle);
 
-  // بهینه‌سازی فاصله‌بندی نهایی بدنه بر اساس ارتفاع سبک منو روی موبایل
   const wrap = document.querySelector('.wrap');
   if (wrap && window.innerWidth <= 768) {
     if (navStyle === 'grid') {
@@ -537,7 +535,6 @@ export function renderActivityMap(){
       const dayMood = state.moods[dateStr];
       let displayContent = '';
       let tooltipText = '';
-      
       const formattedDate = fmtDateLabel(dateStr);
 
       if (dayMood && dayMood.mood) {
@@ -1031,7 +1028,7 @@ export function render(){
   renderHabitsAndTodos();
   renderMood();
   renderRoutines();
-  renderTodayRoutines();
+  renderTodayRoutines(); 
   renderGoals(); 
   updateLiveButton();
   syncSettingsForm();
