@@ -3,6 +3,7 @@ import { supabase } from "./supabase.js";
 import { state, save, saveCloud, loadCloud } from "./storage.js";
 import { getNow, parseTime, pad, getLocalDateStr, fmtDateLabel, fmtTime } from "./helpers.js";
 import { render, applyTheme, updateLiveButton } from "./render.js";
+import { showTutorial } from "./features.js";
 
 function safeBindEvent(id, event, callback) {
   const el = document.getElementById(id);
@@ -16,7 +17,6 @@ function triggerNavPeekAnimation() {
   const nav = document.querySelector(".app-nav");
   if (nav) {
     setTimeout(() => {
-      // شبیه‌سازی کشش انگشت به چپ و برگشت به راست
       nav.scrollTo({ left: 60, behavior: "smooth" });
       setTimeout(() => {
         nav.scrollTo({ left: 0, behavior: "smooth" });
@@ -29,9 +29,8 @@ function triggerNavPeekAnimation() {
 state.galleryPage = 0;
 state.galleryPageSize = 30;
 state.currentSelectingPresetIdx = null;
-state.currentSelectingCatId = null; // متغیر جدید برای ذخیره آیدی موضوع در حال ویرایش شکلک
+state.currentSelectingCatId = null;
 
-// باز کردن گالری اموجی‌های متحرک برای خلق‌وخو
 window.openEmojiGallery = function(idx) {
   state.currentSelectingPresetIdx = idx;
   state.currentSelectingCatId = null;
@@ -43,7 +42,6 @@ window.openEmojiGallery = function(idx) {
   }
 };
 
-// باز کردن گالری اموجی‌های متحرک برای شکلک دسته‌بندی (موضوعات)
 window.openCatEmojiPicker = function(catId) {
   state.currentSelectingCatId = catId;
   state.currentSelectingPresetIdx = null;
@@ -55,7 +53,6 @@ window.openCatEmojiPicker = function(catId) {
   }
 };
 
-// رندر کردن گالری ۲۰۰ تایی اموجی‌ها با قابلیت صفحه‌بندی هوشمند
 window.renderGalleryGrid = function() {
   const grid = document.getElementById("gallery-grid");
   const label = document.getElementById("gallery-range-label");
@@ -69,7 +66,6 @@ window.renderGalleryGrid = function() {
 
   for (let i = start; i <= end; i++) {
     const numStr = String(i).padStart(3, '0');
-    // آدرس عمومی باکت عمومی سوپابیس
     const fileUrl = `https://ipureiqnhgatigewbggj.supabase.co/storage/v1/object/public/emojis/${numStr}.webm`;
 
     const item = document.createElement('div');
@@ -87,7 +83,6 @@ window.renderGalleryGrid = function() {
       transition: all 0.2s;
     `;
 
-    // افکت‌های هاور بصری روی هر شکلک
     item.onmouseenter = () => { item.style.borderColor = 'var(--accent)'; item.style.transform = 'scale(1.05)'; };
     item.onmouseleave = () => { item.style.borderColor = 'var(--border)'; item.style.transform = 'none'; };
 
@@ -96,20 +91,17 @@ window.renderGalleryGrid = function() {
       <span style="position:absolute; bottom:2px; font-size:8px; color:var(--muted); font-family:monospace; background:rgba(0,0,0,0.35); padding:0 3px; border-radius:3px;">${numStr}</span>
     `;
 
-    // کلیک روی هر المان و انتساب آن به پریست مناسب
     item.onclick = () => {
       const idx = state.currentSelectingPresetIdx;
       const catId = state.currentSelectingCatId;
 
       if (idx !== null && idx !== undefined) {
-        // اختصاص به پریست خلق و خو
         state.moodPresets[idx].type = 'webm';
         state.moodPresets[idx].value = fileUrl;
         save("planner_mood_presets", state.moodPresets);
         saveCloud();
         render();
       } else if (catId) {
-        // اختصاص به شکلک دسته‌بندی (موضوع)
         const cat = state.cats.find(c => c.id === catId);
         if (cat) {
           cat.emoji = fileUrl;
@@ -128,7 +120,6 @@ window.renderGalleryGrid = function() {
   }
 };
 
-// رویدادهای مدال گالری سوپابیس
 safeBindEvent("close-gallery-modal", "onclick", () => {
   document.getElementById("emoji-gallery-modal").style.display = "none";
   state.currentSelectingPresetIdx = null;
@@ -150,7 +141,6 @@ safeBindEvent("gallery-next", "onclick", () => {
   }
 });
 
-// مدیریت تغییر تب‌ها
 window.switchTab = function(tabId) {
   document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
   document.querySelectorAll(".tab-section").forEach(s => s.classList.remove("active"));
@@ -167,7 +157,6 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
   });
 });
 
-// مدیریت تاریخ روزانه
 safeBindEvent("prev-day", "onclick", () => { shiftDay(-1); });
 safeBindEvent("next-day", "onclick", () => { shiftDay(1); });
 safeBindEvent("btn-today", "onclick", () => { state.curDate = getLocalDateStr(); render(); });
@@ -195,7 +184,6 @@ safeBindEvent("map-next", "onclick", () => {
 
 safeBindEvent("map-cat-select", "onchange", () => { render(); });
 
-// رویداد سوییچ روشن/خاموش یکپارچه‌سازی و گروه‌بندی کارهای هم‌موضوع در تایم‌لاین
 safeBindEvent("timeline-group-toggle", "onchange", (e) => {
   state.groupTimelinePref = e.target.checked;
   save("planner_group_timeline_pref", state.groupTimelinePref);
@@ -203,7 +191,6 @@ safeBindEvent("timeline-group-toggle", "onchange", (e) => {
   render();
 });
 
-// چک‌باکس انتخاب همه موضوعات در بخش گزارش‌ها
 safeBindEvent("report-select-all", "onchange", (e) => {
   if (e.target.checked) {
     state.selectedReportCats = state.cats.map(c => c.id);
@@ -215,7 +202,6 @@ safeBindEvent("report-select-all", "onchange", (e) => {
   render();
 });
 
-// رویدادهای تغییر تم و تغییر رنگ دلخواه از تب تنظیمات
 safeBindEvent("setting-theme-select", "onchange", (e) => {
   state.theme = e.target.value; 
   save("planner_theme", state.theme); 
@@ -230,7 +216,6 @@ safeBindEvent("setting-accent-picker", "onchange", (e) => {
   applyTheme();
 });
 
-// رویداد تغییر سبک منوی ناوبری موبایل
 safeBindEvent("setting-mobile-nav", "onchange", (e) => {
   state.mobileNavStyle = e.target.value;
   save("planner_mobile_nav_style", state.mobileNavStyle);
@@ -238,7 +223,10 @@ safeBindEvent("setting-mobile-nav", "onchange", (e) => {
   applyTheme();
 });
 
-// رویدادهای جدید تنظیمات تقویم و قالب‌ها
+safeBindEvent("trigger-tutorial-btn", "onclick", () => {
+  showTutorial(true);
+});
+
 safeBindEvent("setting-calendar", "onchange", (e) => {
   state.calendarPref = e.target.value; 
   save("planner_calendar_pref", state.calendarPref); 
@@ -260,7 +248,6 @@ safeBindEvent("setting-week-start", "onchange", (e) => {
   render();
 });
 
-// ذخیره زمان شخصی‌سازی شده پومودورو از بخش تنظیمات
 safeBindEvent("setting-pomodoro-work", "onchange", (e) => {
   state.pomodoroWorkPref = parseInt(e.target.value) || 25;
   save("planner_pomo_work_pref", state.pomodoroWorkPref); saveCloud(); render();
@@ -271,7 +258,6 @@ safeBindEvent("setting-pomodoro-break", "onchange", (e) => {
   save("planner_pomo_break_pref", state.pomodoroBreakPref); saveCloud(); render();
 });
 
-// تغییر نوع چارت از منوی گزارش‌ها
 safeBindEvent("report-chart-type", "onchange", (e) => {
   state.chartTypePref = e.target.value; 
   save("planner_chart_type_pref", state.chartTypePref); 
@@ -279,7 +265,6 @@ safeBindEvent("report-chart-type", "onchange", (e) => {
   render();
 });
 
-// باز و بسته کردن باکس افزودن دسته‌بندی
 safeBindEvent("toggle-cat", "onclick", () => {
   const box = document.getElementById("new-cat-box");
   if (box) {
@@ -287,7 +272,6 @@ safeBindEvent("toggle-cat", "onclick", () => {
   }
 });
 
-// ذخیره دسته‌بندی جدید مجهز به فیلد اموجی
 safeBindEvent("save-cat", "onclick", () => {
   const name = document.getElementById("new-cat-name").value.trim();
   const color = document.getElementById("new-cat-color").value;
@@ -310,24 +294,19 @@ safeBindEvent("save-cat", "onclick", () => {
   document.getElementById("map-cat-select").value = nc.id;
 });
 
-// حذف کاملاً سراسری دسته‌بندی به همراه تمام داده‌های مربوط به آن جهت جلوگیری از اثرگذاری در گزارش‌ها
 window.delCat = function(id) {
   if(!confirm("آیا مطمئن هستید؟ با تایید شما، تمام فعالیت‌ها، روتین‌ها و اهدافی که تاکنون تحت این موضوع ثبت شده‌اند به طور کامل و بدون بازگشت پاک خواهند شد.")) return;
   
-  // ۱. حذف از لیست دسته‌بندی‌ها
   state.cats = state.cats.filter(c => c.id !== id);
-  // ۲. فیلتر و حذف کامل رویدادها، روتین‌ها و اهداف مرتبط با این موضوع
   state.events = state.events.filter(e => e.catId !== id);
   state.routines = state.routines.filter(r => r.catId !== id);
   state.goals = state.goals.filter(g => g.catId !== id);
   
-  // ۳. فیلتر کردن از لیست فیلترهای فعال گزارش
   if (state.selectedReportCats) {
     state.selectedReportCats = state.selectedReportCats.filter(cId => cId !== id);
     save("planner_selected_report_cats", state.selectedReportCats);
   }
 
-  // ۴. ذخیره همگانی اطلاعات
   save("planner_cats", state.cats); 
   save("planner_ev", state.events);
   save("planner_routines", state.routines);
@@ -337,14 +316,12 @@ window.delCat = function(id) {
   render();
 };
 
-// تابع ادیت و پرش به مدیریت به همراه زمان فعالیت
 window.editEv = function(id) {
   const ev = state.events.find(e => e.id === id);
   if (!ev) return;
   
   state.editingEventId = id;
   
-  // پر کردن فرم ثبت و مدیریت با متغیرهای فعالیت انتخاب شده
   document.getElementById("act-title").value = ev.title || "";
   document.getElementById("cat-select").value = ev.catId || "";
   document.getElementById("act-tags").value = (ev.tags || []).join(" ");
@@ -358,7 +335,6 @@ window.editEv = function(id) {
   render();
 };
 
-// لغو حالت ویرایش فعالیت
 safeBindEvent("cancel-edit-btn", "onclick", () => {
   state.editingEventId = null;
   document.getElementById("act-title").value = "";
@@ -371,7 +347,6 @@ safeBindEvent("cancel-edit-btn", "onclick", () => {
   render();
 });
 
-// ثبت یا ذخیره تغییرات ویرایش شده فعالیت دستی با فیلد وقفه/پاز و اعتبارسنجی آن
 safeBindEvent("add-btn", "onclick", () => {
   const title = document.getElementById("act-title").value.trim();
   const catId = document.getElementById("cat-select").value;
@@ -388,11 +363,9 @@ safeBindEvent("add-btn", "onclick", () => {
   const eMins = parseTime(enRaw);
   if(sMins === null || eMins === null) return alert("فرمت زمان وارد شده صحیح نیست");
 
-  // محاسبه مدت کل فعالیت به دقیقه
   let totalDur = eMins - sMins; 
-  if(totalDur < 0) totalDur += 24 * 60; // مدیریت ساعت نیمه شب
+  if(totalDur < 0) totalDur += 24 * 60;
 
-  // دریافت و اعتبارسنجی مقدار وقفه/پاز وارد شده به صورت دستی
   const pauseMins = parseInt(pauseRaw, 10) || 0;
   if (pauseMins < 0) {
     alert("مقدار زمان وقفه نمی‌تواند عدد منفی باشد!");
@@ -403,12 +376,10 @@ safeBindEvent("add-btn", "onclick", () => {
     return;
   }
 
-  // کسر زمان وقفه از کل مدت فعالیت
   const durMins = totalDur - pauseMins;
   const tags = tagsRaw ? tagsRaw.split(" ").filter(t => t.startsWith("#")) : [];
 
   if (state.editingEventId) {
-    // بروزرسانی روی آبجکت قبلی
     const idx = state.events.findIndex(e => e.id === state.editingEventId);
     if (idx !== -1) {
       state.events[idx].title = title;
@@ -422,7 +393,6 @@ safeBindEvent("add-btn", "onclick", () => {
     state.editingEventId = null;
     alert("تغییرات فعالیت با موفقیت بروزرسانی شد.");
   } else {
-    // افزودن فعالیت کاملاً جدید
     state.events.push({ id: Date.now().toString(), date: state.curDate, title, catId, sMins, eMins, durMins, pauseMins, tags });
   }
 
@@ -432,7 +402,6 @@ safeBindEvent("add-btn", "onclick", () => {
   switchTab("tab-timeline");
 });
 
-// زنده
 safeBindEvent("live-btn", "onclick", () => {
   if(!state.liveSession){
     state.liveSession = {
@@ -480,7 +449,6 @@ window.delEv = function(id) {
   save("planner_ev", state.events); saveCloud(); render();
 };
 
-// تودو و عادت
 safeBindEvent("add-todo-btn", "onclick", () => {
   const title = document.getElementById("todo-input").value.trim(); if(!title) return;
   state.todos.push({ id: "t" + Date.now(), title, date: state.curDate, done: false, isDaily: false, doneDates: {} });
@@ -544,7 +512,6 @@ window.deleteHabit = (id) => {
   render(); 
 };
 
-// ژورنال و خاطره‌نویسی روزانه
 safeBindEvent("save-journal-btn", "onclick", () => {
   const note = document.getElementById("journal-textarea").value.trim();
   let selectedMood = state.moods[state.curDate]?.mood || null;
@@ -554,7 +521,6 @@ safeBindEvent("save-journal-btn", "onclick", () => {
   alert("خاطره‌نویسی و یادداشت امروز با موفقیت ثبت شد!");
 });
 
-// تغییر نام نمایشی کاربری در تب تنظیمات
 safeBindEvent("save-display-name-btn", "onclick", async () => {
   const newName = document.getElementById("setting-display-name").value.trim();
   if(!newName) return alert("لطفاً نام نمایشی معتبری وارد کنید.");
@@ -580,7 +546,6 @@ safeBindEvent("save-display-name-btn", "onclick", async () => {
   }
 });
 
-// تغییر آدرس ایمیل در تب تنظیمات
 safeBindEvent("save-email-btn", "onclick", async () => {
   const newEmail = document.getElementById("setting-email").value.trim();
   if(!newEmail) return alert("لطفاً ایمیل معتبری وارد کنید.");
@@ -595,7 +560,6 @@ safeBindEvent("save-email-btn", "onclick", async () => {
   }
 });
 
-// تغییر رمز عبور در تب تنظیمات
 safeBindEvent("save-password-btn", "onclick", async () => {
   const newPassword = document.getElementById("setting-password").value;
   if(!newPassword || newPassword.length < 6) return alert("رمز عبور باید حداقل ۶ کاراکتر باشد.");
@@ -610,7 +574,6 @@ safeBindEvent("save-password-btn", "onclick", async () => {
   }
 });
 
-// افزودن حالت خلق و خوی جدید
 safeBindEvent("add-mood-preset-btn", "onclick", () => {
   state.moodPresets.push({
     level: Date.now().toString(),
@@ -623,7 +586,6 @@ safeBindEvent("add-mood-preset-btn", "onclick", () => {
   render();
 });
 
-// حذف حالت خلق و خو
 window.deleteMoodPreset = function(idx) {
   if (state.moodPresets.length <= 1) {
     alert("باید حداقل یک حالت روحی در لیست وجود داشته باشد!");
@@ -636,7 +598,6 @@ window.deleteMoodPreset = function(idx) {
   render();
 };
 
-// ذخیره چیدمان اختصاصی اموجی‌ها یا فایل‌های WebM انیمیشنی
 safeBindEvent("save-custom-emojis-btn", "onclick", () => {
   const labels = document.querySelectorAll(".emoji-label-input");
   const types = document.querySelectorAll(".emoji-type-select");
@@ -649,7 +610,6 @@ safeBindEvent("save-custom-emojis-btn", "onclick", () => {
       state.moodPresets[idx].type = type;
       
       let val = values[idx].value.trim();
-      // تبدیل فرمت آیدی عددی ساده (مثلا 137) به لینک کامل
       if (type === 'webm') {
         if (/^\d+$/.test(val)) {
           const numStr = String(val).padStart(3, '0');
@@ -666,7 +626,6 @@ safeBindEvent("save-custom-emojis-btn", "onclick", () => {
   }
 });
 
-// خروجی بک‌آپ
 safeBindEvent("export-btn", "onclick", () => {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], { type: "application/json" }));
@@ -676,9 +635,6 @@ safeBindEvent("export-btn", "onclick", () => {
 
 safeBindEvent("report-confirm-btn", "onclick", () => render());
 
-// ================= مدیریت و اهداف =================
-
-// دکمه‌های بازکننده پنل روتین و اهداف
 safeBindEvent("toggle-rt-form-btn", "onclick", () => {
   const p = document.getElementById("rt-card-panel");
   if(p) { p.style.display = p.style.display === 'block' ? 'none' : 'block'; p.scrollIntoView({ behavior: 'smooth' }); }
@@ -695,7 +651,6 @@ safeBindEvent("close-goal-panel", "onclick", () => {
   const p = document.getElementById("goal-card-panel"); if(p) p.style.display = 'none';
 });
 
-// انتخاب روزها در روتین
 const dayBtns = document.querySelectorAll('.rt-day-btn');
 dayBtns.forEach(btn => {
   btn.onclick = function() {
@@ -710,7 +665,6 @@ dayBtns.forEach(btn => {
   };
 });
 
-// افزودن روتین ثابت جدید
 safeBindEvent("add-rt-btn", "onclick", () => {
   const title = document.getElementById('rt-title').value.trim();
   const start = document.getElementById('rt-start').value.trim();
@@ -726,7 +680,6 @@ safeBindEvent("add-rt-btn", "onclick", () => {
   });
   save('planner_routines', state.routines); saveCloud();
 
-  // ریست فرم
   document.getElementById('rt-title').value = '';
   document.getElementById('rt-start').value = '';
   document.getElementById('rt-end').value = '';
@@ -742,7 +695,6 @@ window.delRoutine = function(id) {
   save('planner_routines', state.routines); saveCloud(); render();
 };
 
-// ثبت هدف جدید ماهانه
 safeBindEvent("add-goal-btn", "onclick", () => {
   const title = document.getElementById('goal-title').value.trim();
   const catId = document.getElementById('goal-cat-select').value;
@@ -771,7 +723,6 @@ window.deleteGoal = function(id) {
   render();
 };
 
-// ثبت وقفه دستی بر حسب دقیقه روی فعالیت زنده
 window.addManualPause = () => {
   if (!state.liveSession) return;
   const minsInput = prompt("چند دقیقه وقفه دستی مایلید ثبت کنید؟ (مثلاً ۶۰)", "30");
@@ -787,7 +738,6 @@ window.addManualPause = () => {
   updateLiveButton();
 };
 
-// مدیریت، درخواست مجوز و فعال‌سازی سیستم اعلان‌های سیستمی
 const notifyBtn = document.getElementById("notify-enable-btn");
 if (notifyBtn) {
   if ('Notification' in window && Notification.permission === 'granted') {
@@ -818,7 +768,6 @@ if (notifyBtn) {
   };
 }
 
-// احراز هویت و بارگذاری اطلاعات کاربری
 async function handleUserSession(session) {
   const user = session?.user;
   if (!user) { window.location.href = "./login.html"; return; }
@@ -850,20 +799,17 @@ async function handleUserSession(session) {
   const msg = document.getElementById("welcome-msg");
   if (msg) msg.textContent = displayName ? "خوش آمدی، " + displayName + " 👋" : "خوش آمدی 👋";
 
-  // پیش‌فرش کردن مقدار اینپوت تغییر نام نمایشی در تب تنظیمات
   const settingDisplayName = document.getElementById("setting-display-name");
   if (settingDisplayName) {
     settingDisplayName.value = displayName;
   }
 
-  const dateLabel = document.getElementById("date-label");
-  if (dateLabel) dateLabel.textContent = fmtDateLabel(state.curDate);
-
   try {
     await loadCloud();
     applyTheme();
     render();
-    triggerNavPeekAnimation(); // اجرای انیمیشن حرکت افقی منو در اولین لود صفحه
+    triggerNavPeekAnimation();
+    showTutorial();
   } catch (err) { console.error(err); }
 }
 
