@@ -827,3 +827,29 @@ supabase.auth.onAuthStateChange((event, session) => {
   if (event === "SIGNED_OUT") window.location.href = "./login.html";
   else if (event === "SIGNED_IN" && session) handleUserSession(session);
 });
+
+// شنونده‌های مربوط به حالت آفلاین/آنلاین 
+window.addEventListener('online', () => {
+  console.log("اتصال اینترنت برقرار شد. در حال همگام‌سازی اطلاعات با سرور...");
+  saveCloud().then(() => {
+    const msg = document.getElementById("welcome-msg");
+    if(msg) {
+      const originalText = msg.textContent;
+      msg.textContent = "✅ اطلاعات با سرور همگام شد";
+      msg.style.color = "#34d399"; 
+      
+      setTimeout(() => {
+        msg.textContent = originalText;
+        msg.style.color = "var(--muted)";
+      }, 4000);
+    }
+  });
+});
+
+window.addEventListener('offline', () => {
+  const msg = document.getElementById("welcome-msg");
+  if(msg) {
+    msg.textContent = "⚠️ شما آفلاین هستید (ذخیره در گوشی)";
+    msg.style.color = "#f87171"; 
+  }
+});
