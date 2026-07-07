@@ -42,11 +42,9 @@ export const state = {
   groupTimelinePref: load('planner_group_timeline_pref', true), 
   selectedReportCats: load('planner_selected_report_cats', []), 
   
-  // متغیرهای جدید ثبت تیک روتین و وضعیت آموزش
   routineLogs: load('planner_routine_logs', {}),
   tutorialCompleted: load('planner_tutorial_completed', false),
   
-  // متغیر سبک منوی ناوبری موبایل
   mobileNavStyle: load('planner_mobile_nav_style', 'grid'),
   
   pomodoroWorkPref: load('planner_pomo_work_pref', 25),
@@ -68,10 +66,10 @@ export const state = {
 };
 
 export async function saveCloud(){
-  // بررسی وضعیت اینترنت - جلوگیری از درخواست در حالت آفلاین
+  // توقف پردازش اگر اینترنت قطع باشد
   if (!navigator.onLine) {
-    console.log("شما آفلاین هستید. اطلاعات در گوشی ذخیره شد و پس از اتصال به اینترنت همگام‌سازی می‌شود.");
-    return;
+    console.log("آفلاین هستید. اطلاعات به صورت محلی ذخیره شد.");
+    return; 
   }
 
   try {
@@ -131,7 +129,6 @@ export async function loadCloud(){
       state.pomodoroWorkPref  = cd.pomodoroWorkPref || 25;
       state.pomodoroBreakPref = cd.pomodoroBreakPref || 5;
 
-      // ذخیره محلی تمام داده‌ها
       save('planner_ev', state.events);
       save('planner_cats', state.cats);
       save('planner_theme', state.theme);
