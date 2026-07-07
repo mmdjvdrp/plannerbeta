@@ -1,31 +1,34 @@
 // sw.js
-const CACHE_NAME = "planner-cache-v8"; // ارتقا نسخه کش جهت همگام‌سازی آنی تمام مراجع
+const CACHE_NAME = "planner-cache-v10";
 const assetsToCache = [
-  "/",
-  "/index.html",
-  "/login.html",
-  "/css/style.css",
-  "/manifest.json",
-  "/js/supabase.js",
-  "/js/storage.js",
-  "/js/helpers.js",
-  "/js/render.js",
-  "/js/planner.js",
-  "/icons/icon-192.png",
-  "/icons/icon-512.png"
+  "./",
+  "./index.html",
+  "./login.html",
+  "./css/style.css",
+  "./manifest.json",
+  "./js/supabase.js",
+  "./js/storage.js",
+  "./js/helpers.js",
+  "./js/render.js",
+  "./js/planner.js",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png"
 ];
 
-// ۱. نصب سرویس‌ورکر و کش کردن فایل‌های اصلی پوسته
+// ۱. نصب سرویس‌ورکر و کش کردن فایل‌های اصلی
 self.addEventListener("install", (event) => {
   self.skipWaiting(); 
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(assetsToCache);
+      // استفاده از Promise.allSettled تا اگر فایلی پیدا نشد، کل فرآیند نصب متوقف نشود
+      return Promise.allSettled(
+        assetsToCache.map(url => cache.add(url).catch(err => console.log('خطا در کش:', url)))
+      );
     })
   );
 });
 
-// ۲. فعال‌سازی سرویس‌ورکر، پاک کردن کش‌های قدیمی و در دست گرفتن صفحات باز
+// ۲. فعال‌سازی و پاک کردن کش‌های قدیمی
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     Promise.all([
@@ -43,7 +46,7 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// ۳. مدیریت درخواست‌ها و واکشی کش آفلاین بدون ایجاد ارور unhandled
+// ۳. مدیریت درخواست‌ها و واکشی کش آفلاین
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
@@ -52,15 +55,10 @@ self.addEventListener("fetch", (event) => {
       if (cachedResponse) {
         return cachedResponse;
       }
-
       return fetch(event.request).then((response) => {
-        if (response && response.status === 200 && event.request.url.startsWith("https://cdn.jsdelivr.net/")) {
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-        }
         return response;
+      }).catch(() => {
+        console.log("درخواست با خطا مواجه شد (آفلاین)");
       });
     })
   );
