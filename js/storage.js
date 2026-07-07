@@ -68,6 +68,12 @@ export const state = {
 };
 
 export async function saveCloud(){
+  // بررسی وضعیت اینترنت - جلوگیری از درخواست در حالت آفلاین
+  if (!navigator.onLine) {
+    console.log("شما آفلاین هستید. اطلاعات در گوشی ذخیره شد و پس از اتصال به اینترنت همگام‌سازی می‌شود.");
+    return;
+  }
+
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if(!user) return;
