@@ -13,150 +13,45 @@
   <link rel="stylesheet" href="./css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<!-- استایل واکنش‌گرا و رفع فیکس اسکرول تب‌ها روی موبایل -->
 <style>
 @media(max-width: 768px) {
   body { padding: 12px 8px; }
-  
   .header { flex-direction: column; align-items: center; text-align: center; gap: 14px; }
   .logo { font-size: 22px; }
   .date-nav { display: flex; flex-wrap: wrap; justify-content: center; width: 100%; gap: 12px; }
   .date-nav > div:first-of-type { width: 100%; display: flex; justify-content: space-between; align-items: center; order: -1; }
   #date-label { flex: 1; min-width: 0; font-size: 13px; padding: 6px 4px; }
   .card { padding: 14px; border-radius: 12px; }
-  
-  /* ظرف نگهدارنده منو با قابلیت تغییر پویای سبک‌های ۴ گانه */
-  .app-nav-container {
-    position: fixed; 
-    bottom: 0; 
-    left: 0; 
-    right: 0; 
-    margin-bottom: 0; 
-    z-index: 1000; 
-    background: var(--surface); 
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  .app-nav-container::before, .app-nav-container::after {
-    display: none !important; /* حذف گرادینت‌های چپ و راست به دلیل پویایی منوها */
-  }
-
-  .app-nav { 
-    position: static !important;
-    box-shadow: none !important;
-    border: none !important;
-    background: transparent !important;
-    transition: all 0.3s ease;
-  }
+  .app-nav-container { position: fixed; bottom: 0; left: 0; right: 0; margin-bottom: 0; z-index: 1000; background: var(--surface); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+  .app-nav-container::before, .app-nav-container::after { display: none !important; }
+  .app-nav { position: static !important; box-shadow: none !important; border: none !important; background: transparent !important; transition: all 0.3s ease; }
   .app-nav::-webkit-scrollbar { display: none; }
   .app-nav { -ms-overflow-style: none; scrollbar-width: none; }
-
-  .nav-btn { 
-    flex: unset; 
-    width: auto; 
-    min-width: unset !important; 
-    flex-direction: column; 
-    gap: 4px; 
-    font-size: 10px; 
-    padding: 6px 2px; 
-  }
+  .nav-btn { flex: unset; width: auto; min-width: unset !important; flex-direction: column; gap: 4px; font-size: 10px; padding: 6px 2px; }
   .nav-icon { font-size: 18px; }
   .mood-container { flex-direction: column; align-items: stretch; }
 
-  /* ================= حالت ۱: شبکه ۲ ردیفه منظم (grid) ================= */
   body[data-nav-style="grid"] .wrap { padding-bottom: 190px !important; }
-  body[data-nav-style="grid"] .app-nav-container {
-    border-radius: 20px 20px 0 0; 
-    box-shadow: 0 -5px 25px rgba(0,0,0,0.5); 
-    padding: 10px 0 16px 0;
-  }
-  body[data-nav-style="grid"] .app-nav {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 8px !important;
-    padding: 4px 12px !important;
-    flex-wrap: nowrap !important;
-  }
-  body[data-nav-style="grid"] .nav-btn {
-    width: 100%;
-    font-size: 10px;
-    padding: 6px 2px;
-  }
+  body[data-nav-style="grid"] .app-nav-container { border-radius: 20px 20px 0 0; box-shadow: 0 -5px 25px rgba(0,0,0,0.5); padding: 10px 0 16px 0; }
+  body[data-nav-style="grid"] .app-nav { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important; padding: 4px 12px !important; flex-wrap: nowrap !important; }
+  body[data-nav-style="grid"] .nav-btn { width: 100%; font-size: 10px; padding: 6px 2px; }
 
-  /* ================= حالت ۲: اسکرول افقی روان (scroll) ================= */
   body[data-nav-style="scroll"] .wrap { padding-bottom: 150px !important; }
-  body[data-nav-style="scroll"] .app-nav-container {
-    border-radius: 16px 16px 0 0; 
-    box-shadow: 0 -5px 20px rgba(0,0,0,0.4); 
-    padding: 8px 0 12px 0;
-  }
-  body[data-nav-style="scroll"] .app-nav {
-    display: flex !important;
-    overflow-x: auto !important;
-    white-space: nowrap !important;
-    gap: 12px !important;
-    padding: 4px 16px !important;
-    scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
-    flex-wrap: nowrap !important;
-  }
-  body[data-nav-style="scroll"] .nav-btn {
-    flex: 0 0 auto !important;
-    min-width: 85px !important;
-    font-size: 11px;
-    padding: 8px 6px;
-    flex-direction: row !important;
-    gap: 6px;
-    border-radius: 8px;
-  }
+  body[data-nav-style="scroll"] .app-nav-container { border-radius: 16px 16px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.4); padding: 8px 0 12px 0; }
+  body[data-nav-style="scroll"] .app-nav { display: flex !important; overflow-x: auto !important; white-space: nowrap !important; gap: 12px !important; padding: 4px 16px !important; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; flex-wrap: nowrap !important; }
+  body[data-nav-style="scroll"] .nav-btn { flex: 0 0 auto !important; min-width: 85px !important; font-size: 11px; padding: 8px 6px; flex-direction: row !important; gap: 6px; border-radius: 8px; }
   body[data-nav-style="scroll"] .nav-icon { font-size: 15px; }
 
-  /* ================= حالت ۳: تک‌ردیفه بسیار فشرده (compact) ================= */
   body[data-nav-style="compact"] .wrap { padding-bottom: 135px !important; }
-  body[data-nav-style="compact"] .app-nav-container {
-    border-radius: 14px 14px 0 0; 
-    box-shadow: 0 -4px 15px rgba(0,0,0,0.4); 
-    padding: 6px 0 10px 0;
-  }
-  body[data-nav-style="compact"] .app-nav {
-    display: flex !important;
-    justify-content: space-between !important;
-    gap: 4px !important;
-    padding: 2px 8px !important;
-    flex-wrap: nowrap !important;
-  }
-  body[data-nav-style="compact"] .nav-btn {
-    flex: 1 !important;
-    font-size: 9px;
-    padding: 4px 1px;
-    gap: 2px;
-  }
+  body[data-nav-style="compact"] .app-nav-container { border-radius: 14px 14px 0 0; box-shadow: 0 -4px 15px rgba(0,0,0,0.4); padding: 6px 0 10px 0; }
+  body[data-nav-style="compact"] .app-nav { display: flex !important; justify-content: space-between !important; gap: 4px !important; padding: 2px 8px !important; flex-wrap: nowrap !important; }
+  body[data-nav-style="compact"] .nav-btn { flex: 1 !important; font-size: 9px; padding: 4px 1px; gap: 2px; }
   body[data-nav-style="compact"] .nav-icon { font-size: 14px; }
 
-  /* ================= حالت ۴: منوی شناور لبه‌گرد (floating) ================= */
   body[data-nav-style="floating"] .wrap { padding-bottom: 165px !important; }
-  body[data-nav-style="floating"] .app-nav-container {
-    bottom: 14px !important;
-    left: 12px !important;
-    right: 12px !important;
-    border-radius: 20px !important;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.65) !important;
-    padding: 10px !important;
-    border: 1px solid var(--border);
-  }
-  body[data-nav-style="floating"] .app-nav {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 6px !important;
-    padding: 0 !important;
-    flex-wrap: nowrap !important;
-  }
-  body[data-nav-style="floating"] .nav-btn {
-    width: 100%;
-    font-size: 10px;
-    padding: 8px 2px;
-    border-radius: 12px;
-    gap: 4px;
-  }
+  body[data-nav-style="floating"] .app-nav-container { bottom: 14px !important; left: 12px !important; right: 12px !important; border-radius: 20px !important; box-shadow: 0 8px 30px rgba(0,0,0,0.65) !important; padding: 10px !important; border: 1px solid var(--border); }
+  body[data-nav-style="floating"] .app-nav { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 6px !important; padding: 0 !important; flex-wrap: nowrap !important; }
+  body[data-nav-style="floating"] .nav-btn { width: 100%; font-size: 10px; padding: 8px 2px; border-radius: 12px; gap: 4px; }
   body[data-nav-style="floating"] .nav-icon { font-size: 16px; }
 }
 
@@ -173,57 +68,19 @@
 .nav-btn:hover { background: var(--surface2); color: var(--text); }
 .nav-btn.active { background: var(--accent-glow); color: var(--accent); font-weight: 700; }
 
-/* استایل هاله درخشان زیبای دسته‌بندی‌های انتخابی گزارش */
-.report-item-interactive {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px 14px;
-  margin-bottom: 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-.report-item-interactive:hover {
-  background: var(--surface3);
-  border-color: var(--cat-color);
-}
-.report-item-interactive:active {
-  transform: scale(0.98); /* افکت فیزیکی لمس دکمه در گوشی */
-}
-.report-item-interactive.selected {
-  border-color: var(--cat-color) !important;
-  background: var(--surface3) !important;
-  box-shadow: 0 0 12px color-mix(in srgb, var(--cat-color) 40%, transparent);
-}
+.report-item-interactive { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s ease; user-select: none; -webkit-tap-highlight-color: transparent; }
+.report-item-interactive:hover { background: var(--surface3); border-color: var(--cat-color); }
+.report-item-interactive:active { transform: scale(0.98); }
+.report-item-interactive.selected { border-color: var(--cat-color) !important; background: var(--surface3) !important; box-shadow: 0 0 12px color-mix(in srgb, var(--cat-color) 40%, transparent); }
 
-/* افزودن بهینه‌سازی فرمت ایمیل و پسورد متناسب با دیگر اینپوت‌ها */
-input[type=email], input[type=password] {
-  width: 100%;
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  border-radius: 8px;
-  color: var(--text);
-  font-family: 'Vazirmatn', sans-serif;
-  font-size: 14px;
-  padding: 8px 12px;
-  outline: none;
-  transition: border-color .15s, box-shadow .15s;
-  -webkit-appearance: none;
-  appearance: none;
-}
-input[type=email]:focus, input[type=password]:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-glow);
-}
+input[type=email], input[type=password] { width: 100%; background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px; color: var(--text); font-family: 'Vazirmatn', sans-serif; font-size: 14px; padding: 8px 12px; outline: none; transition: border-color .15s, box-shadow .15s; -webkit-appearance: none; appearance: none; }
+input[type=email]:focus, input[type=password]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
 </style>
 </head>
 <body>
 
 <div class="wrap">
 
-  <!-- Header -->
   <div class="header">
     <div class="logo">
       <span class="logo-dot"></span>
@@ -242,7 +99,6 @@ input[type=email]:focus, input[type=password]:focus {
     </div>
   </div>
 
-  <!-- App Navigation Wrapper -->
   <div class="app-nav-container">
     <nav class="app-nav">
       <button class="nav-btn active" data-tab="tab-timeline"><span class="nav-icon">📅</span> تایم‌لاین</button>
@@ -256,13 +112,12 @@ input[type=email]:focus, input[type=password]:focus {
 
   <div class="tab-container">
     
-    <!-- ================= تب 1: تایم‌لاین ================= -->
+    <!-- تب 1 -->
     <div id="tab-timeline" class="tab-section active">
       <div style="display:flex; align-items:center; gap:10px; background:var(--surface2); padding:10px 14px; border-radius:12px; border:1px solid var(--border2); margin-bottom:16px;">
         <input type="checkbox" id="timeline-group-toggle" style="width:18px; height:18px; accent-color:var(--accent); cursor:pointer;">
         <label for="timeline-group-toggle" style="margin:0; font-size:12px; color:var(--text); cursor:pointer; font-weight:700; user-select:none;">یکپارچه‌سازی و گروه‌بندی خودکار کارهای هم‌موضوع</label>
       </div>
-
       <div class="card" style="margin-bottom:0">
         <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
           <div>تایم‌لاین &mdash; <span id="tl-date" style="color:var(--accent2)"></span></div>
@@ -272,14 +127,12 @@ input[type=email]:focus, input[type=password]:focus {
       </div>
     </div>
 
-    <!-- ================= تب 2: کارها و عادت‌ها ================= -->
+    <!-- تب 2 -->
     <div id="tab-habits" class="tab-section">
-      <!-- بخش چک لیست روتین‌های روز جاری -->
       <div class="card">
         <div class="card-title">⏰ روتین‌های امروز (چک‌لیست)</div>
         <div id="today-routines-list"></div>
       </div>
-
       <div class="card">
         <div class="card-title">کارهای روزانه (To-Do)</div>
         <div style="display:flex; gap:8px; margin-bottom: 15px;">
@@ -288,7 +141,6 @@ input[type=email]:focus, input[type=password]:focus {
         </div>
         <div id="todo-list"></div>
       </div>
-
       <div class="card">
         <div class="card-title">عادت‌ها (Habit Tracker)</div>
         <div style="display:flex; gap:8px; margin-bottom: 15px;">
@@ -297,15 +149,13 @@ input[type=email]:focus, input[type=password]:focus {
         </div>
         <div id="habit-list"></div>
       </div>
-
-      <!-- کادر نمایش و پیشرفت اهداف ماه جاری -->
       <div class="card">
         <div class="card-title">🎯 اهداف و پیشرفت ماه جاری</div>
         <div id="goals-list"></div>
       </div>
     </div>
 
-    <!-- ================= تب 3: دفترچه روزانه و یادداشت ================= -->
+    <!-- تب 3 -->
     <div id="tab-journal" class="tab-section">
       <div class="card">
         <div class="card-title">حال و هوای امروز من</div>
@@ -313,7 +163,6 @@ input[type=email]:focus, input[type=password]:focus {
           <div id="mood-emojis" style="display:flex; gap:16px; align-items: center; justify-content: center; flex-wrap: wrap;"></div>
         </div>
       </div>
-
       <div class="card">
         <div class="card-title">دفترچه روزانه / یادداشت خاطرات امروز</div>
         <div class="form-group">
@@ -323,7 +172,7 @@ input[type=email]:focus, input[type=password]:focus {
       </div>
     </div>
 
-    <!-- ================= تب 4: ثبت و مدیریت (روتین و اهداف) ================= -->
+    <!-- تب 4 -->
     <div id="tab-add" class="tab-section">
       <div class="card">
         <div class="card-title" id="manage-card-title">ثبت فعالیت جدید</div>
@@ -335,7 +184,6 @@ input[type=email]:focus, input[type=password]:focus {
             <select id="cat-select"></select>
             <button class="btn-icon" id="toggle-cat" title="ایجاد دسته جدید">+</button>
           </div>
-          <!-- کادر ایجاد دسته‌بندی جدید مجهز به انتخابگر اموجی -->
           <div class="new-cat-box" id="new-cat-box" style="background: var(--surface2); border: 1px dashed var(--border2); border-radius: 8px; padding: 10px; margin-top: 8px; display: none;">
             <div class="new-cat-inner" style="display: flex; gap: 6px; align-items: center;">
               <input type="text" id="new-cat-emoji" placeholder="📅" style="width:45px; text-align:center; padding: 8px; border-radius: 8px; border:1px solid var(--border2); background:var(--surface); color:var(--text); font-size:14px; outline:none;">
@@ -353,7 +201,6 @@ input[type=email]:focus, input[type=password]:focus {
             <div class="time-field"><input type="text" id="end-time" placeholder="10:00"><button class="now-btn" id="btn-now-e">الان</button></div>
           </div>
         </div>
-        <!-- فیلد وقفه دستی جدید در فرم ثبت فعالیت دستی -->
         <div class="form-group">
           <label>مدت زمان وقفه/پاز در این فعالیت (دقیقه)</label>
           <input type="text" id="act-pause" placeholder="0" inputmode="numeric" style="font-family: 'Vazirmatn', monospace; text-align: center;">
@@ -369,21 +216,14 @@ input[type=email]:focus, input[type=password]:focus {
         <button class="btn-live" id="live-btn">شروع فعالیت زنده</button>
         <div class="live-status" id="live-status"></div>
       </div>
-
-      <!-- دکمه‌های پنل تعاملی کشویی روتین و اهداف -->
       <div style="display: flex; gap: 10px; margin-bottom: 16px;">
         <button id="toggle-rt-form-btn" class="btn-live" style="margin-top:0; flex:1;">⏰ تعریف روتین ثابت</button>
         <button id="toggle-goal-form-btn" class="btn-live" style="margin-top:0; flex:1;">🎯 تعریف هدف ماهانه</button>
       </div>
-
-      <!-- پنل روتین‌های ثابت روزانه -->
       <div class="card" id="rt-card-panel" style="display: none; position: relative;">
         <button type="button" class="close-panel-btn" id="close-rt-panel">✕</button>
         <div class="card-title">تعریف روتین‌های ثابت</div>
-        <div class="form-group">
-          <label>عنوان روتین</label>
-          <input type="text" id="rt-title" placeholder="مثلاً: کلاس زبان">
-        </div>
+        <div class="form-group"><label>عنوان روتین</label><input type="text" id="rt-title" placeholder="مثلاً: کلاس زبان"></div>
         <div class="form-group">
           <label>زمان شروع و پایان</label>
           <div class="time-row">
@@ -406,28 +246,17 @@ input[type=email]:focus, input[type=password]:focus {
         <button class="btn-primary" id="add-rt-btn">+ ذخیره روتین</button>
         <div id="rt-list" style="margin-top: 15px; display: flex; flex-direction: column; gap: 6px;"></div>
       </div>
-
-      <!-- پنل تعریف هدف ماهانه جدید -->
       <div class="card" id="goal-card-panel" style="display: none; position: relative;">
         <button type="button" class="close-panel-btn" id="close-goal-panel">✕</button>
         <div class="card-title">تعریف هدف ماهانه جدید</div>
-        <div class="form-group">
-          <label>عنوان تمرین / فعالیت اختصاصی (اختیاری)</label>
-          <input type="text" id="goal-title" placeholder="مثلاً: ۳۰ دقیقه ورزش روزانه">
-        </div>
-        <div class="form-group">
-          <label>موضوع (دسته‌بندی)</label>
-          <select id="goal-cat-select"></select>
-        </div>
-        <div class="form-group">
-          <label>مدت زمان هدف (به دقیقه)</label>
-          <input type="text" id="goal-target" inputmode="numeric" placeholder="مثلاً: ۳۰" maxlength="5" autocomplete="off">
-        </div>
+        <div class="form-group"><label>عنوان تمرین / فعالیت اختصاصی (اختیاری)</label><input type="text" id="goal-title" placeholder="مثلاً: ۳۰ دقیقه ورزش روزانه"></div>
+        <div class="form-group"><label>موضوع (دسته‌بندی)</label><select id="goal-cat-select"></select></div>
+        <div class="form-group"><label>مدت زمان هدف (به دقیقه)</label><input type="text" id="goal-target" inputmode="numeric" placeholder="مثلاً: ۳۰" maxlength="5" autocomplete="off"></div>
         <button class="btn-primary" id="add-goal-btn">+ ثبت هدف ماهانه</button>
       </div>
     </div>
 
-    <!-- ================= تب 5: گزارش‌ها ================= -->
+    <!-- تب 5 -->
     <div id="tab-reports" class="tab-section">
       <div class="card">
         <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap: wrap; gap:8px;">
@@ -442,24 +271,17 @@ input[type=email]:focus, input[type=password]:focus {
             <button id="report-confirm-btn" class="action-btn" style="height:28px; padding:0 8px;">تایید</button>
           </div>
         </div>
-
-        <!-- چک‌باکس انتخاب همه موضوعات در نمودار -->
         <div style="display:flex; align-items:center; gap:8px; background:var(--surface2); padding:10px 14px; border-radius:10px; border:1px solid var(--border2); margin-bottom:14px;">
           <input type="checkbox" id="report-select-all" style="width:18px; height:18px; accent-color:var(--accent); cursor:pointer;" checked>
           <label for="report-select-all" style="margin:0; font-size:12px; color:var(--text); cursor:pointer; font-weight:700; user-select:none;">انتخاب همه موضوعات در نمودار</label>
         </div>
-
         <div style="position:relative; height:220px; margin-bottom:20px;"><canvas id="report-chart"></canvas></div>
-
-        <!-- بخش نمایش اطلاعات جزئی دسته کلیک شده در گزارش ویژه نسخه گوشی و تبلت -->
         <div id="report-detail-card" style="margin-top: 10px; margin-bottom: 16px; padding: 12px; border-radius: 10px; background: var(--surface2); border: 1px solid var(--border2); text-align: center; font-size: 12px; color: var(--text); min-height: 44px; display: flex; align-items: center; justify-content: center; line-height: 1.6;">
           📊 برای فیلتر یا مشاهده آمار دقیق‌تر، روی دسته‌بندی‌های زیر ضربه بزنید.
         </div>
-
         <div id="report-grid"></div>
         <div class="total-line" id="total-line"></div>
       </div>
-
       <div class="card">
         <div class="card-title">نقشه ماهانه موضوع</div>
         <div class="map-controls">
@@ -471,20 +293,16 @@ input[type=email]:focus, input[type=password]:focus {
           </div>
         </div>
         <div id="activity-map" class="activity-map"></div>
-        
-        <!-- نمایش جزئیات هور/کلیک نقشه ماهانه -->
         <div id="map-tooltip-detail" style="margin-top:14px; padding:10px; border-radius:8px; background:var(--surface2); border:1px solid var(--border2); font-size:12px; color:var(--text); text-align:center; min-height:38px; line-height:1.6; display:flex; align-items:center; justify-content:center;">
           💡 روی خانه‌های نقشه بالا کلیک کنید تا جزئیات و زمان فعالیت نمایش داده شود.
         </div>
       </div>
     </div>
 
-    <!-- ================= تب 6: تنظیمات ================= -->
+    <!-- تب 6 -->
     <div id="tab-settings" class="tab-section">
       <div class="card">
         <div class="card-title">تنظیمات پروفایل</div>
-        
-        <!-- تغییر نام نمایشی -->
         <div class="form-group" style="margin-bottom: 20px;">
           <label>تغییر نام نمایشی (Display Name)</label>
           <div style="display:flex; gap:8px;">
@@ -492,8 +310,6 @@ input[type=email]:focus, input[type=password]:focus {
             <button id="save-display-name-btn" class="action-btn">ثبت تغییرات</button>
           </div>
         </div>
-
-        <!-- تغییر ایمیل -->
         <div class="form-group" style="margin-bottom: 20px;">
           <label>تغییر آدرس ایمیل (Email Address)</label>
           <div style="display:flex; gap:8px;">
@@ -501,8 +317,6 @@ input[type=email]:focus, input[type=password]:focus {
             <button id="save-email-btn" class="action-btn">بروزرسانی ایمیل</button>
           </div>
         </div>
-
-        <!-- تغییر رمز عبور -->
         <div class="form-group" style="margin-bottom: 20px;">
           <label>تغییر رمز عبور (Password)</label>
           <div style="display:flex; gap:8px; flex-direction: column;">
@@ -524,8 +338,6 @@ input[type=email]:focus, input[type=password]:focus {
 
       <div class="card">
         <div class="card-title">شخصی‌سازی ظاهر</div>
-        
-        <!-- تنظیمات نوع منوی موبایل -->
         <div class="form-group" style="margin-bottom: 20px;">
           <label>سبک نمایش منوی موبایل (ویژه گوشی)</label>
           <select id="setting-mobile-nav">
@@ -535,7 +347,6 @@ input[type=email]:focus, input[type=password]:focus {
             <option value="floating">منوی شناور لبه‌گرد</option>
           </select>
         </div>
-
         <div class="form-group" style="margin-bottom: 20px;">
           <label>پوسته برنامه (تم)</label>
           <select id="setting-theme-select">
@@ -548,7 +359,6 @@ input[type=email]:focus, input[type=password]:focus {
             <option value="sunset">غروب سرخ</option>
           </select>
         </div>
-
         <div class="form-group" style="margin-bottom: 20px;">
           <label>رنگ شاخص دلخواه (Accent Color)</label>
           <div style="display:flex; gap:10px; align-items:center;">
@@ -560,46 +370,24 @@ input[type=email]:focus, input[type=password]:focus {
 
       <div class="card">
         <div class="card-title">تنظیمات تقویم و زمان و پومودورو</div>
-
         <div class="form-group" style="margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-          <div>
-            <label>کار پومودورو (دقیقه)</label>
-            <input type="text" id="setting-pomodoro-work" style="padding: 8px; border-radius: 8px; background: var(--surface2); color: var(--text); border: 1px solid var(--border2); width:100%; text-align:center;">
-          </div>
-          <div>
-            <label>استراحت پومودورو (دقیقه)</label>
-            <input type="text" id="setting-pomodoro-break" style="padding: 8px; border-radius: 8px; background: var(--surface2); color: var(--text); border: 1px solid var(--border2); width:100%; text-align:center;">
-          </div>
+          <div><label>کار پومودورو (دقیقه)</label><input type="text" id="setting-pomodoro-work" style="padding: 8px; border-radius: 8px; background: var(--surface2); color: var(--text); border: 1px solid var(--border2); width:100%; text-align:center;"></div>
+          <div><label>استراحت پومودورو (دقیقه)</label><input type="text" id="setting-pomodoro-break" style="padding: 8px; border-radius: 8px; background: var(--surface2); color: var(--text); border: 1px solid var(--border2); width:100%; text-align:center;"></div>
         </div>
-
         <div class="form-group" style="margin-bottom: 20px;">
           <label>سیستم تقویم نمایشگر</label>
-          <select id="setting-calendar">
-            <option value="jalali">هجری شمسی (جلالی)</option>
-            <option value="gregorian">میلادی (Gregorian)</option>
-          </select>
+          <select id="setting-calendar"><option value="jalali">هجری شمسی (جلالی)</option><option value="gregorian">میلادی (Gregorian)</option></select>
         </div>
-
         <div class="form-group" style="margin-bottom: 20px;">
           <label>فرمت نمایش مدت زمان (در گزارش‌ها و تایم‌لاین)</label>
-          <select id="setting-duration-format">
-            <option value="hour-min">ساعت و دقیقه (مثال: 1h 30m)</option>
-            <option value="decimal-hour">ساعت اعشاری (مثال: 1.5h)</option>
-            <option value="minutes">فقط دقیقه (مثال: 90m)</option>
-          </select>
+          <select id="setting-duration-format"><option value="hour-min">ساعت و دقیقه (مثال: 1h 30m)</option><option value="decimal-hour">ساعت اعشاری (مثال: 1.5h)</option><option value="minutes">فقط دقیقه (مثال: 90m)</option></select>
         </div>
-
         <div class="form-group">
           <label>اولین روز شروع هفته (جهت گزارش‌های هفتگی)</label>
-          <select id="setting-week-start">
-            <option value="sat">شنبه</option>
-            <option value="sun">یکشنبه</option>
-            <option value="mon">دوشنبه</option>
-          </select>
+          <select id="setting-week-start"><option value="sat">شنبه</option><option value="sun">یکشنبه</option><option value="mon">دوشنبه</option></select>
         </div>
       </div>
 
-      <!-- کادر راهنمای تعاملی دائمی در تنظیمات -->
       <div class="card">
         <div class="card-title">راهنمای کاربری برنامه</div>
         <p style="font-size:12px; color:var(--muted); line-height:1.7; margin-bottom:12px;">اگر مایلید مجدداً آموزش گام‌به‌گام و راهنمای تعاملی معرفی بخش‌های مختلف برنامه را مشاهده کنید، دکمه زیر را کلیک کنید:</p>
@@ -611,32 +399,22 @@ input[type=email]:focus, input[type=password]:focus {
         <button id="export-btn" class="btn-live" style="margin-top:0;">💾 خروجی کامل و دانلود فایل پشتیبان (Backup)</button>
       </div>
 
-      <!-- کادر انتقاد و پیشنهادات با لینک اتصال به تلگرام -->
       <div class="card">
         <div class="card-title">انتقاد و پیشنهادات</div>
-        <p style="font-size: 12px; color: var(--muted); margin-bottom: 12px; line-height: 1.6;">
-          نظرات، انتقادات و پیشنهادات ارزشمند شما به بهبود مستمر برنامه کمک شایانی خواهد کرد. برای ارتباط مستقیم و ارسال دیدگاه خود از طریق تلگرام، روی دکمه زیر کلیک کنید:
-        </p>
-        <a href="https://t.me/iRoChatBot?start=sec-bbheihbaec" target="_blank" class="btn-live" style="display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; background: #229ED915; border-color: rgba(34,158,217,0.3); color: #229ED9; margin-top: 0; font-weight: bold;">
-          <span>💬 ارسال نظر در تلگرام</span>
-        </a>
+        <p style="font-size: 12px; color: var(--muted); margin-bottom: 12px; line-height: 1.6;">نظرات، انتقادات و پیشنهادات ارزشمند شما به بهبود مستمر برنامه کمک شایانی خواهد کرد. برای ارتباط مستقیم و ارسال دیدگاه خود از طریق تلگرام، روی دکمه زیر کلیک کنید:</p>
+        <a href="https://t.me/iRoChatBot?start=sec-bbheihbaec" target="_blank" class="btn-live" style="display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; background: #229ED915; border-color: rgba(34,158,217,0.3); color: #229ED9; margin-top: 0; font-weight: bold;"><span>💬 ارسال نظر در تلگرام</span></a>
       </div>
     </div>
-
   </div>
 </div>
 
-<!-- مدال گالری اموجی‌های متحرک -->
 <div id="emoji-gallery-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:2000; align-items:center; justify-content:center; padding:16px; backdrop-filter:blur(6px);">
   <div class="card" style="width:100%; max-width:500px; background:var(--surface); border:1px solid var(--border2); max-height:85vh; display:flex; flex-direction:column; padding:20px; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--border); padding-bottom:10px;">
       <strong style="font-size:15px; color:var(--text);">🖼️ گالری شکلک‌های متحرک</strong>
       <button id="close-gallery-modal" style="background:transparent; border:none; color:var(--muted); font-size:20px; cursor:pointer;">✕</button>
     </div>
-    
     <p style="font-size:11px; color:var(--muted); margin-bottom:14px; line-height:1.6;">لیست فایل‌های متحرک WebM موجود. یکی را انتخاب کنید تا به عنوان حالت روحی امروز یا شکلک دسته‌بندی موضوعی تنظیم شود:</p>
-    
-    <!-- کانتینر ابزارهای بالای گالری -->
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px;">
       <span style="font-size:11px; color:var(--muted);" id="gallery-range-label">نمایش موارد ۱ تا ۳۰</span>
       <div style="display:flex; gap:6px;">
@@ -644,20 +422,18 @@ input[type=email]:focus, input[type=password]:focus {
         <button id="gallery-next" class="action-btn" style="padding:4px 8px; font-size:11px; background:var(--surface2); color:var(--text); border:1px solid var(--border2);">بعدی &#8250;</button>
       </div>
     </div>
-
-    <!-- شبکه نمایش اموجی‌ها -->
     <div id="gallery-grid" style="display:grid; grid-template-columns:repeat(5, 1fr); gap:12px; overflow-y:auto; flex:1; padding:4px;"></div>
   </div>
 </div>
 
 <script type="module" src="./js/planner.js"></script>
 
+<!-- اضافه کردن اسکریپت سرویس ورکر به فایل اچ‌تی‌ام‌ال -->
 <script>
-  // ثبت Service Worker برای پشتیبانی از PWA و حالت آفلاین
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js')
-        .then((reg) => console.log('Service Worker Registered!', reg))
+      navigator.serviceWorker.register('./sw.js', { scope: './' })
+        .then((reg) => console.log('Service Worker Registered!', reg.scope))
         .catch((err) => console.log('Service Worker Registration Failed!', err));
     });
   }
