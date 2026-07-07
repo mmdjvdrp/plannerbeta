@@ -10,110 +10,30 @@
 <title>ورود</title>
 
 <style>
-body{
-  font-family: Vazirmatn,sans-serif;
-  background:#111827;
-  color:white;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  min-height:100vh;
-  margin: 0;
-}
-
-.box {
-  width: 90%;         
-  max-width: 350px;   
-  background: #1f2937;
-  padding: 25px;
-  border-radius: 15px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-}
-
-input{
-  width:100%;
-  padding:10px;
-  margin:5px 0 15px;
-  box-sizing:border-box;
-  border-radius: 8px;
-  border: 1px solid #374151;
-  background: #111827;
-  color: white;
-  outline: none;
-}
-input:focus {
-  border-color: #7c5cfc;
-}
-
-button{
-  width:100%;
-  padding:12px;
-  cursor:pointer;
-  border: none;
-  border-radius: 8px;
-  background: #7c5cfc;
-  color: white;
-  font-family: Vazirmatn, sans-serif;
-  font-weight: bold;
-  transition: background 0.2s;
-}
-button:hover:not(:disabled) {
-  background: #6a4ce2;
-}
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.hidden{
-  display:none;
-}
-.tab-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
-}
-.tab-btn {
-  flex: 1;
-  padding: 8px;
-  border: 1px solid #374151;
-  background: #111827;
-  color: #9ca3af;
-  border-radius: 8px;
-  cursor: pointer;
-  font-family: Vazirmatn, sans-serif;
-}
-.tab-btn.active {
-  background: #7c5cfc;
-  color: white;
-  border-color: #7c5cfc;
-}
-@media (max-width: 400px) {
-  body {
-    padding: 12px;
-  }
-  .box {
-    padding: 16px;
-    border-radius: 12px;
-  }
-}
-
+body{ font-family: Vazirmatn,sans-serif; background:#111827; color:white; display:flex; justify-content:center; align-items:center; min-height:100vh; margin: 0; }
+.box { width: 90%; max-width: 350px; background: #1f2937; padding: 25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+input{ width:100%; padding:10px; margin:5px 0 15px; box-sizing:border-box; border-radius: 8px; border: 1px solid #374151; background: #111827; color: white; outline: none; }
+input:focus { border-color: #7c5cfc; }
+button{ width:100%; padding:12px; cursor:pointer; border: none; border-radius: 8px; background: #7c5cfc; color: white; font-family: Vazirmatn, sans-serif; font-weight: bold; transition: background 0.2s; }
+button:hover:not(:disabled) { background: #6a4ce2; }
+button:disabled { opacity: 0.6; cursor: not-allowed; }
+.hidden{ display:none; }
+.tab-row { display: flex; gap: 8px; margin-bottom: 20px; }
+.tab-btn { flex: 1; padding: 8px; border: 1px solid #374151; background: #111827; color: #9ca3af; border-radius: 8px; cursor: pointer; font-family: Vazirmatn, sans-serif; }
+.tab-btn.active { background: #7c5cfc; color: white; border-color: #7c5cfc; }
+@media (max-width: 400px) { body { padding: 12px; } .box { padding: 16px; border-radius: 12px; } }
 .err { color: #f87171; font-size: 13px; margin-top: -10px; margin-bottom: 10px; display: none; }
 </style>
-
 </head>
 <body>
 
 <div class="box">
-
   <h2 style="margin-bottom:20px; text-align: center;">تقویم روزانه</h2>
-
   <div class="tab-row">
     <button class="tab-btn active" id="tab-login" type="button">ورود</button>
     <button class="tab-btn" id="tab-register" type="button">ثبت نام</button>
   </div>
 
-  <!-- فرم ورود -->
   <form id="login-section" onsubmit="return false;">
     <label for="login-email">ایمیل</label>
     <input id="login-email" type="email" placeholder="example@email.com" required>
@@ -121,7 +41,6 @@ button:disabled {
     <label for="login-password">رمز</label>
     <input id="login-password" type="password" placeholder="رمز عبور" required minlength="6">
     
-    <!-- لینک فراموشی رمز عبور -->
     <div style="text-align: left; margin-top: -10px; margin-bottom: 15px;">
       <a href="./reset-password.html" style="color: #7c5cfc; text-decoration: none; font-size: 12px;">فراموشی رمز عبور؟</a>
     </div>
@@ -130,7 +49,6 @@ button:disabled {
     <button id="login-btn" type="submit">ورود</button>
   </form>
 
-  <!-- فرم ثبت نام -->
   <form id="register-section" style="display:none" onsubmit="return false;">
     <label for="register-name">نام نمایشی</label>
     <input id="register-name" placeholder="مثلاً: علی" required>
@@ -144,7 +62,6 @@ button:disabled {
     <div class="err" id="register-err"></div>
     <button id="register-btn" type="submit">ثبت نام</button>
   </form>
-
 </div>
 
 <script type="module">
@@ -152,14 +69,12 @@ import { supabase } from "./js/supabase.js";
 
 let registering = false;
 
-// بررسی وضعیت ورود کاربر جهت جلوگیری از هدایت بیهوده
 supabase.auth.onAuthStateChange((event, session) => {
   if (session?.user && !registering && event !== "PASSWORD_RECOVERY") {
     window.location.href = "./index.html";
   }
 });
 
-// سوئیچ بین تب‌ها
 document.getElementById("tab-login").onclick = () => {
   document.getElementById("login-section").style.display = "block";
   document.getElementById("register-section").style.display = "none";
@@ -174,7 +89,6 @@ document.getElementById("tab-register").onclick = () => {
   document.getElementById("tab-login").classList.remove("active");
 };
 
-// ورود به حساب کاربری
 document.getElementById("login-section").onsubmit = async (e) => {
   e.preventDefault();
   const email    = document.getElementById("login-email").value.trim();
@@ -183,31 +97,19 @@ document.getElementById("login-section").onsubmit = async (e) => {
   const btn      = document.getElementById("login-btn");
   
   err.style.display = "none";
-
-  if(!email || !password){ 
-    err.textContent = "ایمیل و رمز را وارد کنید"; 
-    err.style.display = "block"; 
-    return; 
-  }
+  if(!email || !password){ err.textContent = "ایمیل و رمز را وارد کنید"; err.style.display = "block"; return; }
 
   try {
-    btn.disabled = true;
-    btn.textContent = "در حال بررسی...";
+    btn.disabled = true; btn.textContent = "در حال بررسی...";
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      err.textContent = "ایمیل یا رمز اشتباه است یا حساب تایید نشده است.";
-      err.style.display = "block";
-    }
+    if (error) { err.textContent = "ایمیل یا رمز اشتباه است یا حساب تایید نشده است."; err.style.display = "block"; }
   } catch (e) {
-    err.textContent = e.message;
-    err.style.display = "block";
+    err.textContent = e.message; err.style.display = "block";
   } finally {
-    btn.disabled = false;
-    btn.textContent = "ورود";
+    btn.disabled = false; btn.textContent = "ورود";
   }
 };
 
-// ثبت‌نام کاربری
 document.getElementById("register-section").onsubmit = async (e) => {
   e.preventDefault();
   const name     = document.getElementById("register-name").value.trim();
@@ -217,58 +119,39 @@ document.getElementById("register-section").onsubmit = async (e) => {
   const btn      = document.getElementById("register-btn");
   
   err.style.display = "none";
-
   if(!name){ err.textContent = "نام را وارد کنید"; err.style.display = "block"; return; }
   if(!email){ err.textContent = "ایمیل را وارد کنید"; err.style.display = "block"; return; }
   if(password.length < 6){ err.textContent = "رمز باید حداقل ۶ کاراکتر باشد"; err.style.display = "block"; return; }
 
   try{
-    registering = true;
-    btn.disabled = true;
-    btn.textContent = "در حال ثبت‌نام...";
-    
-    // ۱. ثبت‌نام کاربر به همراه ذخیره نام در متادیتای اکانت (display_name)
+    registering = true; btn.disabled = true; btn.textContent = "در حال ثبت‌نام...";
     const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          display_name: name // ذخیره مستقیم نام کاربری در ساختار هویت
-        }
-      }
+      email, password, options: { data: { display_name: name } }
     });
     if (error) throw error;
 
-    // ۲. ذخیره همزمان در جدول پروفایل دیتابیس به عنوان پشتیبان
     if (data?.user) {
-      await supabase
-        .from("profiles")
-        .upsert({ id: data.user.id, name });
+      await supabase.from("profiles").upsert({ id: data.user.id, name });
     }
 
-    registering = false;
-    window.location.href = "./index.html";
+    registering = false; window.location.href = "./index.html";
   }catch(e){
-    registering = false;
-    err.textContent = e.message;
-    err.style.display = "block";
+    registering = false; err.textContent = e.message; err.style.display = "block";
   } finally {
-    btn.disabled = false;
-    btn.textContent = "ثبت نام";
+    btn.disabled = false; btn.textContent = "ثبت نام";
   }
 };
 </script>
 
+<!-- اضافه کردن اسکریپت سرویس ورکر -->
 <script>
-  // ثبت Service Worker برای پشتیبانی از PWA و حالت آفلاین
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js')
-        .then((reg) => console.log('Service Worker Registered!', reg))
+      navigator.serviceWorker.register('./sw.js', { scope: './' })
+        .then((reg) => console.log('Service Worker Registered!', reg.scope))
         .catch((err) => console.log('Service Worker Registration Failed!', err));
     });
   }
 </script>
-
 </body>
 </html>
