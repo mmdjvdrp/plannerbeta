@@ -602,3 +602,27 @@ window.addEventListener('offline', () => {
     msg.style.color = "#f87171"; // قرمز
   }
 });
+// اسکریپت مربوط به اتصال تلگرام
+setTimeout(() => {
+  const tgInput = document.getElementById('telegram-connect-code');
+  const tgCopyBtn = document.getElementById('copy-tg-code-btn');
+  
+  if(tgInput) {
+    supabase.auth.getUser().then(({ data }) => {
+      if(data && data.user) {
+        tgInput.value = data.user.id;
+      }
+    });
+  }
+
+  if(tgCopyBtn && tgInput) {
+    tgCopyBtn.onclick = () => {
+      if(tgInput.value) {
+        navigator.clipboard.writeText(tgInput.value);
+        const origText = tgCopyBtn.innerText;
+        tgCopyBtn.innerText = '✅ کپی شد';
+        setTimeout(() => { tgCopyBtn.innerText = origText; }, 2000);
+      }
+    };
+  }
+}, 1000);
