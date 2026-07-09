@@ -301,6 +301,18 @@ input[type=email]:focus, input[type=password]:focus { border-color: var(--accent
 
     <!-- تب 6 -->
     <div id="tab-settings" class="tab-section">
+      <!-- کارت جدید اتصال به تلگرام -->
+      <div class="card">
+        <div class="card-title">🤖 اتصال به ربات تلگرام (دستیار هوشمند)</div>
+        <p style="font-size: 12px; color: var(--muted); margin-bottom: 12px; line-height: 1.6;">
+          برای مدیریت کارها (To-Do) از طریق تلگرام و تیک زدن خودکار آن‌ها با هوش مصنوعی، کد زیر را کپی کرده و در ربات تلگرام خود ارسال کنید:
+        </p>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="text" id="telegram-connect-code" readonly style="flex:1; text-align:center; font-family:monospace; letter-spacing:1px; background:var(--surface2); color:var(--text); border:1px solid var(--border2); border-radius:8px; padding:8px;" placeholder="در حال دریافت کد...">
+          <button id="copy-tg-code-btn" class="action-btn">📋 کپی کد</button>
+        </div>
+        <p style="font-size: 11px; color: var(--muted); margin-top: 10px;">دستور ارسال در ربات:<br><code style="color:var(--accent);">/connect [کد شما]</code></p>
+      </div>
       <div class="card">
         <div class="card-title">تنظیمات پروفایل</div>
         <div class="form-group" style="margin-bottom: 20px;">
