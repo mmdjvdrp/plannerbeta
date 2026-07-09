@@ -602,19 +602,21 @@ window.addEventListener('offline', () => {
     msg.style.color = "#f87171"; // قرمز
   }
 });
-// اسکریپت مربوط به اتصال تلگرام
+// === کدهای اتصال تلگرام ===
 setTimeout(() => {
   const tgInput = document.getElementById('telegram-connect-code');
   const tgCopyBtn = document.getElementById('copy-tg-code-btn');
   
+  // گرفتن آیدی کاربر از دیتابیس و قرار دادن در اینپوت
   if(tgInput) {
     supabase.auth.getUser().then(({ data }) => {
       if(data && data.user) {
-        tgInput.value = data.user.id;
+        tgInput.value = `/connect ${data.user.id}`;
       }
     });
   }
 
+  // کپی کردن متن
   if(tgCopyBtn && tgInput) {
     tgCopyBtn.onclick = () => {
       if(tgInput.value) {
@@ -625,4 +627,4 @@ setTimeout(() => {
       }
     };
   }
-}, 1000);
+}, 1500);
