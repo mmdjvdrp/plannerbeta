@@ -23,6 +23,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 .tab-btn.active { background: #7c5cfc; color: white; border-color: #7c5cfc; }
 @media (max-width: 400px) { body { padding: 12px; } .box { padding: 16px; border-radius: 12px; } }
 .err { color: #f87171; font-size: 13px; margin-top: -10px; margin-bottom: 10px; display: none; }
+.success { color: #34d399; font-size: 13px; margin-top: -10px; margin-bottom: 10px; display: none; line-height: 1.6; }
 </style>
 </head>
 <body>
@@ -36,16 +37,17 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 
   <form id="login-section" onsubmit="return false;">
     <label for="login-email">ایمیل</label>
-    <input id="login-email" type="email" placeholder="example@email.com" required>
+    <input id="login-email" type="email" placeholder="example@email.com" required style="direction: ltr;">
     
     <label for="login-password">رمز</label>
-    <input id="login-password" type="password" placeholder="رمز عبور" required minlength="6">
+    <input id="login-password" type="password" placeholder="رمز عبور" required minlength="6" style="direction: ltr;">
     
     <div style="text-align: left; margin-top: -10px; margin-bottom: 15px;">
       <a href="./reset-password.html" style="color: #7c5cfc; text-decoration: none; font-size: 12px;">فراموشی رمز عبور؟</a>
     </div>
 
     <div class="err" id="login-err"></div>
+    <div class="success" id="login-success"></div>
     <button id="login-btn" type="submit">ورود</button>
   </form>
 
@@ -54,12 +56,13 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
     <input id="register-name" placeholder="مثلاً: علی" required>
     
     <label for="register-email">ایمیل</label>
-    <input id="register-email" type="email" placeholder="example@email.com" required>
+    <input id="register-email" type="email" placeholder="example@email.com" required style="direction: ltr;">
     
     <label for="register-password">رمز</label>
-    <input id="register-password" type="password" placeholder="حداقل ۶ کاراکتر" required minlength="6">
+    <input id="register-password" type="password" placeholder="حداقل ۶ کاراکتر" required minlength="6" style="direction: ltr;">
     
     <div class="err" id="register-err"></div>
+    <div class="success" id="register-success"></div>
     <button id="register-btn" type="submit">ثبت نام</button>
   </form>
 </div>
@@ -94,15 +97,23 @@ document.getElementById("login-section").onsubmit = async (e) => {
   const email    = document.getElementById("login-email").value.trim();
   const password = document.getElementById("login-password").value;
   const err      = document.getElementById("login-err");
+  const success  = document.getElementById("login-success");
   const btn      = document.getElementById("login-btn");
   
   err.style.display = "none";
+  success.style.display = "none";
+  
   if(!email || !password){ err.textContent = "ایمیل و رمز را وارد کنید"; err.style.display = "block"; return; }
 
   try {
     btn.disabled = true; btn.textContent = "در حال بررسی...";
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) { err.textContent = "ایمیل یا رمز اشتباه است یا حساب تایید نشده است."; err.style.display = "block"; }
+    if (error) { 
+      err.textContent = "ایمیل یا رمز اشتباه است یا حساب تایید نشده است."; 
+      err.style.display = "block"; 
+    } else {
+      window.location.href = "./index.html";
+    }
   } catch (e) {
     err.textContent = e.message; err.style.display = "block";
   } finally {
@@ -116,9 +127,12 @@ document.getElementById("register-section").onsubmit = async (e) => {
   const email    = document.getElementById("register-email").value.trim();
   const password = document.getElementById("register-password").value;
   const err      = document.getElementById("register-err");
+  const success  = document.getElementById("register-success");
   const btn      = document.getElementById("register-btn");
   
   err.style.display = "none";
+  success.style.display = "none";
+  
   if(!name){ err.textContent = "نام را وارد کنید"; err.style.display = "block"; return; }
   if(!email){ err.textContent = "ایمیل را وارد کنید"; err.style.display = "block"; return; }
   if(password.length < 6){ err.textContent = "رمز باید حداقل ۶ کاراکتر باشد"; err.style.display = "block"; return; }
@@ -134,7 +148,14 @@ document.getElementById("register-section").onsubmit = async (e) => {
       await supabase.from("profiles").upsert({ id: data.user.id, name });
     }
 
-    registering = false; window.location.href = "./index.html";
+    if (!data?.session) {
+      success.textContent = "ثبت‌نام با موفقیت انجام شد. لطفاً صندوق ورودی ایمیل خود را جهت تایید حساب کاربری بررسی کنید.";
+      success.style.display = "block";
+      registering = false;
+    } else {
+      registering = false; 
+      window.location.href = "./index.html";
+    }
   }catch(e){
     registering = false; err.textContent = e.message; err.style.display = "block";
   } finally {
@@ -143,7 +164,6 @@ document.getElementById("register-section").onsubmit = async (e) => {
 };
 </script>
 
-<!-- اضافه کردن اسکریپت سرویس ورکر -->
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
