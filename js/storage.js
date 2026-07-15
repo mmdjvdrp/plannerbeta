@@ -62,15 +62,18 @@ export const state = {
   mapMonth: getLocalDateStr().slice(0, 7),
   editingEventId: null,
   activeView: 'daily',
-  selectedRtDays: []
+  selectedRtDays: [],
+  last_updated: load('planner_last_updated', Date.now())
 };
 
 export async function saveCloud(){
-  // توقف پردازش اگر اینترنت قطع باشد
   if (!navigator.onLine) {
     console.log("آفلاین هستید. اطلاعات به صورت محلی ذخیره شد.");
     return; 
   }
+
+  state.last_updated = Date.now();
+  save('planner_last_updated', state.last_updated);
 
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -88,7 +91,8 @@ export async function saveCloud(){
         groupTimelinePref: state.groupTimelinePref, moodPresets: state.moodPresets,
         pomodoroWorkPref: state.pomodoroWorkPref, pomodoroBreakPref: state.pomodoroBreakPref,
         selectedReportCats: state.selectedReportCats, mobileNavStyle: state.mobileNavStyle,
-        routineLogs: state.routineLogs, tutorialCompleted: state.tutorialCompleted
+        routineLogs: state.routineLogs, tutorialCompleted: state.tutorialCompleted,
+        last_updated: state.last_updated
       }
     }, { onConflict: 'user_id' });
   } catch (err) { console.error("Error saving to cloud", err); }
@@ -102,6 +106,12 @@ export async function loadCloud(){
     
     if(data && data.data){
       const cd = data.data;
+
+      if (cd.last_updated && state.last_updated && cd.last_updated < state.last_updated) {
+        console.log("داده‌های محلی جدیدتر هستند. فرآیند بازنویسی لغو شد.");
+        return;
+      }
+
       state.events      = cd.events || [];
       state.cats        = cd.cats || [];
       state.theme       = cd.theme || "auto";
@@ -128,6 +138,8 @@ export async function loadCloud(){
       
       state.pomodoroWorkPref  = cd.pomodoroWorkPref || 25;
       state.pomodoroBreakPref = cd.pomodoroBreakPref || 5;
+      
+      state.last_updated      = cd.last_updated || Date.now();
 
       save('planner_ev', state.events);
       save('planner_cats', state.cats);
@@ -151,6 +163,7 @@ export async function loadCloud(){
       save('planner_mobile_nav_style', state.mobileNavStyle);
       save('planner_routine_logs', state.routineLogs);
       save('planner_tutorial_completed', state.tutorialCompleted);
+      save('planner_last_updated', state.last_updated);
     }
   } catch (err) { console.error("Error loading cloud data", err); }
 }
