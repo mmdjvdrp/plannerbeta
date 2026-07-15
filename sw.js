@@ -1,5 +1,5 @@
 // sw.js
-const CACHE_NAME = "planner-cache-v10";
+const CACHE_NAME = "planner-cache-v11";
 const assetsToCache = [
   "./",
   "./index.html",
@@ -15,20 +15,17 @@ const assetsToCache = [
   "./icons/icon-512.png"
 ];
 
-// ۱. نصب سرویس‌ورکر و کش کردن فایل‌های اصلی
 self.addEventListener("install", (event) => {
   self.skipWaiting(); 
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // استفاده از Promise.allSettled تا اگر فایلی پیدا نشد، کل فرآیند نصب متوقف نشود
       return Promise.allSettled(
-        assetsToCache.map(url => cache.add(url).catch(err => console.log('خطا در کش:', url)))
+        assetsToCache.map(url => cache.add(url).catch(err => console.log('Cache error:', url)))
       );
     })
   );
 });
 
-// ۲. فعال‌سازی و پاک کردن کش‌های قدیمی
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     Promise.all([
@@ -46,20 +43,25 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// ۳. مدیریت درخواست‌ها و واکشی کش آفلاین
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).then((response) => {
-        return response;
-      }).catch(() => {
-        console.log("درخواست با خطا مواجه شد (آفلاین)");
-      });
-    })
+    fetch(event.request)
+      .then((networkResponse) => {
+        const responseClone = networkResponse.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, responseClone);
+        });
+        return networkResponse;
+      })
+      .catch(() => {
+        return caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          throw new Error("Offline and resource not found in cache.");
+        });
+      })
   );
 });
