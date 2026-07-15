@@ -30,7 +30,7 @@ window.openEmojiGallery = function(idx) {
   state.currentSelectingCatId = null;
   state.galleryPage = 0;
   const modal = document.getElementById("emoji-gallery-modal");
-  if (modal) { modal.style.display = "flex"; renderGalleryGrid(); }
+  if (modal) { modal.style.display = "flex"; window.renderGalleryGrid(); }
 };
 
 window.openCatEmojiPicker = function(catId) {
@@ -38,7 +38,7 @@ window.openCatEmojiPicker = function(catId) {
   state.currentSelectingPresetIdx = null;
   state.galleryPage = 0;
   const modal = document.getElementById("emoji-gallery-modal");
-  if (modal) { modal.style.display = "flex"; renderGalleryGrid(); }
+  if (modal) { modal.style.display = "flex"; window.renderGalleryGrid(); }
 };
 
 window.renderGalleryGrid = function() {
@@ -88,12 +88,12 @@ safeBindEvent("close-gallery-modal", "onclick", () => {
 });
 
 safeBindEvent("gallery-prev", "onclick", () => {
-  if (state.galleryPage > 0) { state.galleryPage--; renderGalleryGrid(); }
+  if (state.galleryPage > 0) { state.galleryPage--; window.renderGalleryGrid(); }
 });
 
 safeBindEvent("gallery-next", "onclick", () => {
   const maxPages = Math.ceil(200 / state.galleryPageSize);
-  if (state.galleryPage + 1 < maxPages) { state.galleryPage++; renderGalleryGrid(); }
+  if (state.galleryPage + 1 < maxPages) { state.galleryPage++; window.renderGalleryGrid(); }
 });
 
 window.switchTab = function(tabId) {
@@ -105,7 +105,7 @@ window.switchTab = function(tabId) {
 };
 
 document.querySelectorAll(".nav-btn").forEach(btn => {
-  btn.addEventListener("click", () => { switchTab(btn.getAttribute("data-tab")); });
+  btn.addEventListener("click", () => { window.switchTab(btn.getAttribute("data-tab")); });
 });
 
 safeBindEvent("prev-day", "onclick", () => { shiftDay(-1); });
@@ -230,7 +230,7 @@ window.editEv = function(id) {
   document.getElementById("start-time").value = fmtTime(ev.sMins);
   document.getElementById("end-time").value = fmtTime(ev.eMins);
   if (document.getElementById("act-pause")) { document.getElementById("act-pause").value = ev.pauseMins || 0; }
-  switchTab("tab-add"); render();
+  window.switchTab("tab-add"); render();
 };
 
 safeBindEvent("cancel-edit-btn", "onclick", () => {
@@ -274,7 +274,7 @@ safeBindEvent("add-btn", "onclick", () => {
     state.events.push({ id: Date.now().toString(), date: state.curDate, title, catId, sMins, eMins, durMins, pauseMins, tags });
   }
 
-  save("planner_ev", state.events); saveCloud(); render(); switchTab("tab-timeline");
+  save("planner_ev", state.events); saveCloud(); render(); window.switchTab("tab-timeline");
 });
 
 safeBindEvent("live-btn", "onclick", () => {
@@ -557,7 +557,7 @@ async function handleUserSession(session) {
   const settingDisplayName = document.getElementById("setting-display-name");
   if (settingDisplayName) { settingDisplayName.value = displayName; }
 
-  // Telegram Logic: OTP Generation
+  // Telegram Logic: Executed exactly when the user is available
   const tgInput = document.getElementById('telegram-connect-code');
   const tgCopyBtn = document.getElementById('copy-tg-code-btn');
   if (tgInput && tgCopyBtn) {
@@ -592,6 +592,19 @@ async function handleUserSession(session) {
     };
   }
 
+  try {
+    await loadCloud(); applyTheme(); render(); triggerNavPeekAnimation(); showTutorial();
+  } catch (err) { console.error(err); }
+}
+
+async function initAuth() {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) await handleUserSession(session);
+    else window.location.href = "./login.html";
+  } catch (err) { window.location.href = "./login.html"; }
+}
+
 initAuth();
 
 supabase.auth.onAuthStateChange((event, session) => {
@@ -599,28 +612,26 @@ supabase.auth.onAuthStateChange((event, session) => {
   else if (event === "SIGNED_IN" && session) handleUserSession(session);
 });
 
-// === شنونده‌های مربوط به حالت آفلاین و آنلاین ===
 window.addEventListener('online', () => {
   console.log("اتصال اینترنت برقرار شد. در حال همگام‌سازی اطلاعات با سرور...");
-  saveCloud().then(() => {
-    const msg = document.getElementById("welcome-msg");
-    if(msg) {
-      const originalText = msg.textContent;
-      msg.textContent = "✅ اطلاعات با سرور همگام شد";
-      msg.style.color = "#34d399"; // سبز
-      
-      setTimeout(() => {
-        msg.textContent = originalText;
-        msg.style.color = "var(--muted)";
-      }, 4000);
-    }
-  });
+  saveCloud();
+  const msg = document.getElementById("welcome-msg");
+  if(msg) {
+    const originalText = msg.textContent;
+    msg.textContent = "✅ اطلاعات با سرور همگام شد";
+    msg.style.color = "#34d399";
+    
+    setTimeout(() => {
+      msg.textContent = originalText;
+      msg.style.color = "var(--muted)";
+    }, 4000);
+  }
 });
 
 window.addEventListener('offline', () => {
   const msg = document.getElementById("welcome-msg");
   if(msg) {
     msg.textContent = "⚠️ شما آفلاین هستید (ذخیره در گوشی)";
-    msg.style.color = "#f87171"; // قرمز
+    msg.style.color = "#f87171";
   }
 });
