@@ -920,7 +920,9 @@ export function updateLiveButton(){
       window.cancelLiveSession();
     };
 
-    startLiveStopwatch();
+    if (!liveStopwatchInterval) {
+      startLiveStopwatch();
+    }
   } else {
     btn.classList.remove('is-running');
     btn.textContent = 'شروع فعالیت زنده';
