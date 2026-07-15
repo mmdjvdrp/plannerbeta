@@ -618,29 +618,3 @@ window.addEventListener('offline', () => {
     msg.style.color = "#f87171"; // قرمز
   }
 });
-// === کدهای اتصال تلگرام ===
-setTimeout(() => {
-  const tgInput = document.getElementById('telegram-connect-code');
-  const tgCopyBtn = document.getElementById('copy-tg-code-btn');
-  
-  // گرفتن آیدی کاربر از دیتابیس و قرار دادن در اینپوت
-  if(tgInput) {
-    supabase.auth.getUser().then(({ data }) => {
-      if(data && data.user) {
-        tgInput.value = `/connect ${data.user.id}`;
-      }
-    });
-  }
-
-  // کپی کردن متن
-  if(tgCopyBtn && tgInput) {
-    tgCopyBtn.onclick = () => {
-      if(tgInput.value) {
-        navigator.clipboard.writeText(tgInput.value);
-        const origText = tgCopyBtn.innerText;
-        tgCopyBtn.innerText = '✅ کپی شد';
-        setTimeout(() => { tgCopyBtn.innerText = origText; }, 2000);
-      }
-    };
-  }
-}, 1500);
