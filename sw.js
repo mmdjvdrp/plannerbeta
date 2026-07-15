@@ -1,5 +1,5 @@
 // sw.js
-const CACHE_NAME = "planner-cache-v11";
+const CACHE_NAME = "planner-cache-v12";
 const assetsToCache = [
   "./",
   "./index.html",
@@ -11,6 +11,7 @@ const assetsToCache = [
   "./js/helpers.js",
   "./js/render.js",
   "./js/planner.js",
+  "./js/chart.min.js",
   "./icons/icon-192.png",
   "./icons/icon-512.png"
 ];
