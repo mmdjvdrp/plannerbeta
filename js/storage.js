@@ -66,7 +66,9 @@ export const state = {
   last_updated: load('planner_last_updated', Date.now())
 };
 
-export async function saveCloud(){
+let saveCloudTimeout = null;
+
+async function performCloudSave() {
   if (!navigator.onLine) {
     console.log("آفلاین هستید. اطلاعات به صورت محلی ذخیره شد.");
     return; 
@@ -96,6 +98,15 @@ export async function saveCloud(){
       }
     }, { onConflict: 'user_id' });
   } catch (err) { console.error("Error saving to cloud", err); }
+}
+
+export function saveCloud() {
+  if (saveCloudTimeout) {
+    clearTimeout(saveCloudTimeout);
+  }
+  saveCloudTimeout = setTimeout(() => {
+    performCloudSave();
+  }, 2000);
 }
 
 export async function loadCloud(){
