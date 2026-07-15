@@ -557,11 +557,27 @@ async function handleUserSession(session) {
   const settingDisplayName = document.getElementById("setting-display-name");
   if (settingDisplayName) { settingDisplayName.value = displayName; }
 
+  // Telegram Logic: Executed exactly when the user is available
+  const tgInput = document.getElementById('telegram-connect-code');
+  const tgCopyBtn = document.getElementById('copy-tg-code-btn');
+  if(tgInput) {
+    tgInput.value = `/connect ${user.id}`;
+  }
+  if(tgCopyBtn && tgInput) {
+    tgCopyBtn.onclick = () => {
+      if(tgInput.value) {
+        navigator.clipboard.writeText(tgInput.value);
+        const origText = tgCopyBtn.innerText;
+        tgCopyBtn.innerText = '✅ کپی شد';
+        setTimeout(() => { tgCopyBtn.innerText = origText; }, 2000);
+      }
+    };
+  }
+
   try {
     await loadCloud(); applyTheme(); render(); triggerNavPeekAnimation(); showTutorial();
   } catch (err) { console.error(err); }
 }
-
 async function initAuth() {
   try {
     const { data: { session } } = await supabase.auth.getSession();
