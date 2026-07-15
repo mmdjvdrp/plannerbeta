@@ -557,34 +557,40 @@ async function handleUserSession(session) {
   const settingDisplayName = document.getElementById("setting-display-name");
   if (settingDisplayName) { settingDisplayName.value = displayName; }
 
-  // Telegram Logic: Executed exactly when the user is available
+  // Telegram Logic: OTP Generation
   const tgInput = document.getElementById('telegram-connect-code');
   const tgCopyBtn = document.getElementById('copy-tg-code-btn');
-  if(tgInput) {
-    tgInput.value = `/connect ${user.id}`;
-  }
-  if(tgCopyBtn && tgInput) {
-    tgCopyBtn.onclick = () => {
-      if(tgInput.value) {
-        navigator.clipboard.writeText(tgInput.value);
-        const origText = tgCopyBtn.innerText;
+  if (tgInput && tgCopyBtn) {
+    tgCopyBtn.onclick = async () => {
+      const originalText = tgCopyBtn.innerText;
+      tgCopyBtn.innerText = 'در حال تولید...';
+      tgCopyBtn.disabled = true;
+
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      try {
+        const { error } = await supabase.from('bot_links').upsert(
+          { otp: otp, user_id: user.id },
+          { onConflict: 'user_id' }
+        );
+        if (error) throw error;
+
+        const command = `/connect ${otp}`;
+        tgInput.value = command;
+        navigator.clipboard.writeText(command);
         tgCopyBtn.innerText = '✅ کپی شد';
-        setTimeout(() => { tgCopyBtn.innerText = origText; }, 2000);
+      } catch (err) {
+        console.error(err);
+        tgInput.value = "خطا در ارتباط با سرور";
+        tgCopyBtn.innerText = '❌ خطا';
       }
+
+      setTimeout(() => { 
+        tgCopyBtn.innerText = originalText; 
+        tgCopyBtn.disabled = false;
+      }, 2000);
     };
   }
-
-  try {
-    await loadCloud(); applyTheme(); render(); triggerNavPeekAnimation(); showTutorial();
-  } catch (err) { console.error(err); }
-}
-async function initAuth() {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) await handleUserSession(session);
-    else window.location.href = "./login.html";
-  } catch (err) { window.location.href = "./login.html"; }
-}
 
 initAuth();
 
